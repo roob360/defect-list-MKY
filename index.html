@@ -218,22 +218,9 @@
   .centered{ max-width:520px; margin:0 auto; padding-top:40px; }
 
   .brand{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:8px 0 22px; }
-  .brand img{ width:76px; height:76px; border-radius:18px; display:block; }
+  .brand img{ width:76px; height:76px; border-radius:17px; display:block; }
   .brand h1{ margin:14px 0 0; font-size:30px; line-height:36px; font-weight:700; letter-spacing:-.4px; }
   .brand .cap{ margin-top:2px; }
-  .pk{ --ac:#1d6fe0; --ac2:#1d6fe0; display:flex; align-items:center; gap:16px; width:100%; margin:0 0 14px; padding:22px 20px; border:0; border-radius:var(--r-group); font:inherit; color:inherit; text-align:left; cursor:pointer;
-    background:var(--gbg2); box-shadow:inset 4px 0 0 var(--ac); }
-  .pk.b{ --ac:#12998a; --ac2:#12998a; }
-  .pk .mono_x{ flex:none; min-width:96px; height:76px; padding:0 12px; border-radius:20px; display:grid; place-items:center; font-size:23px; font-weight:800; letter-spacing:-.3px; color:#fff; background:linear-gradient(160deg,var(--ac),color-mix(in srgb,var(--ac) 62%,#000)); }
-  .pk .t{ flex:1; min-width:0; }
-  .pk .t b{ display:block; font-size:19px; line-height:24px; font-weight:700; }
-  .pk .t span{ display:block; font-size:15px; line-height:20px; color:var(--label2); }
-  .pk .chev{ flex:none; width:10px; height:16px; fill:none; stroke:var(--label3); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-  .pk:active{ filter:brightness(.97); }
-  html:not(.hemat) .pk{ transition:transform .15s; }
-  html:not(.hemat) .pk:active{ transform:scale(.985); }
-  @media (prefers-color-scheme:dark){ :root:not([data-tema="terang"]) .pk{ --ac:#4a93ff; } :root:not([data-tema="terang"]) .pk.b{ --ac:#2cc4b0; } }
-  :root[data-tema="gelap"] .pk{ --ac:#4a93ff; } :root[data-tema="gelap"] .pk.b{ --ac:#2cc4b0; }
   html:not(.hemat) .btn,html:not(.hemat) .pill,html:not(.hemat) .btn-ic,html:not(.hemat) .dock button{ transition:transform .4s cubic-bezier(.34,1.56,.64,1), background-color .15s, opacity .15s, color .2s; }
   html:not(.hemat) .btn:active,html:not(.hemat) .pill:active,html:not(.hemat) .btn-ic:active,html:not(.hemat) .dock button:active{ transform:scale(.94); transition-duration:.1s; }
   html:not(.hemat) .thumb > button{ transition:transform .3s cubic-bezier(.34,1.56,.64,1); }
@@ -476,13 +463,11 @@ function render(){
   if(S.drawn!==key){S.drawn=key;app.classList.remove('enter');void app.offsetWidth;app.classList.add('enter')}
 }
 function renderPick(){
-  var MON={MAPK:['MA-PK',''],MKKY:['MK-KY','b']};
-  var h='<div class="centered"><div class="brand"><img src="icon-192.png" alt="" width="76" height="76"><h1>Defect List</h1><div class="cap">Kompleks Yudikatif IKN</div></div>';
+  var h='<div class="centered"><div class="brand"><img src="icon-192.png" alt="" width="76" height="76"><h1>Defect List</h1></div><section class="group"><div class="sh">Pilih paket</div><div class="list">';
   PAKET_LIST.forEach(function(p){
-    var m=MON[p.id]||[p.nama,''];
-    h+='<button type="button" class="pk '+m[1]+'" data-act="paket" data-id="'+esc(p.id)+'"><span class="t"><b>'+esc(p.label)+'</b></span><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
+    h+='<button type="button" class="row actionrow big" data-act="paket" data-id="'+esc(p.id)+'"><span class="t"><b>'+esc(p.proyek)+'</b><span>'+esc(p.label)+'</span></span><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
   });
-  app.innerHTML=h+'</div>';
+  app.innerHTML=h+'</div></section></div>';
 }
 function renderLogin(){
   var p=S.paket;
@@ -1171,8 +1156,6 @@ async function exportPdf(){
       }
       y+=2;doc.setDrawColor(200,200,200);doc.setLineWidth(.2);doc.line(M,y,PW-M,y);y+=6;
     }
-    need(34);y+=16;doc.setFont('helvetica','normal');doc.setFontSize(10);ink();
-    T_('(                                                )',M+6,y);T_('(                                                )',M+CW/2+6,y);
     var out=doc.output('arraybuffer');
     S.busy='';renderOverlay();
     showFile('Defect_List_'+clean(g.nama)+'_'+clean(l.nama)+'_'+clean(r.nama)+'.pdf',out,'application/pdf');
