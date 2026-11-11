@@ -6,7 +6,7 @@ var PAKET_LIST = [
     nama: 'MA-PK',
     label: 'Paket MA · PK · IKN',
     proyek: 'Paket MA-PK',
-    apiUrl: ''
+    apiUrl: 'https://script.google.com/macros/s/AKfycbzGO3ObQvEoXxza7n6W4UdHcDjNw6harwe7aH9ztb568bKYaH1XOoixuQPgBYEfVq9W/exec'
   },
   {
     id: 'MKKY',
