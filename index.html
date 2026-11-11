@@ -193,6 +193,8 @@
   .ov.mid .sheet{ padding-top:22px; }
   .ov.mid{ align-items:center; padding:20px; }
   .ov.mid .sheet{ border-radius:26px; padding-bottom:20px; }
+  .zrow{ display:flex; align-items:center; gap:12px; cursor:pointer; }
+  .zrow input{ width:22px; height:22px; flex:none; accent-color:var(--blue); margin:0; }
   .busy{ display:flex; align-items:center; gap:14px; justify-content:center; padding:10px 0; font-weight:600; }
   .zoom{ background:#000000e6; align-items:center; }
   .zoom img{ max-width:100%; max-height:100%; object-fit:contain; }
@@ -299,11 +301,12 @@
 
 var XLSX_URL='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 var PDF_URL='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+var ZIP_URL='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
 var STORE='dl-paket';
 
 var S={
   paket:null, kode:'', user:null, view:'form', rooms:[], roomsReady:false, sel:{g:'',l:'',r:''},
-  defects:{}, loading:{}, errs:{}, all:null, siap:null, siapErr:'', anim:'sistem', terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
+  defects:{}, loading:{}, errs:{}, all:null, siap:null, siapErr:'', anim:'sistem', zipOff:{}, zipRun:false, zipStop:false, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
   kl:{g:'',l:'',n:''}, hist:[], skip:0, seen:{}, ringPrev:{}, drawn:'', ovKey:''
 };
 var app=document.getElementById('app'), overlay=document.getElementById('overlay');
@@ -655,6 +658,10 @@ function kelolaHtml(){
     });
   });
   h+='</section>';
+  if(T.length){
+    h+='<section class="group"><div class="sh">Unduh PDF massal</div><div class="list">'+T.map(function(g){return '<label class="row zrow"><input type="checkbox" data-act="zipg" data-g="'+esc(g.nama)+'"'+(S.zipOff[g.nama]?'':' checked')+'><span>'+esc(g.nama)+'</span></label>'}).join('')+'</div>'+
+      '<div class="acts" style="padding-top:12px;padding-bottom:14px"><button type="button" class="pill" data-act="zipgo">'+ic('pdf')+'Unduh ZIP</button></div></section>';
+  }
   h+='<section class="group"><div class="sh">Temuan terhapus</div>';
   if(!S.terhapus)h+='<div class="acts" style="padding-top:0;padding-bottom:16px"><button type="button" class="pill" data-act="lihatsampah">Tampilkan</button></div>';
   else if(!S.terhapus.length)h+='<div class="gf">Tidak ada temuan terhapus.</div>';
@@ -668,7 +675,7 @@ function kelolaHtml(){
 /* ---------- overlay ---------- */
 function renderOverlay(){
   var h='';
-  if(S.busy)h='<div class="ov mid" style="z-index:90"><div class="sheet"><div class="busy"><div class="spin d"></div><span>'+esc(S.busy)+'</span></div></div></div>';
+  if(S.busy)h='<div class="ov mid" style="z-index:90"><div class="sheet"><div class="busy"><div class="spin d"></div><span>'+esc(S.busy)+'</span></div>'+(S.zipRun?'<button type="button" class="btn sec" data-act="zipbatal" style="margin-top:10px">Batal</button>':'')+'</div></div>';
   else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button></div>';
   else if(S.file)h='<div class="ov mid"><div class="sheet gap"><h2>File siap</h2><div class="note" style="padding:0 0 4px">'+esc(S.file.name)+'</div>'+
     '<a class="btn" id="dl" href="'+esc(S.file.url)+'" download="'+esc(S.file.name)+'">Unduh</a>'+
@@ -906,6 +913,9 @@ async function onClick(ev){
     case 'xlsx': return exportXlsx();
     case 'rekapall': {var ok=await work('Memuat semua temuan...',loadAll);if(ok)render();return}
     case 'addroom': return tambahRuangan();
+    case 'zipg': S.zipOff[el.getAttribute('data-g')]=!el.checked;return;
+    case 'zipgo': return exportZip();
+    case 'zipbatal': S.zipStop=true;S.busy='Membatalkan...';return renderOverlay();
     case 'ubahroom': {var rr=S.rooms.filter(function(x){return x.id===el.getAttribute('data-r')})[0];if(rr)openModal({t:'ruang',r:rr});return}
     case 'rsimpan': {
       var rm=S.modal.r,g=$('rG').value,l=$('rL').value,n=$('rN').value;closeModal();
@@ -1099,15 +1109,8 @@ async function fetchImgs(ids,onStep){
     for(var j=0;j<res.length;j++){S.img[res[j].id]=res[j].data?await imgSize(res[j].data):{fail:true}}
   }
 }
-async function exportPdf(){
-  var T=tree(),s=ensureSel(T);if(!s)return;
-  var g=s.g,l=s.l,r=s.r,list=S.defects[r.id];if(!list){toast('Temuan belum dimuat.');return}
-  var ids=[];list.forEach(function(d){d.fotoBefore.concat(d.fotoAfter).forEach(function(f){ids.push(f.id)})});
-  S.busy='Menyusun PDF...';renderOverlay();
-  try{
-    await loadLib(PDF_URL,'jspdf');
-    await fetchImgs(ids,function(i){S.busy='Memuat foto '+Math.min(i+1,ids.length)+' dari '+ids.length+'...';renderOverlay()});
-    S.busy='Menyusun PDF...';renderOverlay();
+var STC={'Open':[192,28,32],'Dalam proses':[176,92,0],'Close':[24,128,56]};
+function buildPdf(g,l,r,list){
     var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
     var PW=210,PH=297,M=15,CW=PW-2*M,y=M;
     var T_=function(t,x,yy,o){doc.text(String(t),x,yy,o)};
@@ -1130,10 +1133,17 @@ async function exportPdf(){
       need(6+lines.length*4.8+5+BH+10);
       doc.setFont('helvetica','bold');T_((d.no||di+1)+'.',M,y);
       doc.setFont('helvetica','normal');lines.forEach(function(t,i){T_(t,M+8,y+i*4.8)});y+=lines.length*4.8+1;
-      doc.setFontSize(8.5);grey();
-      var m=d.bidang+'  |  '+d.tingkat+'  |  '+st+'  |  Temuan '+fmt(d.tglTemuan);
-      if(st==='Close')m+='  |  Close '+fmt(d.tglVerif)+(d.verifOleh?' ('+d.verifOleh+')':'');
-      doc.splitTextToSize(m,CW-8).forEach(function(t){T_(t,M+8,y+3);y+=4});
+      doc.setFontSize(8.5);
+      var segs=[d.bidang,d.tingkat,st,'Temuan '+fmt(d.tglTemuan)];
+      if(st==='Close')segs.push('Close '+fmt(d.tglVerif)+(d.verifOleh?' ('+d.verifOleh+')':''));
+      var SEP='  |  ',xx=M+8;
+      segs.forEach(function(t,k){
+        if(k>0){doc.setFont('helvetica','normal');grey();T_(SEP,xx,y+3);xx+=doc.getTextWidth(SEP)}
+        if(k===2){doc.setFont('helvetica','bold');var c3=STC[st]||[95,95,95];doc.setTextColor(c3[0],c3[1],c3[2])}
+        else{doc.setFont('helvetica','normal');grey()}
+        T_(String(t),xx,y+3);xx+=doc.getTextWidth(String(t));
+      });
+      doc.setFont('helvetica','normal');y+=4;
       if(d.catatan){doc.splitTextToSize('Catatan MK: '+d.catatan,CW-8).forEach(function(t){T_(t,M+8,y+3);y+=4})}
       ink();y+=3;
       var rws=Math.max(before.length,after.length,1);
@@ -1159,10 +1169,55 @@ async function exportPdf(){
       }
       y+=0;doc.setDrawColor(200,200,200);doc.setLineWidth(.2);doc.line(M,y,PW-M,y);y+=5;
     }
-    var out=doc.output('arraybuffer');
+    return doc.output('arraybuffer');
+}
+async function exportPdf(){
+  var T=tree(),s=ensureSel(T);if(!s)return;
+  var g=s.g,l=s.l,r=s.r,list=S.defects[r.id];if(!list){toast('Temuan belum dimuat.');return}
+  var ids=[];list.forEach(function(d){d.fotoBefore.concat(d.fotoAfter).forEach(function(f){ids.push(f.id)})});
+  S.busy='Menyusun PDF...';renderOverlay();
+  try{
+    await loadLib(PDF_URL,'jspdf');
+    await fetchImgs(ids,function(i){S.busy='Memuat foto '+Math.min(i+1,ids.length)+' dari '+ids.length+'...';renderOverlay()});
+    S.busy='Menyusun PDF...';renderOverlay();
+    var out=buildPdf(g,l,r,list);
     S.busy='';renderOverlay();
     showFile('Defect_List_'+clean(g.nama)+'_'+clean(l.nama)+'_'+clean(r.nama)+'.pdf',out,'application/pdf');
   }catch(e){S.busy='';renderOverlay();if(e&&e.server)gagal(e);else toast('PDF tidak bisa disusun. Periksa koneksi lalu coba lagi.')}
+}
+
+/* PDF massal (ZIP) */
+function dirName(t){return String(t||'').replace(/[\\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim()||'-'}
+async function exportZip(){
+  var T=tree(),g2=T.filter(function(g){return !S.zipOff[g.nama]});
+  if(!g2.length){toast('Pilih minimal satu gedung.');return}
+  S.zipRun=true;S.zipStop=false;S.busy='Menyiapkan...';renderOverlay();
+  var gagalR=[],jml=0;
+  try{
+    await loadLib(PDF_URL,'jspdf');await loadLib(ZIP_URL,'JSZip');
+    S.all=null;var all=await loadAll(),by={};
+    all.forEach(function(d){(by[d.ruanganId]=by[d.ruanganId]||[]).push(d)});
+    var rooms=[];
+    g2.forEach(function(g){g.lantai.forEach(function(l){l.ruangan.forEach(function(r){if(by[r.id]&&by[r.id].length)rooms.push([g,l,r,by[r.id].sort(function(a,b){return (a.no||0)-(b.no||0)})])})})});
+    if(!rooms.length){S.zipRun=false;S.busy='';renderOverlay();toast('Tidak ada temuan pada gedung yang dipilih.');return}
+    var zip=new window.JSZip();
+    for(var i=0;i<rooms.length;i++){
+      if(S.zipStop){S.zipRun=false;S.busy='';renderOverlay();toast('Dibatalkan.');return}
+      var g=rooms[i][0],l=rooms[i][1],r=rooms[i][2],list=rooms[i][3];
+      S.busy='Ruangan '+(i+1)+' dari '+rooms.length+': '+r.nama;renderOverlay();
+      var ids=[];list.forEach(function(d){d.fotoBefore.concat(d.fotoAfter).forEach(function(f){ids.push(f.id)})});
+      try{
+        await fetchImgs(ids,function(){});
+        zip.file(dirName(g.nama)+'/'+dirName(l.nama)+'/'+dirName(r.nama)+'.pdf',buildPdf(g,l,r,list));jml++;
+      }catch(e){if(e&&e.server)throw e;gagalR.push(g.nama+' / '+l.nama+' / '+r.nama)}
+      ids.forEach(function(id){delete S.img[id]});
+    }
+    S.busy='Mengemas ZIP...';renderOverlay();
+    var out=await zip.generateAsync({type:'arraybuffer',compression:'STORE'});
+    S.zipRun=false;S.busy='';renderOverlay();
+    showFile('Defect_List_'+clean(S.paket.nama)+'_'+today()+'.zip',out,'application/zip');
+    if(gagalR.length)toast(gagalR.length+' ruangan gagal dan dilewati: '+gagalR.slice(0,2).join(', ')+(gagalR.length>2?', dan lainnya':''));
+  }catch(e){S.zipRun=false;S.busy='';renderOverlay();if(e&&e.server)gagal(e);else toast('ZIP tidak bisa disusun. Periksa koneksi lalu coba lagi.')}
 }
 
 /* ---------- mulai ---------- */
