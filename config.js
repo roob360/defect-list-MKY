@@ -18,5 +18,5 @@ var PAKET_LIST = [
 ];
 
 // Pilihan isian form. Ubah di sini bila perlu.
-var BIDANG = ['Arsitektur', 'Struktur', 'Mekanikal', 'Elektrikal', 'Plumbing', 'Lansekap'];
+var BIDANG = ['Arsitektur', 'Struktur', 'MEEP', 'Infrastruktur', 'Lansekap'];
 var TINGKAT = ['Minor', 'Mayor', 'Kritis'];
