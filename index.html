@@ -462,7 +462,7 @@ function formHtml(){
     '<div class="stats"><div><b>'+c.total+'</b><span>Total</span></div><div class="o"><b>'+c.open+'</b><span>Open</span></div><div class="p"><b>'+c.proses+'</b><span>Proses</span></div><div class="c"><b>'+c.close+'</b><span>Close</span></div></div></div>';
   h+='<div class="acts" style="padding:0 0 '+'16px"><button type="button" class="pill" data-act="pdf">'+ic('pdf')+'PDF</button>'+(canEdit()?'<button type="button" class="pill" data-act="tambah">'+ic('plus')+'Tambah</button>':'')+'<button type="button" class="pill" data-act="muat">Muat ulang</button></div>';
   if(!list.length)return h+'<div class="empty">Belum ada temuan di ruangan ini.</div>';
-  list.forEach(function(d,i){h+=entryHtml(d,i+1)});
+  list.forEach(function(d,i){h+=entryHtml(d,d.no||i+1,i)});
   return h;
 }
 function thumbsHtml(items,jenis,d,removable){
@@ -476,10 +476,10 @@ function thumbsHtml(items,jenis,d,removable){
 function picker(d,jenis){
   return '<div class="pbtn"><button type="button" class="pill" data-act="foto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-cam="1">'+ic('cam')+'Kamera</button><button type="button" class="pill" data-act="foto" data-d="'+esc(d.id)+'" data-j="'+jenis+'">'+ic('img')+'Galeri</button></div>';
 }
-function entryHtml(d,n){
+function entryHtml(d,n,ix){
   var ed=canEdit(),closed=d.status==='Close';
   var fresh=!S.seen[d.id];S.seen[d.id]=1;
-  var h='<article class="group entry'+(fresh?' pop':'')+'"'+(fresh?' style="animation-delay:'+Math.min(n-1,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'"><div class="eh"><span class="no">'+n+'.</span><span class="tx">'+esc(d.uraian)+'</span></div>'+
+  var h='<article class="group entry'+(fresh?' pop':'')+'"'+(fresh?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'"><div class="eh"><span class="no">'+n+'.</span><span class="tx">'+esc(d.uraian)+'</span></div>'+
     '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span></div>';
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
   if(d.verifikasi)h+='<div class="note">'+(d.verifikasi==='Diterima'?'Diterima':'Ditolak')+' MK '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):'')+(d.catatan?'. Catatan: '+esc(d.catatan):'')+'</div>';
@@ -876,7 +876,7 @@ async function exportXlsx(){
     T.forEach(function(g){g.lantai.forEach(function(l){l.ruangan.forEach(function(r){
       rooms.push([g.nama,l.nama,r.nama]);
       (by[r.id]||[]).forEach(function(d,i){var st=d.status;
-        rows.push([g.nama,l.nama,r.nama,i+1,d.bidang,d.uraian,d.tingkat,toDate(d.tglTemuan),st,st==='Close'?toDate(d.tglVerif):'',d.verifOleh||'',d.catatan||'',d.fotoBefore.length,d.fotoAfter.length])});
+        rows.push([g.nama,l.nama,r.nama,d.no||i+1,d.bidang,d.uraian,d.tingkat,toDate(d.tglTemuan),st,st==='Close'?toDate(d.tglVerif):'',d.verifOleh||'',d.catatan||'',d.fotoBefore.length,d.fotoAfter.length])});
     })})});
     var ws1=X.utils.aoa_to_sheet(rows,{cellDates:true});
     ws1['!cols']=[22,14,22,5,13,48,9,14,13,14,20,32,10,10].map(function(w){return {wch:w}});
@@ -962,7 +962,7 @@ async function exportPdf(){
       doc.setFont('helvetica','normal');doc.setFontSize(10);
       var lines=doc.splitTextToSize(d.uraian,CW-10);
       need(6+lines.length*4.8+5+BH+10);
-      doc.setFont('helvetica','bold');T_((di+1)+'.',M,y);
+      doc.setFont('helvetica','bold');T_((d.no||di+1)+'.',M,y);
       doc.setFont('helvetica','normal');lines.forEach(function(t,i){T_(t,M+8,y+i*4.8)});y+=lines.length*4.8+1;
       doc.setFontSize(8.5);grey();
       var m=d.bidang+'  |  '+d.tingkat+'  |  '+st+'  |  Temuan '+fmt(d.tglTemuan);
