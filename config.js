@@ -6,6 +6,7 @@ var PAKET_LIST = [
     nama: 'MA-PK',
     label: 'Paket MA · PK · IKN',
     proyek: 'Proyek Pembangunan Gedung dan Kawasan Mahkamah Agung dan Plaza Keadilan',
+    ringkas: 'Mahkamah Agung dan Plaza Keadilan',
     apiUrl: 'https://script.google.com/macros/s/AKfycbzHaGK3b9SwUN7ami4e0VnZ0RNLFsxBHxMkau2HlOVzLq3erd6SwkumafIx50SMrrB9WQ/exec'
   },
   {
@@ -13,6 +14,7 @@ var PAKET_LIST = [
     nama: 'MK-KY-Masjid',
     label: 'Paket MK · KY · Masjid · IKN',
     proyek: 'Proyek Pembangunan Gedung dan Kawasan Mahkamah Konstitusi, Komisi Yudisial dan Masjid',
+    ringkas: 'Mahkamah Konstitusi, Komisi Yudisial dan Masjid',
     apiUrl: 'https://script.google.com/macros/s/AKfycbxlUo6-ktSlad_TbweyBckkJDW1-1SrT9DEipdpSucCwhjt_eLYh7TOfbrubN6AH8k8/exec'
   }
 ];

@@ -468,7 +468,7 @@ function render(){
 function renderPick(){
   var h='<div class="centered"><div class="brand"><img src="icon-192.png" alt="" width="76" height="76"><h1>Defect List</h1></div><section class="group pick"><div class="sh">Pilih paket</div><div class="list">';
   PAKET_LIST.forEach(function(p){
-    h+='<button type="button" class="row actionrow big" data-act="paket" data-id="'+esc(p.id)+'"><span class="t"><b>'+esc(p.proyek)+'</b><span>'+esc(p.label)+'</span></span><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
+    h+='<button type="button" class="row actionrow big" data-act="paket" data-id="'+esc(p.id)+'"><span class="t"><b>'+esc(p.ringkas||p.proyek)+'</b><span>'+esc(p.label)+'</span></span><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
   });
   app.innerHTML=h+'</div></section></div>';
 }
