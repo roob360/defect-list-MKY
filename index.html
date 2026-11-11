@@ -794,8 +794,8 @@ async function prep(file,cam){
   }
   return best;
 }
-function pick(cam,cb){
-  pickCb=cb;pickCam=!!cam;var el=$(cam?'fCam':'fGal');el.value='';el.click();
+function pick(cam,cb,stampIt){
+  pickCb=cb;pickCam=!!cam&&!!stampIt;var el=$(cam?'fCam':'fGal');el.value='';el.click();
 }
 async function onFiles(ev){
   var files=Array.prototype.slice.call(ev.target.files||[]);ev.target.value='';
@@ -907,9 +907,9 @@ async function onClick(ev){
         var ok=await uploadFotos(id,jenis,items);
         if(ok)toast(ok+' foto terunggah.');
         render();
-      });
+      },jenis==='before');
     }
-    case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){S.modal.f.files=S.modal.f.files.concat(items);renderOverlay()});
+    case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){S.modal.f.files=S.modal.f.files.concat(items);renderOverlay()},true);
     case 'mdel': readForm();S.modal.f.files.splice(+el.getAttribute('data-i'),1);return renderOverlay();
     case 'msimpan': return saveForm();
     case 'mtutup': case 'modalbg': return closeModal();
