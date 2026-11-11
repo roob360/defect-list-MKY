@@ -304,6 +304,7 @@
 <div id="overlay"></div>
 <nav class="dock" id="dock" hidden aria-label="Menu utama"></nav>
 <input type="file" id="fGal" accept="image/*" multiple hidden>
+<input type="file" id="fXls" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden>
 <input type="file" id="fCam" accept="image/*" capture="environment" hidden>
 
 <script src="config.js"></script>
@@ -319,7 +320,7 @@ var STORE='dl-paket';
 var S={
   paket:null, kode:'', user:null, view:'form', rooms:[], roomsReady:false, sel:{g:'',l:'',r:''},
   defects:{}, loading:{}, errs:{}, all:null, siap:null, siapErr:'', anim:'sistem', flt:{rid:'',q:'',st:'',bd:'',tk:''}, zipOff:{}, zipRun:false, zipStop:false, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
-  up:[], kl:{g:'',l:'',n:''}, hist:[], skip:0, seen:{}, ringPrev:{}, drawn:'', ovKey:''
+  imp:null, impRes:null, up:[], kl:{g:'',l:'',n:''}, hist:[], skip:0, seen:{}, ringPrev:{}, drawn:'', ovKey:''
 };
 var app=document.getElementById('app'), overlay=document.getElementById('overlay');
 var toastTimer=null, pickCb=null;
@@ -690,6 +691,7 @@ function kelolaHtml(){
     '<datalist id="dlG">'+T.map(function(g){return '<option value="'+esc(g.nama)+'">'}).join('')+'</datalist>'+
     
     '<div class="acts" style="padding-top:0;padding-bottom:14px"><button type="button" class="pill" data-act="addroom">'+ic('plus')+'Tambah</button></div></section>';
+  h+=impHtml();
   h+='<section class="group"><div class="sh">Daftar ruangan</div>';
   if(!T.length)h+='<div class="gf">Belum ada ruangan.</div>';
   T.forEach(function(g){
@@ -820,6 +822,7 @@ function onFiles(ev){
   if(!files.length||!pickCb)return;
   var cb=pickCb;pickCb=null;cb(files);
 }
+$('fXls').addEventListener('change',function(ev){var f=ev.target.files&&ev.target.files[0];ev.target.value='';if(f)bacaExcel(f)});
 $('fGal').addEventListener('change',onFiles);$('fCam').addEventListener('change',onFiles);
 
 var upSeq=0,upRun=false,prepRun=false;
@@ -1014,6 +1017,10 @@ async function onClick(ev){
     case 'fclr': S.flt={rid:S.flt.rid,q:'',st:'',bd:'',tk:''};return render();
     case 'zipg': S.zipOff[el.getAttribute('data-g')]=!el.checked;return;
     case 'zipgo': return exportZip();
+    case 'imptpl': return unduhTemplate();
+    case 'impfile': {var fx=$('fXls');fx.value='';return fx.click()}
+    case 'impbatal': S.imp=null;S.impRes=null;return render();
+    case 'impgo': return jalankanImpor();
     case 'zipbatal': S.zipStop=true;S.busy='Membatalkan...';return renderOverlay();
     case 'ubahroom': {var rr=S.rooms.filter(function(x){return x.id===el.getAttribute('data-r')})[0];if(rr)openModal({t:'ruang',r:rr});return}
     case 'rsimpan': {
@@ -1091,6 +1098,106 @@ async function tambahRuangan(){
   if(r){S.kl={g:g,l:l,n:''};await loadRooms();toast(r.ditambah+' ruangan ditambah'+(r.dilewati?', '+r.dilewati+' sudah ada.':'.'))}
 }
 
+/* ---------- impor temuan dari Excel (ADMIN) ---------- */
+var IMP_COLS=[['gedung',['gedung']],['lantai',['lantai']],['ruangan',['ruangan']],['bidang',['bidang']],['tingkat',['tingkat','keparahan']],['tgl',['tanggal temuan','tanggal','tgl','tgl temuan']],['uraian',['uraian temuan','uraian','temuan','temuan / catatan']]];
+function normKey(v){return String(v==null?'':v).replace(/\s+/g,' ').trim().toLowerCase()}
+function parseTgl(v){
+  if(v===''||v==null)return {ok:true,val:today()};
+  var y,m,d;
+  if(typeof v==='number'){
+    if(!(v>20000&&v<80000))return {ok:false};
+    var dt=new Date(Date.UTC(1899,11,30)+Math.floor(v)*86400000);y=dt.getUTCFullYear();m=dt.getUTCMonth()+1;d=dt.getUTCDate();
+  }else{
+    var t=String(v).trim(),a=t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/),b=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+    if(a){y=+a[1];m=+a[2];d=+a[3]}else if(b){d=+b[1];m=+b[2];y=+b[3]}else return {ok:false};
+  }
+  var c=new Date(Date.UTC(y,m-1,d));
+  if(c.getUTCFullYear()!==y||c.getUTCMonth()!==m-1||c.getUTCDate()!==d)return {ok:false};
+  return {ok:true,val:y+'-'+('0'+m).slice(-2)+'-'+('0'+d).slice(-2)};
+}
+function impHtml(){
+  var im=S.imp,rs=S.impRes;
+  var h='<section class="group"><div class="sh">Impor dari Excel</div>';
+  h+='<div class="acts" style="padding-top:0;padding-bottom:'+(im||rs?'8':'14')+'px"><button type="button" class="pill" data-act="imptpl">Unduh template</button><button type="button" class="pill" data-act="impfile">Pilih file Excel</button></div>';
+  if(rs){
+    h+='<div class="note" style="padding-top:0">Selesai: '+rs.ditambah+' temuan masuk'+(rs.ruanganBaru?', '+rs.ruanganBaru+' ruangan baru':'')+(rs.dilewati?', '+rs.dilewati+' duplikat dilewati':'')+(rs.ditolak.length?', '+rs.ditolak.length+' baris ditolak':'')+'.</div>';
+    if(rs.ditolak.length)h+='<div class="note" style="padding-top:0">'+rs.ditolak.slice(0,15).map(function(x){return 'Baris '+x.baris+': '+esc(x.alasan)}).join('<br>')+(rs.ditolak.length>15?'<br>dan '+(rs.ditolak.length-15)+' lainnya.':'')+'</div>';
+    h+='<div class="acts" style="padding-top:4px;padding-bottom:14px"><button type="button" class="pill" data-act="impbatal">Tutup</button></div>';
+  }
+  if(im){
+    h+='<div class="list"><div class="row"><b>'+im.rows.length+'</b> temuan siap diimpor</div>'+
+      '<div class="row">'+im.baru+' ruangan baru akan dibuat</div>'+
+      (im.dupFile?'<div class="row">'+im.dupFile+' baris kembar dalam file dilewati</div>':'')+
+      (im.bad.length?'<div class="row">'+im.bad.length+' baris bermasalah, tidak diimpor</div>':'')+'</div>';
+    if(im.bad.length)h+='<div class="note">'+im.bad.slice(0,15).map(function(x){return 'Baris '+x.baris+': '+esc(x.alasan)}).join('<br>')+(im.bad.length>15?'<br>dan '+(im.bad.length-15)+' lainnya.':'')+'</div>';
+    h+='<div class="acts" style="padding-top:12px;padding-bottom:14px">'+(im.rows.length?'<button type="button" class="pill" data-act="impgo">Impor '+im.rows.length+' temuan</button>':'')+'<button type="button" class="pill" data-act="impbatal">Batal</button></div>';
+  }
+  return h+'</section>';
+}
+async function unduhTemplate(){
+  var ok=await work('Menyusun template...',async function(){await loadLib(XLSX_URL,'XLSX');return true});
+  if(!ok)return;
+  var X=window.XLSX,wb=X.utils.book_new();
+  var ws=X.utils.aoa_to_sheet([['Gedung','Lantai','Ruangan','Bidang','Tingkat','Tanggal temuan','Uraian temuan']]);
+  ws['!cols']=[22,14,26,16,12,16,60].map(function(w){return {wch:w}});
+  X.utils.book_append_sheet(wb,ws,'Isian');
+  var n=Math.max(S.rooms.length,BIDANG.length,TINGKAT.length),rows=[['Gedung','Lantai','Ruangan','','Bidang','Tingkat']];
+  for(var i=0;i<n;i++){var r=S.rooms[i];rows.push([r?r.gedung:'',r?r.lantai:'',r?r.nama:'','',BIDANG[i]||'',TINGKAT[i]||'']);}
+  var w2=X.utils.aoa_to_sheet(rows);w2['!cols']=[22,14,26,3,16,12].map(function(w){return {wch:w}});
+  X.utils.book_append_sheet(wb,w2,'Daftar');
+  var out=X.write(wb,{bookType:'xlsx',type:'array'});
+  showFile('Template_Impor_Temuan_'+clean(S.paket.nama)+'.xlsx',out,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+async function bacaExcel(file){
+  S.impRes=null;
+  var rows=await work('Membaca file...',async function(){
+    await loadLib(XLSX_URL,'XLSX');
+    var buf=await file.arrayBuffer(),wb=window.XLSX.read(buf,{type:'array'});
+    var name=wb.SheetNames.filter(function(n){return normKey(n)==='isian'})[0]||wb.SheetNames[0];
+    return window.XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:''});
+  });
+  if(!rows)return;
+  var hi=-1,map={};
+  for(var i=0;i<Math.min(rows.length,15)&&hi<0;i++){
+    var m={};rows[i].forEach(function(c,ci){var k=normKey(c);IMP_COLS.forEach(function(d){if(d[1].indexOf(k)>=0&&m[d[0]]===undefined)m[d[0]]=ci})});
+    if(m.gedung!==undefined&&m.ruangan!==undefined&&m.uraian!==undefined){hi=i;map=m}
+  }
+  if(hi<0){toast('Format tidak dikenali. Gunakan template dari tombol Unduh template.');return}
+  ['lantai','bidang','tingkat'].forEach(function(k){if(map[k]===undefined)map[k]=-1});
+  var have={};S.rooms.forEach(function(r){have[normKey(r.gedung)+'|'+normKey(r.lantai)+'|'+normKey(r.nama)]=1});
+  var good=[],bad=[],seen={},baru={},dupFile=0;
+  function bakuan(list,v){var k=normKey(v);return list.filter(function(x){return normKey(x)===k})[0]}
+  for(var r=hi+1;r<rows.length;r++){
+    var row=rows[r],no=r+1,get=function(k){return map[k]<0?'':row[map[k]]};
+    if(row.every(function(c){return String(c).trim()===''}))continue;
+    var g=String(get('gedung')).replace(/\s+/g,' ').trim(),l=String(get('lantai')).replace(/\s+/g,' ').trim(),n=String(get('ruangan')).replace(/\s+/g,' ').trim(),u=String(get('uraian')).trim();
+    var bd=bakuan(BIDANG,get('bidang')),tk=bakuan(TINGKAT,get('tingkat')),tg=parseTgl(get('tgl'));
+    var why=!g||!l||!n?'Gedung, lantai, atau ruangan kosong.':!u?'Temuan kosong.':!bd?'Bidang "'+String(get('bidang'))+'" tidak dikenal. Pilihan: '+BIDANG.join(', ')+'.':!tk?'Tingkat "'+String(get('tingkat'))+'" tidak dikenal. Pilihan: '+TINGKAT.join(', ')+'.':!tg.ok?'Tanggal tidak dikenal.':'';
+    if(why){bad.push({baris:no,alasan:why});continue}
+    var rk=normKey(g)+'|'+normKey(l)+'|'+normKey(n),dk=rk+'|'+tg.val+'|'+normKey(u);
+    if(seen[dk]){dupFile++;continue}seen[dk]=1;
+    if(!have[rk])baru[rk]=1;
+    good.push({baris:no,gedung:g,lantai:l,ruangan:n,bidang:bd,tingkat:tk,tgl:tg.val,uraian:u});
+  }
+  S.imp={rows:good,bad:bad,dupFile:dupFile,baru:Object.keys(baru).length};
+  render();
+}
+async function jalankanImpor(){
+  var rows=S.imp.rows,tot={ditambah:0,ruanganBaru:0,dilewati:0,ditolak:[]},bad=S.imp.bad.length;
+  var ok=await work('Mengimpor temuan...',async function(){
+    for(var i=0;i<rows.length;i+=300){
+      S.busy='Mengimpor '+Math.min(i+300,rows.length)+' dari '+rows.length+'...';renderOverlay();
+      var r=await api('defect_impor',{baris:rows.slice(i,i+300)});
+      tot.ditambah+=r.ditambah;tot.ruanganBaru+=r.ruanganBaru;tot.dilewati+=r.dilewati;tot.ditolak=tot.ditolak.concat(r.ditolak);
+    }
+    return true;
+  });
+  S.defects={};S.all=null;S.siap=null;
+  if(ok||tot.ditambah){S.imp=null;S.impRes=tot}
+  await loadRooms();
+  if(!ok&&tot.ditambah)toast('Sebagian terimpor, lalu terhenti. Periksa hasil sebelum mengulang.');
+}
+
 /* ---------- masuk / keluar ---------- */
 function pilihPaket(id,push){
   var p=PAKET_LIST.filter(function(x){return x.id===id})[0];if(!p)return;
@@ -1103,7 +1210,7 @@ function pilihPaket(id,push){
 function keluar(){
   resetHist(true);
   if(S.paket)lsDel('dl-kode-'+S.paket.id);
-  S.up=[];upBar();S.user=null;S.kode='';S.defects={};S.all=null;S.siap=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
+  S.imp=null;S.impRes=null;S.up=[];upBar();S.user=null;S.kode='';S.defects={};S.all=null;S.siap=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
 }
 async function masuk(){
   var el=$('kode');S.kode=(el?el.value:S.kode).trim().toUpperCase();
