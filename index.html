@@ -115,9 +115,12 @@
 
   .dock{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 12px); z-index:30; display:flex; gap:4px; padding:6px;
     border-radius:var(--r-cap); background:var(--dock); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--sep); box-shadow:var(--float); }
-  .dock button{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:78px; padding:7px 12px 6px; white-space:nowrap; border:0; border-radius:var(--r-cap); background:transparent; color:var(--label2); font:inherit; font-size:11px; line-height:14px; font-weight:600; cursor:pointer; }
+  .dock button{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:66px; padding:7px 10px 6px; white-space:nowrap; border:0; border-radius:var(--r-cap); background:transparent; color:var(--label2); font:inherit; font-size:11px; line-height:14px; font-weight:600; cursor:pointer; }
   .dock button svg{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
   .dock button{ position:relative; z-index:1; }
+  .dock .bdg{ position:absolute; top:3px; left:calc(50% + 6px); min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:#fff; font-size:11px; line-height:18px; font-weight:700; text-align:center; }
+  .dock .bdg[hidden]{ display:none; }
+  .path{ padding:0 4px 6px; }
   .dock button.on{ color:var(--blue); }
   .dock .ind{ position:absolute; left:0; top:0; width:0; height:0; border-radius:var(--r-cap); background:var(--fill3); pointer-events:none; }
   body.hasdock .wrap{ padding-bottom:calc(env(safe-area-inset-bottom,0px) + 110px); }
@@ -232,6 +235,7 @@
   <symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
   <symbol id="i-form" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 9h6M9 13h6M9 17h3"/></symbol>
+  <symbol id="i-verif" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/></symbol>
   <symbol id="i-rekap" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"/></symbol>
   <symbol id="i-kelola" viewBox="0 0 24 24"><path d="M5 7h9M18 7h1M5 17h1M10 17h9"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
 </svg>
@@ -264,7 +268,7 @@ var STORE='dl-paket';
 
 var S={
   paket:null, kode:'', user:null, view:'form', rooms:[], roomsReady:false, sel:{g:'',l:'',r:''},
-  defects:{}, loading:{}, errs:{}, all:null, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
+  defects:{}, loading:{}, errs:{}, all:null, siap:null, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
   kl:{g:'',l:'',n:''}, hist:[], skip:0, seen:{}, ringPrev:{}, drawn:'', ovKey:''
 };
 var app=document.getElementById('app'), overlay=document.getElementById('overlay');
@@ -335,18 +339,26 @@ function putDefect(d){
   var list=S.defects[d.ruanganId];
   if(list){var i=list.map(function(x){return x.id}).indexOf(d.id);if(i>=0)list[i]=d;else list.push(d);recount(d.ruanganId)}
   if(S.all){var j=S.all.map(function(x){return x.id}).indexOf(d.id);if(j>=0)S.all[j]=d;else S.all.push(d)}
+  if(S.siap){var k=S.siap.map(function(x){return x.id}).indexOf(d.id);if(d.siap){if(k>=0)S.siap[k]=d;else S.siap.push(d)}else if(k>=0)S.siap.splice(k,1)}
 }
 function dropDefect(id,rid){
   if(S.defects[rid]){S.defects[rid]=S.defects[rid].filter(function(x){return x.id!==id});recount(rid)}
   if(S.all)S.all=S.all.filter(function(x){return x.id!==id});
+  if(S.siap)S.siap=S.siap.filter(function(x){return x.id!==id});
 }
 function findDefect(id){
   var rid,list;
   for(rid in S.defects){list=S.defects[rid];for(var i=0;i<list.length;i++)if(list[i].id===id)return list[i]}
+  if(S.siap)for(var j=0;j<S.siap.length;j++)if(S.siap[j].id===id)return S.siap[j];
   return null;
 }
 
 /* ---------- muat data ---------- */
+async function loadSiap(){
+  if(!canEdit())return;
+  try{S.siap=await api('defect_siap')}catch(e){if(e&&e.server)gagal(e)}
+  if(S.view==='verif')render();else setDock();   // hindari render ulang daftar form (animasi kartu)
+}
 async function loadRooms(){
   try{
     S.rooms=await api('ruangan');S.roomsReady=true;S.net='';
@@ -358,6 +370,7 @@ async function loadRooms(){
   render();
   var T=tree(),s=ensureSel(T);
   if(s&&S.view==='form')loadDefects(s.r.id,false);
+  if(canEdit())loadSiap();
 }
 async function loadDefects(rid,force){
   if(!force&&S.defects[rid])return;
@@ -409,13 +422,15 @@ function renderLogin(){
 function setDock(){
   var el=$('dock'),show=!!(S.paket&&S.user&&canEdit());
   if(show){
-    var t=[['form','Form'],['rekap','Rekap']];
+    var t=[['form','Form'],['verif','Verifikasi'],['rekap','Rekap']];
     if(isAdmin())t.push(['kelola','Kelola']);
     var keys=t.map(function(x){return x[0]}).join(',');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
-      el.innerHTML='<span class="ind"></span>'+t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span></button>'}).join('');
+      el.innerHTML='<span class="ind"></span>'+t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+(x[0]==='verif'?'<i class="bdg" hidden></i>':'')+'</button>'}).join('');
     }
+    var bg=el.querySelector('.bdg');
+    if(bg){var nsiap=S.siap?S.siap.length:0;bg.textContent=nsiap>99?'99+':nsiap;bg.hidden=!nsiap}
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){
       var on=b.getAttribute('data-v')===S.view;b.classList.toggle('on',on);
       if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
@@ -435,7 +450,8 @@ window.addEventListener('resize',moveInd);window.addEventListener('load',moveInd
 function renderMain(){
   var h='';
   if(S.net)h+='<div class="err" role="status">'+esc(S.net)+'</div>';
-  if(S.view==='rekap'&&canEdit())h+=rekapHtml();
+  if(S.view==='verif'&&canEdit())h+=verifHtml();
+  else if(S.view==='rekap'&&canEdit())h+=rekapHtml();
   else if(S.view==='kelola'&&isAdmin())h+=kelolaHtml();
   else h+=formHtml();
   app.innerHTML=h;
@@ -479,23 +495,36 @@ function thumbsHtml(items,jenis,d,removable){
 function picker(d,jenis){
   return '<div class="pbtn"><button type="button" class="pill" data-act="foto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-cam="1">'+ic('cam')+'Kamera</button><button type="button" class="pill" data-act="foto" data-d="'+esc(d.id)+'" data-j="'+jenis+'">'+ic('img')+'Galeri</button></div>';
 }
-function entryHtml(d,n,ix){
-  var ed=canEdit(),closed=d.status==='Close';
+function entryHtml(d,n,ix,ro){
+  var ed=canEdit()&&!ro,closed=d.status==='Close';
   var fresh=!S.seen[d.id];S.seen[d.id]=1;
   var h='<article class="group entry'+(fresh?' pop':'')+'"'+(fresh?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'"><div class="eh"><span class="no">'+n+'.</span><span class="tx">'+esc(d.uraian)+'</span></div>'+
     '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span></div>';
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
   if(d.verifikasi)h+='<div class="note">'+(d.verifikasi==='Diterima'?'Diterima':'Ditolak')+' MK '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):'')+(d.catatan?'. Catatan: '+esc(d.catatan):'')+'</div>';
   h+='<div class="ph"><div class="cap">Foto Before</div>'+thumbsHtml(d.fotoBefore,'before',d,ed)+(ed?picker(d,'before'):'')+'</div>';
-  h+='<div class="ph"><div class="cap">Foto After</div>'+thumbsHtml(d.fotoAfter,'after',d,ed)+(closed&&!ed?'':picker(d,'after'))+'</div>';
+  h+='<div class="ph"><div class="cap">Foto After</div>'+thumbsHtml(d.fotoAfter,'after',d,ed)+(ro||(closed&&!ed)?'':picker(d,'after'))+'</div>';
   h+='<div class="acts">';
-  if(!closed&&!d.mulai)h+='<button type="button" class="pill" data-act="mulai" data-d="'+esc(d.id)+'">Mulai perbaikan</button>';
+  if(ro){h+='<button type="button" class="pill ok" data-act="verif" data-d="'+esc(d.id)+'">Verifikasi</button>';return h+'</div></article>'}
+  var bisaMulai=S.user&&(S.user.peran==='PJ'||S.user.peran==='ADMIN');
+  if(!closed&&!d.mulai&&bisaMulai)h+='<button type="button" class="pill" data-act="mulai" data-d="'+esc(d.id)+'">Mulai perbaikan</button>';
+  if(!closed&&d.mulai&&!d.fotoAfter.length)h+='<button type="button" class="pill bad" data-act="batalmulai" data-d="'+esc(d.id)+'">Batal mulai</button>';
   if(ed){
     h+='<button type="button" class="pill ok" data-act="verif" data-d="'+esc(d.id)+'">Verifikasi</button>'+
       '<button type="button" class="pill" data-act="edit" data-d="'+esc(d.id)+'">Ubah</button>'+
       '<button type="button" class="pill bad" data-act="hapus" data-d="'+esc(d.id)+'">Hapus</button>';
   }
   return h+'</div></article>';
+}
+
+/* ----- antrean verifikasi ----- */
+function verifHtml(){
+  var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Verifikasi</h1></div>';
+  if(!S.siap)return h+'<div class="loading"><div class="spin d"></div></div>';
+  h+='<div class="acts" style="padding:0 0 16px;align-items:center"><span class="tag" style="display:inline-flex;align-items:center;height:34px;padding:0 14px">'+S.siap.length+' menunggu</span><button type="button" class="pill" data-act="muatsiap">Muat ulang</button></div>';
+  if(!S.siap.length)return h+'<div class="empty">Tidak ada temuan yang menunggu verifikasi.</div>';
+  S.siap.forEach(function(d,i){h+='<div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+entryHtml(d,d.no||i+1,i,true)});
+  return h;
 }
 
 /* ----- rekap ----- */
@@ -595,10 +624,14 @@ function modalHtml(){
     var d=m.d;
     return '<div class="ov" data-act="modalbg"><div class="sheet" role="dialog" aria-label="Verifikasi"><h2>Verifikasi MK</h2><div class="note" style="padding:0 0 10px;overflow-wrap:anywhere">'+esc(d.uraian)+'</div>'+
       '<section class="group"><div class="list"><label class="row"><span class="lbl">Catatan MK (opsional)</span><textarea id="vC" style="min-height:80px">'+esc(d.catatan||'')+'</textarea></label></div></section>'+
-      '<div class="gap"><button type="button" class="btn" data-act="vset" data-h="Diterima">Diterima (Close)</button><button type="button" class="btn bad" data-act="vset" data-h="Ditolak">Ditolak</button>'+
+      (d.fotoAfter.length?'':'<div class="note" style="padding:0 0 10px">Belum ada foto After dari penanggung jawab, jadi belum bisa diterima atau ditolak.</div>')+
+      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length?'':' disabled')+' data-act="vset" data-h="Diterima">Diterima (Close)</button><button type="button" class="btn bad"'+(d.fotoAfter.length?'':' disabled')+' data-act="vset" data-h="Ditolak">Ditolak</button>'+
       (d.verifikasi?'<button type="button" class="btn sec" data-act="vset" data-h="">Batalkan verifikasi</button>':'')+
       '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div></div>';
   }
+  if(m.t==='batalmulai')
+    return '<div class="ov mid"><div class="sheet gap"><h2>Batalkan mulai perbaikan?</h2><div class="note" style="padding:0;overflow-wrap:anywhere">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">Tanggal mulai dihapus dan temuan kembali Open. Hanya bisa selama belum ada foto After.</div>'+
+      '<button type="button" class="btn bad" data-act="batalmulaiya">Batalkan</button><button type="button" class="btn sec" data-act="mtutup">Kembali</button></div></div>';
   if(m.t==='permanen')
     return '<div class="ov mid"><div class="sheet gap"><h2>Hapus permanen?</h2><div class="note" style="padding:0;overflow-wrap:anywhere">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">Baris temuan dihapus dari sheet dan fotonya dibuang dari Drive. Tidak bisa dipulihkan dari aplikasi.</div>'+
       '<button type="button" class="btn bad" data-act="permanenya">Hapus permanen</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div>';
@@ -723,7 +756,8 @@ async function onClick(ev){
       if(nv==='form')hpopTop('view');else if(S.view==='form')hpush('view');
       S.view=nv;}
       lsSet('dl-view',S.view);if(S.view==='rekap')S.all=null;render();
-      if(S.view==='rekap'||S.view==='kelola')loadRooms();
+      if(S.view==='verif')loadSiap();
+      else if(S.view==='rekap'||S.view==='kelola')loadRooms();
       else{var s=ensureSel(tree());if(s)loadDefects(s.r.id,false)}
       return;
     case 'nav': {var T=tree(),fl=flat(T),ix=fl.map(function(x){return x.r}).indexOf(S.sel.r),n=fl[ix+(+el.getAttribute('data-d'))];if(!n)return;S.sel=n;lsSet('dl-sel',JSON.stringify(n));render();loadDefects(n.r,false);window.scrollTo(0,0);return}
@@ -789,6 +823,13 @@ async function onClick(ev){
       var r8=await work('Memulihkan...',function(){return api('defect_pulihkan',{id:id})});
       if(r8){S.terhapus=S.terhapus.filter(function(x){return x.id!==id});delete S.defects[r8.ruanganId];S.all=null;await loadRooms();toast('Temuan dipulihkan.')}return;
     }
+    case 'muatsiap': S.siap=null;render();return loadSiap();
+    case 'batalmulai': return openModal({t:'batalmulai',d:findDefect(id)});
+    case 'batalmulaiya': {
+      var bd=S.modal.d;closeModal();
+      var rb=await work('Membatalkan...',function(){return api('perbaikan_mulai',{id:bd.id,batal:true})});
+      if(rb){putDefect(rb);toast('Mulai perbaikan dibatalkan.');render()}return;
+    }
     case 'permanen': return openModal({t:'permanen',d:S.terhapus.filter(function(x){return x.id===id})[0]});
     case 'permanenya': {
       var pd=S.modal.d;closeModal();
@@ -829,7 +870,7 @@ async function tambahRuangan(){
 function pilihPaket(id,push){
   var p=PAKET_LIST.filter(function(x){return x.id===id})[0];if(!p)return;
   if(push)hpush('paket');
-  S.paket=p;lsSet(STORE,id);S.user=null;S.kode=lsGet('dl-kode-'+id)||'';S.loginErr='';S.rooms=[];S.roomsReady=false;S.defects={};S.all=null;S.terhapus=null;
+  S.paket=p;lsSet(STORE,id);S.user=null;S.kode=lsGet('dl-kode-'+id)||'';S.loginErr='';S.rooms=[];S.roomsReady=false;S.defects={};S.all=null;S.siap=null;S.terhapus=null;
   try{var c=JSON.parse(lsGet('dl-rooms-'+id)||'null');if(c&&c.length){S.rooms=c}}catch(e){}
   if(S.kode&&p.apiUrl)return cobaMasuk(true);
   render();
@@ -837,7 +878,7 @@ function pilihPaket(id,push){
 function keluar(){
   resetHist(true);
   if(S.paket)lsDel('dl-kode-'+S.paket.id);
-  S.user=null;S.kode='';S.defects={};S.all=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
+  S.user=null;S.kode='';S.defects={};S.all=null;S.siap=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
 }
 async function masuk(){
   var el=$('kode');S.kode=(el?el.value:S.kode).trim().toUpperCase();
@@ -850,7 +891,7 @@ async function cobaMasuk(auto){
   try{
     var u=await api('masuk');
     S.user={nama:u.nama,peran:u.peran};lsSet('dl-kode-'+S.paket.id,S.kode);S.loginErr='';
-    var v=lsGet('dl-view');S.view=(v==='rekap'&&u.peran!=='PJ')||(v==='kelola'&&u.peran==='ADMIN')?v:'form';
+    var v=lsGet('dl-view');S.view=((v==='rekap'||v==='verif')&&u.peran!=='PJ')||(v==='kelola'&&u.peran==='ADMIN')?v:'form';
     if(S.view!=='form'&&S.hist[S.hist.length-1]!=='view')hpush('view');
     try{var sv=JSON.parse(lsGet('dl-sel')||'null');if(sv&&sv.g)S.sel=sv}catch(e){}
     render();loadRooms();
