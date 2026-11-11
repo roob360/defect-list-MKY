@@ -1116,13 +1116,13 @@ async function exportPdf(){
     var need=function(h){if(y+h>PH-M){doc.addPage();y=M;cont()}};
     doc.setFont('helvetica','bold');doc.setFontSize(10);ink();
     doc.splitTextToSize(S.paket.proyek||S.paket.nama||'',CW).forEach(function(t){T_(t,M,y);y+=5});
-    doc.setFontSize(15);T_('DEFECT LIST',M,y+2);y+=5;doc.setDrawColor(20,20,20);doc.setLineWidth(.4);doc.line(M,y,PW-M,y);y+=6;
+    doc.setFontSize(15);T_('DEFECT LIST',M,y+2);doc.setFont('helvetica','normal');doc.setFontSize(9);grey();T_('Dicetak '+fmt(today()),PW-M,y+2,{align:'right'});ink();doc.setFont('helvetica','bold');y+=5;doc.setDrawColor(20,20,20);doc.setLineWidth(.4);doc.line(M,y,PW-M,y);y+=6;
     var c=cnt(list);
     var info=[['Gedung',g.nama],['Lantai',l.nama],['Ruangan',r.nama]],info2=[['Total Defect',c.total],['Total Closing',c.close],['Persentase Closing',pct(c)]];
     doc.setFontSize(10);
     for(var i=0;i<3;i++){doc.setFont('helvetica','normal');T_(info[i][0],M,y);T_(': '+info[i][1],M+22,y);T_(info2[i][0],M+CW/2+8,y);T_(': '+info2[i][1],M+CW/2+40,y);y+=5.5}
     y+=2;doc.line(M,y,PW-M,y);y+=6;
-    var BW=CW/2-2,BH=28;
+    var BW=CW/2-2,BH=32;
     for(var di=0;di<list.length;di++){
       var d=list[di],st=d.status,before=d.fotoBefore,after=d.fotoAfter;
       doc.setFont('helvetica','normal');doc.setFontSize(10);
