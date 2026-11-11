@@ -1,6 +1,6 @@
 // Service worker: cache tampilan saja. Data dan foto selalu diambil dari server.
-var CACHE = 'defect-list-v21';
-var SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'logo.png'];
+var CACHE = 'defect-list-v22';
+var SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }));
