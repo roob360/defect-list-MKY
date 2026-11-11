@@ -56,6 +56,9 @@
   body{ font-family:var(--sans); font-size:17px; line-height:22px; background:var(--gbg1); color:var(--label1);
     -webkit-text-size-adjust:100%; font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased; }
   button,label,input,textarea,select{ touch-action:manipulation; }
+  /* seperti aplikasi: halaman tidak bisa dicubit atau diketuk dua kali untuk zoom; hanya tampilan foto yang boleh */
+  .pwrap, #app, #dock, #overlay .ov:not(.zoom){ touch-action:pan-x pan-y; }
+  #overlay .ov.zoom, #overlay .ov.zoom *{ touch-action:pinch-zoom pan-x pan-y; }
   [hidden]{ display:none !important; }
 
   .pwrap{ position:absolute; top:0; left:0; right:0; z-index:20; max-width:1100px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 12px) var(--margin) 0; display:flex; justify-content:space-between; align-items:center; pointer-events:none; }
@@ -1011,6 +1014,7 @@ async function onClick(ev){
   }
 }
 document.addEventListener('click',onClick);
+['gesturestart','gesturechange'].forEach(function(t){document.addEventListener(t,function(e){if(!(e.target.closest&&e.target.closest('.ov.zoom')))e.preventDefault()},{passive:false})});
 document.addEventListener('change',function(e){
   var fk=e.target.getAttribute&&e.target.getAttribute('data-fil');if(fk){S.flt[fk]=e.target.value;refreshList();return}
   var k=e.target.getAttribute&&e.target.getAttribute('data-sel');if(!k)return;
