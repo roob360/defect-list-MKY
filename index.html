@@ -65,6 +65,7 @@
   .btn-ic:active{ background:var(--fill2); }
   .btn{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:var(--ctl-lg); padding:0 20px; border:0; border-radius:var(--r-cap);
     background:var(--prominent); color:var(--on-prominent); font:inherit; font-size:17px; font-weight:600; cursor:pointer; }
+  a.btn{ text-decoration:none; }
   .btn:active{ opacity:.85; }
   .btn:disabled{ opacity:.55; }
   .btn.sec{ background:var(--fill3); color:var(--blue); }
@@ -97,6 +98,8 @@
     border-radius:0; -webkit-appearance:none; appearance:none; caret-color:var(--blue); }
   .row input[type=date]{ min-height:26px; text-align:left; }
   .row select{ padding-right:22px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='18' viewBox='0 0 12 18' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7l4-4 4 4M2 11l4 4 4-4'/%3E%3C/svg%3E") no-repeat right center; }
+  .row select option{ background:var(--gbg2); color:var(--label1); }
+  .row select.one{ background-image:none; padding-right:0; opacity:1; -webkit-text-fill-color:var(--label1); cursor:default; }
   .row input::placeholder,.row textarea::placeholder{ color:var(--label3); }
   .row textarea{ min-height:110px; resize:vertical; }
   .row.code input{ font-size:24px; line-height:30px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
@@ -165,7 +168,7 @@
   table.t th:first-child, table.t td:first-child{ text-align:left; padding-left:var(--margin); }
   table.t th:last-child, table.t td:last-child{ padding-right:var(--margin); }
   table.t td{ text-align:right; padding:9px 6px; border-top:1px solid var(--sep); }
-  table.t tr.g td{ background:var(--fill4); font-weight:700; text-align:left; }
+  table.t tr.g td{ background:var(--fill4); font-weight:700; }
   table.t tr.l td{ font-weight:600; color:var(--label2); font-size:13px; }
   table.t tr.tot td{ font-weight:700; border-top:2px solid var(--sep); }
   .tw{ overflow-x:auto; }
@@ -439,7 +442,7 @@ function renderMain(){
 }
 
 function selHtml(id,opts,val,label){
-  return '<label class="row"><span class="lbl">'+label+'</span><select data-sel="'+id+'">'+opts.map(function(o){return '<option value="'+esc(o[0])+'"'+(o[0]===val?' selected':'')+'>'+esc(o[1])+'</option>'}).join('')+'</select></label>';
+  return '<label class="row"><span class="lbl">'+label+'</span><select data-sel="'+id+'"'+(opts.length===1?' class="one" disabled':'')+'>'+opts.map(function(o){return '<option value="'+esc(o[0])+'"'+(o[0]===val?' selected':'')+'>'+esc(o[1])+'</option>'}).join('')+'</select></label>';
 }
 function formHtml(){
   if(!S.roomsReady&&!S.rooms.length)return '<div class="loading"><div class="spin d"></div></div>';
@@ -551,7 +554,7 @@ function kelolaHtml(){
   if(!S.terhapus)h+='<div class="acts" style="padding-top:0;padding-bottom:16px"><button type="button" class="pill" data-act="lihatsampah">Tampilkan</button></div>';
   else if(!S.terhapus.length)h+='<div class="gf">Tidak ada temuan terhapus.</div>';
   else S.terhapus.forEach(function(d){
-    h+='<div class="row" style="border-top:1px solid var(--sep)"><div style="overflow-wrap:anywhere">'+esc(d.uraian)+'</div><div class="note" style="padding:4px 0 0">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'. Dihapus '+esc(String(d.dihapusPada||'').slice(0,10))+' oleh '+esc(d.dihapusOleh)+'</div><div class="pbtn"><button type="button" class="pill ok" data-act="pulih" data-d="'+esc(d.id)+'">Pulihkan</button></div></div>';
+    h+='<div class="row" style="border-top:1px solid var(--sep)"><div style="overflow-wrap:anywhere">'+esc(d.uraian)+'</div><div class="note" style="padding:4px 0 0">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'. Dihapus '+esc(String(d.dihapusPada||'').slice(0,10))+' oleh '+esc(d.dihapusOleh)+'</div><div class="pbtn"><button type="button" class="pill ok" data-act="pulih" data-d="'+esc(d.id)+'">Pulihkan</button><button type="button" class="pill bad" data-act="permanen" data-d="'+esc(d.id)+'">Hapus permanen</button></div></div>';
   });
   h+='</section><div class="gf" style="padding-left:0">Pengguna dan kode akses diatur langsung di sheet PENGGUNA pada spreadsheet paket ini (kolom Nama, Kode, Peran: ADMIN, MK atau PJ, Aktif: YA atau TIDAK).</div>';
   return h;
@@ -596,6 +599,9 @@ function modalHtml(){
       (d.verifikasi?'<button type="button" class="btn sec" data-act="vset" data-h="">Batalkan verifikasi</button>':'')+
       '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div></div>';
   }
+  if(m.t==='permanen')
+    return '<div class="ov mid"><div class="sheet gap"><h2>Hapus permanen?</h2><div class="note" style="padding:0;overflow-wrap:anywhere">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">Baris temuan dihapus dari sheet dan fotonya dibuang dari Drive. Tidak bisa dipulihkan dari aplikasi.</div>'+
+      '<button type="button" class="btn bad" data-act="permanenya">Hapus permanen</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div>';
   if(m.t==='hapus')
     return '<div class="ov mid"><div class="sheet gap"><h2>Hapus temuan?</h2><div class="note" style="padding:0;overflow-wrap:anywhere">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">Temuan ditandai terhapus dan foto dipindah ke folder Sampah. Admin bisa memulihkannya.</div>'+
       '<button type="button" class="btn bad" data-act="hapusya">Hapus</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div>';
@@ -782,6 +788,12 @@ async function onClick(ev){
     case 'pulih': {
       var r8=await work('Memulihkan...',function(){return api('defect_pulihkan',{id:id})});
       if(r8){S.terhapus=S.terhapus.filter(function(x){return x.id!==id});delete S.defects[r8.ruanganId];S.all=null;await loadRooms();toast('Temuan dipulihkan.')}return;
+    }
+    case 'permanen': return openModal({t:'permanen',d:S.terhapus.filter(function(x){return x.id===id})[0]});
+    case 'permanenya': {
+      var pd=S.modal.d;closeModal();
+      var r9=await work('Menghapus permanen...',function(){return api('defect_hapus_permanen',{id:pd.id})});
+      if(r9){S.terhapus=S.terhapus.filter(function(x){return x.id!==pd.id});toast('Temuan dihapus permanen.');render()}return;
     }
     case 'tutupfile': return closeFile();
     case 'bagi': try{await navigator.share({files:[S.file.fileObj],title:S.file.name})}catch(e){}return;
