@@ -64,7 +64,7 @@
   .prof svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .pagehead{ padding-right:52px; }
   body{ position:relative; min-height:100vh; }
-  .wrap{ max-width:1100px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 18px) var(--margin) calc(env(safe-area-inset-bottom,0px) + 60px); }
+  .wrap{ max-width:860px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 18px) var(--margin) calc(env(safe-area-inset-bottom,0px) + 60px); }
 
   .btn-ic{ position:relative; width:34px; height:34px; padding:0; border:0; border-radius:50%; flex:none; display:grid; place-items:center; background:var(--fill3); color:var(--blue); cursor:pointer; }
   .btn-ic::after{ content:""; position:absolute; inset:-5px; }
@@ -174,10 +174,11 @@
   .acts{ display:flex; flex-wrap:wrap; gap:8px; padding:14px var(--margin) 0; }
 
   table.t{ width:100%; border-collapse:collapse; font-size:14px; }
-  table.t th{ text-align:right; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--label2); font-weight:600; padding:6px 6px; }
+  table.t th{ text-align:right; font-size:10px; letter-spacing:.02em; text-transform:uppercase; color:var(--label2); font-weight:600; padding:6px 4px; }
   table.t th:first-child, table.t td:first-child{ text-align:left; padding-left:var(--margin); }
   table.t th:last-child, table.t td:last-child{ padding-right:var(--margin); }
-  table.t td{ text-align:right; padding:9px 6px; border-top:1px solid var(--sep); }
+  table.t th:not(:first-child), table.t td:not(:first-child){ width:1%; white-space:nowrap; }
+  table.t td{ text-align:right; padding:9px 4px; border-top:1px solid var(--sep); }
   table.t tr.g td{ background:var(--fill4); font-weight:700; }
   table.t tr.l td{ font-weight:600; color:var(--label2); font-size:13px; }
   table.t tr.tot td{ font-weight:700; border-top:2px solid var(--sep); }
@@ -217,11 +218,11 @@
   .centered{ max-width:520px; margin:0 auto; padding-top:40px; }
 
   .brand{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:8px 0 22px; }
-  .brand img{ width:76px; height:76px; border-radius:18px; display:block; box-shadow:0 6px 22px #0068d955; }
+  .brand img{ width:76px; height:76px; border-radius:18px; display:block; }
   .brand h1{ margin:14px 0 0; font-size:30px; line-height:36px; font-weight:700; letter-spacing:-.4px; }
   .brand .cap{ margin-top:2px; }
   .pk{ --ac:#1d6fe0; --ac2:#1d6fe0; display:flex; align-items:center; gap:16px; width:100%; margin:0 0 14px; padding:22px 20px; border:0; border-radius:var(--r-group); font:inherit; color:inherit; text-align:left; cursor:pointer;
-    background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 13%,var(--gbg2)),var(--gbg2) 70%); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ac) 22%,transparent); }
+    background:var(--gbg2); box-shadow:inset 4px 0 0 var(--ac); }
   .pk.b{ --ac:#12998a; --ac2:#12998a; }
   .pk .mono_x{ flex:none; min-width:96px; height:76px; padding:0 12px; border-radius:20px; display:grid; place-items:center; font-size:23px; font-weight:800; letter-spacing:-.3px; color:#fff; background:linear-gradient(160deg,var(--ac),color-mix(in srgb,var(--ac) 62%,#000)); }
   .pk .t{ flex:1; min-width:0; }
@@ -275,6 +276,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
   <symbol id="i-img" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M5 18l5-5 4 4 2-2 3 3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></symbol>
@@ -562,7 +564,7 @@ function formHtml(){
   var ringGo=S.ringPrev[rid]!==p;S.ringPrev[rid]=p;
   h+='<div class="summary"><div class="ring'+(c.total&&c.close===c.total?' full':'')+'"><svg viewBox="0 0 72 72"><circle class="tr" cx="36" cy="36" r="30"/><circle class="on'+(ringGo?' go':'')+'" cx="36" cy="36" r="30" style="stroke-dashoffset:'+(188.5*(1-p/100)).toFixed(1)+'"/></svg><div class="c">'+pct(c)+'</div></div>'+
     '<div class="stats"><div><b>'+c.total+'</b><span>Total</span></div><div class="o"><b>'+c.open+'</b><span>Open</span></div><div class="p"><b>'+c.proses+'</b><span>Proses</span></div><div class="c"><b>'+c.close+'</b><span>Close</span></div></div></div>';
-  h+='<div class="acts" style="padding:0 0 '+'16px"><button type="button" class="pill" data-act="pdf">'+ic('pdf')+'PDF</button>'+(canEdit()?'<button type="button" class="pill" data-act="tambah">'+ic('plus')+'Tambah</button>':'')+'<button type="button" class="pill" data-act="muat">Muat ulang</button></div>';
+  h+='<div class="acts" style="padding:0 0 '+'16px"><button type="button" class="pill" data-act="pdf">'+ic('pdf')+'PDF</button>'+(canEdit()?'<button type="button" class="pill" data-act="tambah">'+ic('plus')+'Tambah</button>':'')+'<button type="button" class="pill" data-act="muat">'+ic('refresh')+'Muat ulang</button></div>';
   if(!list.length)return h+'<div class="empty">Belum ada temuan di ruangan ini.</div>';
   list.forEach(function(d,i){h+=entryHtml(d,d.no||i+1,i)});
   return h;
@@ -605,7 +607,7 @@ function verifHtml(){
   var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Verifikasi</h1></div>';
   if(!S.siap&&S.siapErr)return h+'<div class="err">'+esc(S.siapErr)+'</div><button type="button" class="btn sec" data-act="muatsiap">Coba lagi</button>';
   if(!S.siap)return h+skel('entries');
-  h+='<div class="acts" style="padding:0 0 16px;align-items:center"><span class="tag" style="display:inline-flex;align-items:center;height:34px;padding:0 14px">'+S.siap.length+' menunggu</span><button type="button" class="pill" data-act="muatsiap">Muat ulang</button></div>';
+  h+='<div class="acts" style="padding:0 0 16px;align-items:center"><span class="tag" style="display:inline-flex;align-items:center;height:34px;padding:0 14px">'+S.siap.length+' menunggu</span><button type="button" class="pill" data-act="muatsiap">'+ic('refresh')+'Muat ulang</button></div>';
   if(!S.siap.length)return h+'<div class="empty">Tidak ada temuan yang menunggu verifikasi.</div>';
   S.siap.forEach(function(d,i){h+='<div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+entryHtml(d,d.no||i+1,i,true)});
   return h;
