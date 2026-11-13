@@ -514,6 +514,7 @@ function modalHtml(){
   var m=S.modal;
   if(m.t==='temuan')return fHtml(m);
   if(m.t==='rgatur')return rgHtml(m);
+  if(m.t==='rgyakin')return rgYakinHtml(m);
   if(m.t==='pdfbidang')return pbHtml(m);
   if(m.t==='verif'){
     var d=m.d;
@@ -777,6 +778,16 @@ function regAdminHtml(){
     '<div class="acts" style="padding-top:12px;padding-bottom:14px"><button type="button" class="pill" data-act="rgseed">'+ic('plus')+'Tambahkan</button><button type="button" class="pill" data-act="rgmuat">'+ic('refresh')+'Muat ulang</button></div></section>';
   return h;
 }
+/** Jumlah temuan yang memakai entri m (dari hitungan pemakaian terakhir). */
+function rgPakaiEntri(m){
+  var P=rgKunciPakai(),ka=L.kunci(m.area);
+  return m.j==='kelompok'?(P.kelompok[ka+'|'+m.k]||0):m.j==='kode'?(P.kode[ka+'|'+m.k+'|'+m.n]||0):(P.elemen[m.bidang+'|'+L.kunci(m.nama)]||0);
+}
+function rgYakinHtml(y){
+  var m=y.m,dari=m.j==='kelompok'?m.k:m.j==='kode'?m.n:m.nama;
+  return '<div class="ov mid"><div class="sheet gap" role="dialog" aria-label="Konfirmasi gabung"><h2>Gabungkan?</h2><div class="note" style="padding:0;overflow-wrap:anywhere"><b>'+esc(dari)+'</b> digabung ke <b>'+esc(y.tujuan)+'</b>. '+y.n+' temuan akan diperbarui. <b>Tidak bisa dibatalkan</b> dari aplikasi; cadangkan spreadsheet bila perlu.</div>'+
+    '<button type="button" class="btn bad" data-act="rgyakinya">Gabungkan</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div>';
+}
 function rgHtml(m){
   var a=m.area,ka=L.kunci(a),P=rgKunciPakai(),n=0,judul='',opts=[];
   if(m.j==='kelompok'){n=P.kelompok[ka+'|'+m.k]||0;judul='Kelompok '+m.k;opts=S.reg.kelompok.filter(function(e){return L.kunci(e.area)===ka&&e.k!==m.k}).map(function(e){return e.k})}
@@ -891,7 +902,8 @@ function cbSumber(id){
   return {d:regDaftar('kode',a,kk.ok?kk.val:''),fuzzy:false,urut:'alami',pref:(m?(m[1]==='a'?'huruf':'angka'):null),tambah:'kode',norm:function(v){var r=L.kode(v);return r.ok?r.val:null}};
 }
 function cbHtml(id,ph,val){
-  return '<div class="ck"><input type="text" id="'+id+'" data-cb="'+id+'" placeholder="'+ph+'" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="'+id+'_l" value="'+esc(val)+'"><div class="ckl hide" id="'+id+'_l" role="listbox"></div></div>';
+  var mx=id==='ruang'?80:id==='elemen'?60:id==='teks'?100:10;
+  return '<div class="ck"><input type="text" id="'+id+'" data-cb="'+id+'" maxlength="'+mx+'" placeholder="'+ph+'" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="'+id+'_l" value="'+esc(val)+'"><div class="ckl hide" id="'+id+'_l" role="listbox"></div></div>';
 }
 function cbOpsi(id,q){
   var s=cbSumber(id),all=Object.keys(s.d).map(function(k){return s.d[k]}),kq=L.kunci(q),out=[];
@@ -908,12 +920,17 @@ function cbOpsi(id,q){
 }
 function cbIsi(id,q){
   var r=cbOpsi(id,q),box=$(id+'_l'),el=$(id);if(!box)return;
-  var h=r.opsi.map(function(o,i){return '<div class="cko" role="option" data-id="'+id+'" data-v="'+esc(o.e.nama)+'"><span>'+esc(o.e.nama)+(o.mirip?' <small>(mirip)</small>':'')+'</span>'+(o.e.n?'<small>'+o.e.n+'</small>':'')+'</div>'}).join('');
+  var h=r.opsi.map(function(o,i){return '<div class="cko" role="option" id="'+id+'_o'+i+'" aria-selected="false" data-id="'+id+'" data-v="'+esc(o.e.nama)+'"><span>'+esc(o.e.nama)+(o.mirip?' <small>(mirip)</small>':'')+'</span>'+(o.e.n?'<small>'+o.e.n+'</small>':'')+'</div>'}).join('');
   if(r.tambah)h+='<div class="cko add" role="option" data-id="'+id+'" data-tambah="1" data-v="'+esc(r.tambah.nilai)+'">+ Tambah '+esc(r.tambah.label)+' "'+esc(r.tambah.nilai)+'"</div>';
   if(!h)h='<div class="cko"><small>Belum ada. Ketik untuk menambah.</small></div>';
   box.innerHTML=h;box.classList.remove('hide');el.setAttribute('aria-expanded','true');
-  var vv=window.visualViewport,tinggi=vv?vv.height:window.innerHeight,rc=el.getBoundingClientRect(),bawah=tinggi-rc.bottom;
-  box.classList.toggle('up',bawah<270&&rc.top>bawah);       // buka ke atas bila ruang di bawah tidak cukup (mis. ada keyboard)
+  cbPosisi(id);
+}
+/** Buka ke atas bila ruang di bawah kotak tidak cukup (mis. keyboard HP muncul). Dihitung ulang saat viewport berubah. */
+function cbPosisi(id){
+  var el=$(id),box=$(id+'_l');if(!el||!box||box.classList.contains('hide'))return;
+  var vv=window.visualViewport,dasar=vv?(vv.offsetTop+vv.height):window.innerHeight,rc=el.getBoundingClientRect(),bawah=dasar-rc.bottom;
+  box.classList.toggle('up',bawah<270&&rc.top>bawah);
 }
 function cbBuka(id){
   var el=$(id);if(!el)return;AKTIFCB=id;IDXCB=-1;
@@ -1091,7 +1108,7 @@ async function saveForm(lagi){
   fBaca();var f=S.modal.f;
   if(!f.uraian.trim()){$('mUr').classList.add('bad');toast('Isi temuan terlebih dahulu.');return}
   if(f.pend){toast('Foto masih disiapkan, tunggu sebentar.');return}
-  var p={id:f.id,bidang:f.bidang,tingkat:f.tingkat,tglTemuan:f.tgl,uraian:f.uraian,gedung:f.gedung,lantai:f.lantai};
+  var p={id:f.id,bidang:f.bidang,tingkat:f.tingkat,tglTemuan:f.tgl,uraian:f.uraian,gedung:f.gedung,lantai:f.lantai,ukur:UKUR?1:0};
   var rmIni=null;
   if(f.lama||f.id)p.ruanganId=f.ruanganId;
   if(!f.lama){
@@ -1109,6 +1126,7 @@ async function saveForm(lagi){
   var res=await work('Menyimpan temuan...',function(){return api('defect_simpan',p)});
   if(!res){f.files=files;openModal({t:'temuan',f:f});return}
   lsSet('dl-bidang',f.bidang);
+  if(UKUR)console.log('[ukur] simpan temuan, klien total '+(Date.now()-t0)+'ms, server',res.ms);
   if(res.lokasi&&res.lokasi.baru){ // ruangan atau lokasi umum baru dibuat di server
     var lk=res.lokasi;S.rooms.push({id:lk.id,gedung:lk.gedung,lantai:lk.lantai,nama:lk.nama,jenis:lk.jenis,nomor:lk.nomor,bidang:lk.bidang,urut:S.rooms.length,open:0,proses:0,close:0,total:0});
     lsSet('dl-rooms-'+S.paket.id,JSON.stringify(S.rooms));
@@ -1173,8 +1191,14 @@ async function onClick(ev){
       if(np!==null){await rgSegarkan();toast('Pemisah diubah. '+np+' temuan diperbarui.')}return;
     }
     case 'rggabung': {
-      var mg=S.modal,tujuan=$('rgTujuan').value;closeModal();
-      var pg={jenis:mg.j,area:mg.area,bidang:mg.bidang,kelompok:mg.k,dari:mg.j==='kelompok'?mg.k:mg.j==='kode'?mg.n:mg.nama,ke:tujuan};
+      var mg0=S.modal,sT=$('rgTujuan'),tujuan0=sT?sT.value:'';
+      if(!tujuan0){toast('Pilih entri tujuan lebih dulu.');return}
+      var nn=rgPakaiEntri(mg0);
+      openModal({t:'rgyakin',m:mg0,tujuan:tujuan0,n:nn});return;
+    }
+    case 'rgyakinya': {
+      var yk=S.modal,mg=yk.m;closeModal();
+      var pg={jenis:mg.j,area:mg.area,bidang:mg.bidang,kelompok:mg.k,dari:mg.j==='kelompok'?mg.k:mg.j==='kode'?mg.n:mg.nama,ke:yk.tujuan};
       var ng=await jalankanRegistri('registri_gabung',pg,'Menggabungkan');
       if(ng!==null){await rgSegarkan();toast('Digabung. '+ng+' temuan diperbarui.')}return;
     }
@@ -1296,6 +1320,7 @@ document.addEventListener('input',function(e){
   var row=e.target.closest&&e.target.closest('.row');if(row)row.classList.remove('bad')});
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.id==='kode'){e.preventDefault();masuk()}});
 /* kotak pilihan pada form temuan */
+if(window.visualViewport){['resize','scroll'].forEach(function(ev){window.visualViewport.addEventListener(ev,function(){if(AKTIFCB)cbPosisi(AKTIFCB)})})}
 function cbAktifForm(){return !!(S.modal&&S.modal.t==='temuan')}
 document.addEventListener('pointerdown',function(e){
   if(!cbAktifForm())return;
@@ -1315,7 +1340,7 @@ document.addEventListener('input',function(e){
 document.addEventListener('keydown',function(e){
   if(!AKTIFCB)return;var box=$(AKTIFCB+'_l');if(!box||box.classList.contains('hide'))return;
   var os=[].slice.call(box.querySelectorAll('.cko[data-id]'));if(!os.length)return;
-  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();IDXCB=(IDXCB+(e.key==='ArrowDown'?1:-1)+os.length)%os.length;os.forEach(function(o,i){o.classList.toggle('on',i===IDXCB)});os[IDXCB].scrollIntoView({block:'nearest'})}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();IDXCB=(IDXCB+(e.key==='ArrowDown'?1:-1)+os.length)%os.length;os.forEach(function(o,i){o.classList.toggle('on',i===IDXCB);o.setAttribute('aria-selected',i===IDXCB?'true':'false')});$(AKTIFCB).setAttribute('aria-activedescendant',os[IDXCB].id);os[IDXCB].scrollIntoView({block:'nearest'})}
   else if(e.key==='Enter'&&IDXCB>=0){e.preventDefault();var o=os[IDXCB];cbPilih(o.getAttribute('data-id'),o.getAttribute('data-v'),!!o.getAttribute('data-tambah'))}
 });
 /* Escape menutup lapisan teratas; Tab berputar di dalam dialog yang terbuka. */
