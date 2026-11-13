@@ -1,8 +1,8 @@
 // Service worker: cache tampilan saja. Data dan foto selalu diambil dari server.
 // Strategi stale-while-revalidate: tampilan langsung dari cache (cepat, juga saat sinyal lemah),
 // lalu diperbarui di belakang. Versi baru terpakai pada pembukaan berikutnya.
-var CACHE = 'defect-list-v26';
-var SHELL = ['./', 'index.html', 'app.js', 'config.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+var CACHE = 'defect-list-v28';
+var SHELL = ['./', 'index.html', 'app.js', 'config.js', 'logika.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }));

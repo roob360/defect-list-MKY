@@ -19,6 +19,9 @@ var PAKET_LIST = [
   }
 ];
 
+// Nama tiga tingkat lokasi di tampilan dan laporan. Ubah bila proyek memakai istilah lain (mis. Kawasan, Zona, Area).
+var LABEL = { area: 'Gedung', level: 'Lantai', lokasi: 'Ruangan' };
+
 // Pilihan isian form. Ubah di sini bila perlu.
 var BIDANG = ['Arsitektur', 'Struktur', 'MEEP', 'Infrastruktur', 'Lansekap'];
 var TINGKAT = ['Minor', 'Mayor', 'Kritis'];

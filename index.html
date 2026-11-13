@@ -273,6 +273,17 @@
   html.hemat[data-tema="gelap"]{ --mat:#000000; --dock:#1c1c1e; }
   html[data-teks="kecil"]{ zoom:.9; }
   html[data-teks="besar"]{ zoom:1.14; }
+  /* kotak pilihan (form temuan) */
+  .group.vis{ overflow:visible; }
+  .ck{ position:relative; }
+  .ckl{ position:absolute; left:calc(var(--margin) * -1); right:calc(var(--margin) * -1); top:calc(100% + 6px); z-index:60; background:var(--gbg2); border:1px solid var(--sep); border-radius:14px; max-height:252px; overflow:auto; box-shadow:var(--float); }
+  .ckl.up{ top:auto; bottom:calc(100% + 6px); }
+  .cko{ display:flex; justify-content:space-between; gap:8px; align-items:center; min-height:46px; padding:10px var(--margin); border-top:1px solid var(--sep); font-size:16px; line-height:22px; cursor:pointer; }
+  .cko:first-child{ border-top:0; }
+  .cko.on{ background:var(--fill3); }
+  .cko small{ color:var(--label2); }
+  .cko.add{ color:var(--blue); font-weight:600; }
+  .note.bad{ color:var(--red-text); }
   @media (min-width:760px){ .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); align-items:start; } .grid2 > .group{ margin:0; } }
 </style>
 </head>
@@ -309,6 +320,7 @@
 <input type="file" id="fXls" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden>
 
 <script src="config.js"></script>
+<script src="logika.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
