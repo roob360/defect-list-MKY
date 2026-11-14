@@ -10,7 +10,7 @@ var LBL=(typeof LABEL!=='undefined'&&LABEL)?LABEL:{area:'Gedung',level:'Lantai',
 
 var S={
   paket:null, kode:'', user:null, view:'form', rooms:[], roomsReady:false, sel:{g:'',l:'',r:''},
-  defects:{}, loading:{}, errs:{}, all:null, siap:null, siapErr:'', anim:'sistem', flt:{rid:'',q:'',st:'',bd:'',tk:'',el:''}, zipOff:{}, zipRun:false, zipStop:false, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
+  defects:{}, loading:{}, errs:{}, all:null, siap:null, siapErr:'', perlu:null, perluErr:'', anim:'sistem', flt:{rid:'',q:'',st:'',bd:'',tk:'',el:''}, zipOff:{}, zipRun:false, zipStop:false, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
   reg:null, regOk:false, rg:{area:'',pakai:null}, imp:null, impRes:null, up:[], pv:{}, stale:{}, fokusAsal:null, kl:{g:'',l:'',n:''}, hist:[], skip:0, seen:{}, ringPrev:{}, drawn:'', ovKey:''
 };
 var app=document.getElementById('app'), overlay=document.getElementById('overlay');
@@ -48,12 +48,13 @@ function applyAnim(){
 }
 function isAdmin(){return S.user&&S.user.peran==='ADMIN'}
 function canEdit(){return S.user&&(S.user.peran==='ADMIN'||S.user.peran==='MK')}
+function isPJ(){return S.user&&S.user.peran==='PJ'}
 function stCls(s){return s==='Close'?'close':s==='Dalam proses'?'proses':'open'}
 function cnt(list){var c={total:list.length,open:0,proses:0,close:0};list.forEach(function(d){if(d.status==='Close')c.close++;else if(d.status==='Dalam proses')c.proses++;else c.open++});return c}
 
 /* ---------- API ---------- */
 /* Aksi baca boleh diulang otomatis (sampai 3 kali) saat jaringan gagal. Aksi tulis tidak, supaya tidak menggandakan data. */
-var BACA={mulai:1,masuk:1,ruangan:1,defect_daftar:1,defect_semua:1,defect_siap:1,defect_terhapus:1,foto_data:1};
+var BACA={mulai:1,masuk:1,ruangan:1,defect_daftar:1,defect_semua:1,defect_siap:1,defect_perbaikan:1,defect_terhapus:1,foto_data:1};
 function api(aksi,p){
   var body=JSON.stringify(Object.assign({aksi:aksi,kode:S.kode},p||{}));
   var maks=BACA[aksi]?3:1,batas=aksi==='foto_unggah'?90000:45000,url=S.paket.apiUrl;
@@ -155,17 +156,20 @@ function putDefect(d){
   if(list){var i=list.map(function(x){return x.id}).indexOf(d.id);if(i>=0)list[i]=d;else list.push(d);recount(d.ruanganId);simpanDef(d.ruanganId)}
   if(S.all){var j=S.all.map(function(x){return x.id}).indexOf(d.id);if(j>=0)S.all[j]=d;else S.all.push(d)}
   if(S.siap){var k=S.siap.map(function(x){return x.id}).indexOf(d.id);if(d.siap){if(k>=0)S.siap[k]=d;else S.siap.push(d)}else if(k>=0)S.siap.splice(k,1)}
+  if(S.perlu){var q=S.perlu.map(function(x){return x.id}).indexOf(d.id);if(d.perlu){if(q>=0)S.perlu[q]=d;else S.perlu.push(d)}else if(q>=0)S.perlu.splice(q,1)}
 }
 function dropDefect(id,rid){
   S.up=S.up.filter(function(x){return x.did!==id});upBar();
   if(S.defects[rid]){S.defects[rid]=S.defects[rid].filter(function(x){return x.id!==id});recount(rid);simpanDef(rid)}
   if(S.all)S.all=S.all.filter(function(x){return x.id!==id});
   if(S.siap)S.siap=S.siap.filter(function(x){return x.id!==id});
+  if(S.perlu)S.perlu=S.perlu.filter(function(x){return x.id!==id});
 }
 function findDefect(id){
   var rid,list;
   for(rid in S.defects){list=S.defects[rid];for(var i=0;i<list.length;i++)if(list[i].id===id)return list[i]}
   if(S.siap)for(var j=0;j<S.siap.length;j++)if(S.siap[j].id===id)return S.siap[j];
+  if(S.perlu)for(var m=0;m<S.perlu.length;m++)if(S.perlu[m].id===id)return S.perlu[m];
   return null;
 }
 
@@ -180,6 +184,16 @@ async function loadSiap(){
   }
   if(S.view==='verif')render();else setDock();   // hindari render ulang daftar form (animasi kartu)
 }
+async function loadPerlu(){
+  if(!isPJ())return;
+  S.perluErr='';
+  try{S.perlu=await api('defect_perbaikan')}
+  catch(e){
+    if(e&&e.server&&/Kode tidak dikenal|nonaktif/i.test(e.message)){gagal(e);return}
+    S.perluErr=e&&e.server?(/Aksi tidak dikenal/i.test(e.message)?'Server belum diperbarui. Tempel Kode.gs terbaru di Apps Script lalu deploy Versi baru.':e.message):'Tidak terhubung ke server.';
+  }
+  if(S.view==='perbaikan')render();else setDock();
+}
 async function loadRooms(){
   try{
     S.rooms=await api('ruangan');S.roomsReady=true;S.net='';
@@ -193,6 +207,7 @@ async function loadRooms(){
   var T=tree(),s=ensureSel(T);
   if(s&&S.view==='form')loadDefects(s.r.id,false);
   if(canEdit())loadSiap();
+  if(isPJ())loadPerlu();
 }
 async function loadDefects(rid,force){
   if(!force&&((S.defects[rid]&&!S.stale[rid])||S.loading[rid]))return;   // cegah pemuatan ganda
@@ -264,17 +279,17 @@ function renderLogin(){
 }
 
 function setDock(){
-  var el=$('dock'),show=!!(S.paket&&S.user&&canEdit());
+  var el=$('dock'),show=!!(S.paket&&S.user&&(canEdit()||isPJ()));
   if(show){
-    var t=[['form','Form'],['verif','Verifikasi'],['rekap','Rekap']];
+    var t=isPJ()?[['form','Form'],['perbaikan','Perbaikan']]:[['form','Form'],['verif','Verifikasi'],['rekap','Rekap']];
     if(isAdmin())t.push(['kelola','Kelola']);
     var keys=t.map(function(x){return x[0]}).join(',');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
-      el.innerHTML='<span class="ind"></span>'+t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+(x[0]==='verif'?'<i class="bdg" hidden></i>':'')+'</button>'}).join('');
+      el.innerHTML='<span class="ind"></span>'+t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan')?'<i class="bdg" hidden></i>':'')+'</button>'}).join('');
     }
     var bg=el.querySelector('.bdg');
-    if(bg){var nsiap=S.siap?S.siap.length:0;bg.textContent=nsiap>99?'99+':nsiap;bg.hidden=!nsiap}
+    if(bg){var nsiap=isPJ()?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);bg.textContent=nsiap>99?'99+':nsiap;bg.hidden=!nsiap;bg.setAttribute('aria-label',nsiap+(isPJ()?' perlu dikerjakan':' menunggu verifikasi'))}
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){
       var on=b.getAttribute('data-v')===S.view;b.classList.toggle('on',on);
       if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
@@ -295,6 +310,7 @@ function renderMain(){
   var h='';
   if(S.net)h+='<div class="err" role="status">'+esc(S.net)+'</div>';
   if(S.view==='verif'&&canEdit())h+=verifHtml();
+  else if(S.view==='perbaikan'&&isPJ())h+=perbaikanHtml();
   else if(S.view==='rekap'&&canEdit())h+=rekapHtml();
   else if(S.view==='kelola'&&isAdmin())h+=kelolaHtml();
   else h+=formHtml();
@@ -376,22 +392,31 @@ function phHtml(d,jenis,ro){
 function picker(d,jenis){
   return '<div class="pbtn"><button type="button" class="pill" data-act="foto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-cam="1">'+ic('cam')+'Kamera</button><button type="button" class="pill" data-act="foto" data-d="'+esc(d.id)+'" data-j="'+jenis+'">'+ic('img')+'Galeri</button></div>';
 }
+/* Pil verifikasi berganti rupa menurut keadaan: hijau penuh hanya untuk yang masih menunggu keputusan. */
+function verifPill(d){
+  var a=' data-act="verif" data-d="'+esc(d.id)+'"';
+  if(d.verifikasi==='Diterima')return '<button type="button" class="pill done"'+a+'>'+ic('verif')+'Diterima</button>';
+  if(d.verifikasi==='Ditolak')return '<button type="button" class="pill rej"'+a+'>'+ic('x')+'Ditolak</button>';
+  if(!d.fotoAfter.length)return '<button type="button" class="pill wait"'+a+'>Menunggu foto After</button>';
+  return '<button type="button" class="pill go"'+a+'>'+ic('verif')+'Verifikasi</button>';
+}
 function entryHtml(d,n,ix,ro){
   var ed=canEdit()&&!ro,closed=d.status==='Close';
   var fresh=!S.seen[d.id];S.seen[d.id]=1;
   var h='<article class="group entry'+(fresh?' pop':'')+'"'+(fresh?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh"><span class="no">'+n+'.</span><span class="tx">'+esc(d.uraian)+'</span></div>'+
     '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+'</div>';
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
-  if(d.verifikasi)h+='<div class="note">'+(d.verifikasi==='Diterima'?'Diterima':'Ditolak')+' MK '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):'')+(d.catatan?'. Catatan: '+esc(d.catatan):'')+'</div>';
+  if(d.verifikasi)h+='<div class="note'+(d.verifikasi==='Ditolak'?' tolak':'')+'">'+(d.verifikasi==='Diterima'?'Diterima':'Ditolak')+' MK '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):'')+(d.catatan?'. Catatan: '+esc(d.catatan):'')+'</div>';
+  if(isPJ()&&d.verifikasi==='Ditolak')h+='<div class="note tolak">Unggah foto After yang baru supaya diverifikasi ulang oleh MK.</div>';
   h+='<div class="ph" data-j="before">'+phHtml(d,'before',ro)+'</div>';
   h+='<div class="ph" data-j="after">'+phHtml(d,'after',ro)+'</div>';
   h+='<div class="acts">';
-  if(ro){h+='<button type="button" class="pill ok" data-act="verif" data-d="'+esc(d.id)+'">Verifikasi</button>';return h+'</div></article>'}
+  if(ro){h+=verifPill(d);return h+'</div></article>'}
   var bisaMulai=S.user&&(S.user.peran==='PJ'||S.user.peran==='ADMIN');
-  if(!closed&&!d.mulai&&bisaMulai)h+='<button type="button" class="pill" data-act="mulai" data-d="'+esc(d.id)+'">Mulai perbaikan</button>';
+  if(!closed&&!d.mulai&&bisaMulai)h+='<button type="button" class="pill start" data-act="mulai" data-d="'+esc(d.id)+'">Mulai perbaikan</button>';
   if(!closed&&d.mulai&&!d.fotoAfter.length)h+='<button type="button" class="pill bad" data-act="batalmulai" data-d="'+esc(d.id)+'">Batal mulai</button>';
   if(ed){
-    h+='<button type="button" class="pill ok" data-act="verif" data-d="'+esc(d.id)+'">Verifikasi</button>'+
+    h+=verifPill(d)+
       '<button type="button" class="pill" data-act="edit" data-d="'+esc(d.id)+'">Ubah</button>'+
       '<button type="button" class="pill bad" data-act="hapus" data-d="'+esc(d.id)+'">Hapus</button>';
   }
@@ -406,6 +431,18 @@ function verifHtml(){
   h+='<div class="acts" style="padding:0 0 16px;align-items:center"><span class="tag" style="display:inline-flex;align-items:center;height:34px;padding:0 14px">'+S.siap.length+' menunggu</span><button type="button" class="pill" data-act="muatsiap">'+ic('refresh')+'Muat ulang</button></div>';
   if(!S.siap.length)return h+'<div class="empty">Tidak ada temuan yang menunggu verifikasi.</div>';
   S.siap.forEach(function(d,i){h+='<div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+entryHtml(d,d.no||i+1,i,true)});
+  return h;
+}
+
+/* ----- antrean perbaikan (PJ) ----- */
+function perbaikanHtml(){
+  var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Perbaikan</h1></div>';
+  if(!S.perlu&&S.perluErr)return h+'<div class="err">'+esc(S.perluErr)+'</div><button type="button" class="btn sec" data-act="muatperlu">Coba lagi</button>';
+  if(!S.perlu)return h+skel('entries');
+  var tl=S.perlu.filter(function(d){return d.verifikasi==='Ditolak'}).length;
+  h+='<div class="acts" style="padding:0 0 16px;align-items:center"><span class="tag" style="display:inline-flex;align-items:center;height:34px;padding:0 14px">'+S.perlu.length+' perlu dikerjakan</span>'+(tl?'<span class="tag open" style="display:inline-flex;align-items:center;height:34px;padding:0 14px">'+tl+' ditolak MK</span>':'')+'<button type="button" class="pill" data-act="muatperlu">'+ic('refresh')+'Muat ulang</button></div>';
+  if(!S.perlu.length)return h+'<div class="empty">Semua temuan sudah dikerjakan. Tidak ada yang perlu di-close.</div>';
+  S.perlu.forEach(function(d,i){h+='<div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+entryHtml(d,d.no||i+1,i)});
   return h;
 }
 
@@ -521,7 +558,7 @@ function modalHtml(){
     return '<div class="ov" data-act="modalbg"><div class="sheet" role="dialog" aria-label="Verifikasi"><h2>Verifikasi MK</h2><div class="note" style="padding:0 0 10px;overflow-wrap:anywhere">'+esc(d.uraian)+'</div>'+
       '<section class="group"><div class="list"><label class="row"><span class="lbl">Catatan MK (opsional)</span><textarea id="vC" style="min-height:80px">'+esc(d.catatan||'')+'</textarea></label></div></section>'+
       (d.fotoAfter.length?'':'<div class="note" style="padding:0 0 10px">Belum ada foto After dari penanggung jawab, jadi belum bisa diterima atau ditolak.</div>')+
-      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length?'':' disabled')+' data-act="vset" data-h="Diterima">Diterima (Close)</button><button type="button" class="btn bad"'+(d.fotoAfter.length?'':' disabled')+' data-act="vset" data-h="Ditolak">Ditolak</button>'+
+      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length&&d.verifikasi!=='Diterima'?'':' disabled')+' data-act="vset" data-h="Diterima">'+(d.verifikasi==='Diterima'?'Sudah diterima (Close)':'Diterima (Close)')+'</button><button type="button" class="btn bad"'+(d.fotoAfter.length&&d.verifikasi!=='Ditolak'?'':' disabled')+' data-act="vset" data-h="Ditolak">'+(d.verifikasi==='Ditolak'?'Sudah ditolak':'Ditolak')+'</button>'+
       (d.verifikasi?'<button type="button" class="btn sec" data-act="vset" data-h="">Batalkan verifikasi</button>':'')+
       '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div></div>';
   }
@@ -653,7 +690,10 @@ async function kirimFoto(j){
     if(cur&&(cur.fotoBefore.length>r.defect.fotoBefore.length||cur.fotoAfter.length>r.defect.fotoAfter.length)){
       var arr=j.jenis==='before'?cur.fotoBefore:cur.fotoAfter;
       if(!arr.some(function(f){return f.id===r.foto.id}))arr.push(r.foto);
-    }else putDefect(r.defect);
+    }else{
+      putDefect(r.defect);
+      if(isPJ()&&j.jenis==='after'&&!r.defect.perlu){toast('Foto After terkirim. Temuan menunggu verifikasi MK.');if(S.view==='perbaikan')render()}
+    }
     if(UKUR)console.log('[ukur] foto',j.jenis,'kompres',j.tPrep+'ms','kirim+server',(Date.now()-t0)+'ms','ukuran',Math.round(j.data.length*0.75/1024)+'KB','server',r.ms);
   }catch(e){
     if(S.up.indexOf(j)<0)return;
@@ -821,10 +861,10 @@ async function jalankanRegistri(aksi,p,label){
   return ok?total:null;
 }
 async function rgSegarkan(){
-  S.defects={};S.all=null;S.siap=null;S.stale={};await hapusCacheTemuan();
+  S.defects={};S.all=null;S.siap=null;S.perlu=null;S.stale={};await hapusCacheTemuan();
   await muatRegistri();
   try{S.rg.pakai=await api('registri_pakai')}catch(e){S.rg.pakai=null}
-  render();if(canEdit())loadSiap();
+  render();if(canEdit())loadSiap();if(isPJ())loadPerlu();
 }
 function expansiKode(d,s){
   d=L.rapi(d).toUpperCase();s=L.rapi(s).toUpperCase();
@@ -1159,6 +1199,7 @@ async function onClick(ev){
       S.view=nv;}
       lsSet('dl-view',S.view);if(S.view==='rekap')S.all=null;render();
       if(S.view==='verif')loadSiap();
+      else if(S.view==='perbaikan')loadPerlu();
       else if(S.view==='rekap'||S.view==='kelola')loadRooms();
       else{var s=ensureSel(tree());if(s)loadDefects(s.r.id,false)}
       return;
@@ -1273,6 +1314,7 @@ async function onClick(ev){
     case 'bersih': return bersihCache();
     case 'anim': S.anim=el.getAttribute('data-v');lsSet('dl-anim',S.anim);applyAnim();return renderOverlay();
     case 'muatsiap': S.siap=null;S.siapErr='';render();return loadSiap();
+    case 'muatperlu': S.perlu=null;S.perluErr='';render();return loadPerlu();
     case 'batalmulai': return openModal({t:'batalmulai',d:findDefect(id)});
     case 'batalmulaiya': {
       var bd=S.modal.d;closeModal();
@@ -1385,7 +1427,7 @@ async function tambahRuangan(){
 function pilihPaket(id,push){
   var p=PAKET_LIST.filter(function(x){return x.id===id})[0];if(!p)return;
   if(push)hpush('paket');
-  S.paket=p;lsSet(STORE,id);S.user=null;S.kode=lsGet('dl-kode-'+id)||'';S.loginErr='';S.rooms=[];S.roomsReady=false;S.defects={};S.all=null;S.siap=null;S.terhapus=null;
+  S.paket=p;lsSet(STORE,id);S.user=null;S.kode=lsGet('dl-kode-'+id)||'';S.loginErr='';S.rooms=[];S.roomsReady=false;S.defects={};S.all=null;S.siap=null;S.perlu=null;S.terhapus=null;
   try{var c=JSON.parse(lsGet('dl-rooms-'+id)||'null');if(c&&c.length){S.rooms=c}}catch(e){}
   S.reg=null;S.regOk=false;try{var cr=JSON.parse(lsGet('dl-reg-'+id)||'null');if(cr&&cr.kode){S.reg=cr;S.regOk=true}}catch(e){}
   if(S.kode&&p.apiUrl)return cobaMasuk(true);
@@ -1394,7 +1436,7 @@ function pilihPaket(id,push){
 function keluar(){
   resetHist(true);
   if(S.paket){lsDel('dl-kode-'+S.paket.id);bersihLokal(S.paket.id)}
-  S.up=[];upBar();S.stale={};S.pv={};S.loading={};S.errs={};S.reg=null;S.regOk=false;S.rg={area:'',pakai:null};S.user=null;S.kode='';S.defects={};S.all=null;S.siap=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
+  S.up=[];upBar();S.stale={};S.pv={};S.loading={};S.errs={};S.reg=null;S.regOk=false;S.rg={area:'',pakai:null};S.user=null;S.kode='';S.defects={};S.all=null;S.siap=null;S.perlu=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
 }
 async function masuk(){
   var el=$('kode');S.kode=(el?el.value:S.kode).trim().toUpperCase();
@@ -1411,7 +1453,7 @@ async function ambilMulai(){
 }
 function aturPengguna(u){
   S.user={nama:u.nama,peran:u.peran};
-  var v=lsGet('dl-view');S.view=((v==='rekap'||v==='verif')&&u.peran!=='PJ')||(v==='kelola'&&u.peran==='ADMIN')?v:'form';
+  var v=lsGet('dl-view');S.view=((v==='rekap'||v==='verif')&&u.peran!=='PJ')||(v==='perbaikan'&&u.peran==='PJ')||(v==='kelola'&&u.peran==='ADMIN')?v:'form';
   if(S.view!=='form'&&S.hist[S.hist.length-1]!=='view')hpush('view');
   try{var sv=JSON.parse(lsGet('dl-sel')||'null');if(sv&&sv.g)S.sel=sv}catch(e){}
 }
@@ -1431,6 +1473,7 @@ async function cobaMasuk(auto){
     lsSet('dl-kode-'+pid,S.kode);lsSet('dl-user-'+pid,JSON.stringify({nama:r.nama,peran:r.peran}));
     if(r.ruangan){S.rooms=r.ruangan;S.roomsReady=true;lsSet('dl-rooms-'+pid,JSON.stringify(S.rooms))}
     if(r.siap)S.siap=r.siap;
+    if(r.perlu)S.perlu=r.perlu;
     if(r.registri){S.reg=r.registri;S.regOk=true;lsSet('dl-reg-'+pid,JSON.stringify(S.reg))}else{S.reg=null;S.regOk=false}
     render();
     if(r.ruangan){var s=ensureSel(tree());if(s&&S.view==='form')loadDefects(s.r.id,false)}

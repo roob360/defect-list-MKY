@@ -22,7 +22,7 @@
     --gbg1:#f2f2f7; --gbg2:#ffffff;
     --label1:#000000; --label2:#66666b; --label3:#3c3c434c;
     --sep:#0000001f; --fill2:#78788029; --fill3:#7676801f; --fill4:#74748014;
-    --prominent:#0088ff; --on-prominent:#ffffff;
+    --prominent:#0088ff; --on-prominent:#ffffff; --on-go:#ffffff;
     --blue:#0088ff; --red:#ff383c; --green:#34c759; --orange:#ff8d28;
     --green-text:#1f7a35; --red-text:#c4161a; --orange-text:#a85200;
     --red-fill:#ff383c1f; --green-fill:#34c7591f; --orange-fill:#ff8d281f;
@@ -38,7 +38,7 @@
       --label1:#ffffff; --label2:#ebebf599; --label3:#ebebf54c;
       --sep:#ffffff1f; --fill2:#78788052; --fill3:#7676803d; --fill4:#7676802e;
       --prominent:#0091ff; --blue:#0091ff; --red:#ff4245; --green:#30d158; --orange:#ff9230;
-      --green-text:#30d158; --red-text:#ff6165; --orange-text:#ff9f4a;
+      --green-text:#30d158; --red-text:#ff6165; --orange-text:#ff9f4a; --on-go:#000000;
       --seg-sel:#ffffff45; --dock:#1c1c1eeb; --mat:#00000099; --float:0 8px 30px #00000080;
     }
   }
@@ -47,7 +47,7 @@
       --label1:#ffffff; --label2:#ebebf599; --label3:#ebebf54c;
       --sep:#ffffff1f; --fill2:#78788052; --fill3:#7676803d; --fill4:#7676802e;
       --prominent:#0091ff; --blue:#0091ff; --red:#ff4245; --green:#30d158; --orange:#ff9230;
-      --green-text:#30d158; --red-text:#ff6165; --orange-text:#ff9f4a;
+      --green-text:#30d158; --red-text:#ff6165; --orange-text:#ff9f4a; --on-go:#000000;
       --seg-sel:#ffffff45; --dock:#1c1c1eeb; --mat:#00000099; --float:0 8px 30px #00000080;
   }
   :root[data-tema="terang"]{ color-scheme:light; }
@@ -86,6 +86,14 @@
   .pill:active{ background:var(--fill2); }
   .pill.bad{ background:var(--red-fill); color:var(--red-text); }
   .pill.ok{ background:var(--green-fill); color:var(--green-text); }
+  /* pil verifikasi: tiap keadaan punya rupa sendiri, hijau penuh hanya untuk yang masih menunggu keputusan MK */
+  .pill.go{ background:var(--green-text); color:var(--on-go); }
+  .pill.go:active{ opacity:.8; }
+  .pill.start{ background:var(--prominent); color:var(--on-prominent); }
+  .pill.start:active{ opacity:.8; }
+  .pill.done{ background:var(--fill3); color:var(--green-text); }
+  .pill.rej{ background:var(--red-fill); color:var(--red-text); }
+  .pill.wait{ background:transparent; color:var(--label2); box-shadow:inset 0 0 0 1.5px var(--label3); }
   .pill svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
   .spin{ width:18px; height:18px; border-radius:50%; flex:none; border:2.5px solid #ffffff55; border-top-color:#fff; animation:spin .8s linear infinite; }
   .spin.d{ border-color:var(--fill2); border-top-color:var(--blue); width:26px; height:26px; }
@@ -284,6 +292,7 @@
   .cko small{ color:var(--label2); }
   .cko.add{ color:var(--blue); font-weight:600; }
   .note.bad{ color:var(--red-text); }
+  .note.tolak{ color:var(--red-text); font-weight:600; }
   @media (min-width:760px){ .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); align-items:start; } .grid2 > .group{ margin:0; } }
 </style>
 </head>
@@ -303,6 +312,7 @@
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
   <symbol id="i-form" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 9h6M9 13h6M9 17h3"/></symbol>
   <symbol id="i-verif" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/></symbol>
+  <symbol id="i-perbaikan" viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0-5 5L4.5 15.5a1.8 1.8 0 0 0 2.5 2.5l5-5a4 4 0 0 0 5-5l-2.4 2.4-2.1-.6-.6-2.1z"/></symbol>
   <symbol id="i-rekap" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"/></symbol>
   <symbol id="i-kelola" viewBox="0 0 24 24"><path d="M5 7h9M18 7h1M5 17h1M10 17h9"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
 </svg>
