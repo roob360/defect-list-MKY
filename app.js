@@ -371,7 +371,8 @@ function formHtml(){
   var ringGo=S.ringPrev[rid]!==p;S.ringPrev[rid]=p;
   h+='<div class="summary"><div class="ring'+(c.total&&c.close===c.total?' full':'')+'"><svg viewBox="0 0 72 72"><circle class="tr" cx="36" cy="36" r="30"/><circle class="on'+(ringGo?' go':'')+'" cx="36" cy="36" r="30" style="stroke-dashoffset:'+(188.5*(1-p/100)).toFixed(1)+'"/></svg><div class="c">'+pct(c)+'</div></div>'+
     '<div class="stats"><div><b>'+c.total+'</b><span>Total</span></div><div class="o"><b>'+c.open+'</b><span>Open</span></div><div class="p"><b>'+c.proses+'</b><span>Proses</span></div><div class="c"><b>'+c.close+'</b><span>Close</span></div></div></div>';
-  h+='<div class="acts" style="padding:0 0 '+'16px"><button type="button" class="pill" data-act="pdf">'+ic('pdf')+'PDF</button><button type="button" class="pill" data-act="pdfbidang">'+ic('pdf')+'PDF Bidang</button>'+(canEdit()?'<button type="button" class="pill" data-act="tambah">'+ic('plus')+'Tambah</button>':'')+'<button type="button" class="pill" data-act="muat">'+ic('refresh')+'Muat ulang</button></div>';
+  if(canEdit())h+='<button type="button" class="fab" data-act="tambah" aria-label="Tambah temuan">'+ic('plus')+'Tambah</button>';
+  h+='<div class="acts" style="padding:0 0 '+'16px"><button type="button" class="pill" data-act="pdf">'+ic('pdf')+'PDF</button><button type="button" class="pill" data-act="pdfbidang">'+ic('pdf')+'PDF Bidang</button><button type="button" class="pill" data-act="muat">'+ic('refresh')+'Muat ulang</button></div>';
   if(!list.length)return h+'<div class="empty">Belum ada temuan di ruangan ini.</div>';
   return h+filterHtml(list,c)+'<div id="elist">'+entriesHtml(list)+'</div>';
 }
