@@ -283,10 +283,14 @@ function setDock(){
   if(show){
     var t=isPJ()?[['form','Form'],['perbaikan','Perbaikan']]:[['form','Form'],['verif','Verifikasi'],['rekap','Rekap']];
     if(isAdmin())t.push(['kelola','Kelola']);
-    var keys=t.map(function(x){return x[0]}).join(',');
+    var add=S.view==='form'&&canEdit();
+    var keys=t.map(function(x){return x[0]}).join(',')+(add?'+':'');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
-      el.innerHTML='<span class="ind"></span>'+t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan')?'<i class="bdg" hidden></i>':'')+'</button>'}).join('');
+      var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan')?'<i class="bdg" hidden></i>':'')+'</button>'});
+      if(add)bt.splice(Math.ceil(bt.length/2),0,'<button type="button" class="dockadd" data-act="tambah" aria-label="Tambah temuan">'+ic('plus')+'</button>');
+      el.classList.toggle('wadd',add);
+      el.innerHTML='<span class="ind"></span>'+bt.join('');
     }
     var bg=el.querySelector('.bdg');
     if(bg){var nsiap=isPJ()?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);bg.textContent=nsiap>99?'99+':nsiap;bg.hidden=!nsiap;bg.setAttribute('aria-label',nsiap+(isPJ()?' perlu dikerjakan':' menunggu verifikasi'))}
@@ -371,7 +375,6 @@ function formHtml(){
   var ringGo=S.ringPrev[rid]!==p;S.ringPrev[rid]=p;
   h+='<div class="summary"><div class="ring'+(c.total&&c.close===c.total?' full':'')+'"><svg viewBox="0 0 72 72"><circle class="tr" cx="36" cy="36" r="30"/><circle class="on'+(ringGo?' go':'')+'" cx="36" cy="36" r="30" style="stroke-dashoffset:'+(188.5*(1-p/100)).toFixed(1)+'"/></svg><div class="c">'+pct(c)+'</div></div>'+
     '<div class="stats"><div><b>'+c.total+'</b><span>Total</span></div><div class="o"><b>'+c.open+'</b><span>Open</span></div><div class="p"><b>'+c.proses+'</b><span>Proses</span></div><div class="c"><b>'+c.close+'</b><span>Close</span></div></div></div>';
-  if(canEdit())h+='<button type="button" class="fab" data-act="tambah" aria-label="Tambah temuan">'+ic('plus')+'Tambah</button>';
   h+='<div class="acts" style="padding:0 0 '+'16px"><button type="button" class="pill" data-act="pdf">'+ic('pdf')+'PDF</button><button type="button" class="pill" data-act="pdfbidang">'+ic('pdf')+'PDF Bidang</button><button type="button" class="pill" data-act="muat">'+ic('refresh')+'Muat ulang</button></div>';
   if(!list.length)return h+'<div class="empty">Belum ada temuan di ruangan ini.</div>';
   return h+filterHtml(list,c)+'<div id="elist">'+entriesHtml(list)+'</div>';
