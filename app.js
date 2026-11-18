@@ -411,12 +411,14 @@ function formHtml(){
     h+='<div class="err">'+esc(S.errs[rid])+'</div><button type="button" class="btn sec" data-act="muat">Coba lagi</button>';
     return h;
   }
-  if(S.stale[rid])h+='<div class="note" style="padding:0 0 10px" role="status">Data tersimpan, belum diperbarui dari server.</div>';
+  var staleN=S.stale[rid]?'<div class="note" style="padding:0 0 10px" role="status">Data tersimpan, belum diperbarui dari server.</div>':'';
+  if(!desk())h+=staleN;   // desktop: catatan di bawah ringkasan; sebagai anak grid selebar penuh di antara bilah lokasi dan ringkasan ia membuat tata letak melompat saat hilang
   var c=cnt(list),p=c.total?Math.round(c.close/c.total*100):0;
   var ringGo=S.ringPrev[rid]!==p;S.ringPrev[rid]=p;
   h+='<div class="summary"><div class="ring'+(c.total&&c.close===c.total?' full':'')+'"><svg viewBox="0 0 72 72"><circle class="tr" cx="36" cy="36" r="30"/><circle class="on'+(ringGo?' go':'')+'" cx="36" cy="36" r="30" style="stroke-dashoffset:'+(188.5*(1-p/100)).toFixed(1)+'"/></svg><div class="c">'+pct(c)+'</div></div>'+
     '<div class="stats"><div><b>'+c.total+'</b><span>Total</span></div><div class="o"><b>'+c.open+'</b><span>Open</span></div><div class="p"><b>'+c.proses+'</b><span>Proses</span></div><div class="c"><b>'+c.close+'</b><span>Close</span></div></div>'+
     '<button type="button" class="pdfbtn" data-act="pdf" aria-label="PDF ruangan ini">'+ic('pdf')+'<span>PDF</span></button></div>';
+  if(desk())h+=staleN;
   if(!list.length)return h+'<div class="empty">Belum ada temuan di ruangan ini.</div>';
   var f=S.flt,nf=(f.bd?1:0)+(f.tk?1:0)+(f.el?1:0);
   h+='<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="fq" placeholder="Cari uraian, elemen, titik" autocomplete="off" value="'+esc(f.q)+'"></label>'+
