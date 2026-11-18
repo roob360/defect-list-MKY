@@ -648,7 +648,7 @@ function kelolaHtml(){
 function renderOverlay(){
   var h='';
   if(S.busy)h='<div class="ov mid" style="z-index:90"><div class="sheet"><div class="busy"><div class="spin d"></div><span>'+esc(S.busy)+'</span></div>'+(S.zipRun?'<button type="button" class="btn sec" data-act="zipbatal" style="margin-top:10px">Batal</button>':'')+'</div></div>';
-  else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button>'+(isAdmin()&&S.zoomF&&S.zoomF.j==='before'?'<button type="button" class="btn zcoret" data-act="zoomcoret">&#9998; Coret foto</button>':'')+'</div>';
+  else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button>'+'</div>';
   else if(S.file&&desk()){
     var ext=(String(S.file.name).split('.').pop()||'').toUpperCase(),kb=S.file.size/1024,uk=kb>=1024?(kb/1024).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(kb))+' KB',pdf=ext==='PDF';
     h='<div class="ov mid"><div class="sheet gap fileok" role="dialog" aria-label="File siap"><span class="okc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><h2>File siap</h2><div class="note c">Dibuat di komputer ini, tanpa unggah ke server</div>'+
@@ -1051,7 +1051,7 @@ function expansiKode(d,s){
 
 /* ---------- aksi ---------- */
 function mphHtml(f){
-  return (f.files.length||f.pend?'<div class="thumbs">'+f.files.map(function(x,i){return '<div class="thumb"><button type="button" data-act="mzoom" data-i="'+i+'"><img alt="" src="'+x+'"></button><button type="button" class="ed" data-act="medit" data-i="'+i+'" aria-label="Coret foto">&#9998;</button><button type="button" class="x" data-act="mdel" data-i="'+i+'" aria-label="Buang foto">&times;</button></div>'}).join('')+(function(){var t='';for(var i=0;i<(f.pend||0);i++)t+='<div class="thumb up"><div class="ov2"><span class="sp"></span><small>Menyiapkan</small></div></div>';return t})()+'</div>':'<div class="none">Belum ada foto</div>');
+  return (f.files.length||f.pend?'<div class="thumbs">'+f.files.map(function(x,i){return '<div class="thumb"><button type="button" data-act="mzoom" data-i="'+i+'"><img alt="" src="'+x+'"></button><button type="button" class="x" data-act="mdel" data-i="'+i+'" aria-label="Buang foto">&times;</button></div>'}).join('')+(function(){var t='';for(var i=0;i<(f.pend||0);i++)t+='<div class="thumb up"><div class="ov2"><span class="sp"></span><small>Menyiapkan</small></div></div>';return t})()+'</div>':'<div class="none">Belum ada foto</div>');
 }
 function mphRefresh(){var el=$('mph');if(el&&S.modal&&S.modal.f)el.innerHTML=mphHtml(S.modal.f)}
 /** Tanggal pengambilan foto (EXIF DateTimeOriginal) sebagai 'yyyy-mm-dd', atau '' bila tidak ada. Dibaca dari berkas asli sebelum dikecilkan. */
@@ -1148,8 +1148,8 @@ function editFoto(src,o){o=o||{};
 }
 /** Admin: coret foto Before yang sudah tersimpan. Hasil diunggah sebagai foto BARU dan foto asli tetap ada; menghapus foto asli
  * hanya bila Admin menekan "Hapus foto asli" (dipindah ke folder sampah Drive). Tidak ada penghapusan tanpa diminta. */
-async function coretTersimpan(){
-  var zf=S.zoomF;if(!zf||!isAdmin()||zf.j!=='before')return;
+async function coretTersimpan(zf){
+  if(!zf||!isAdmin()||zf.j!=='before')return;
   var rr=await work('Memuat foto...',function(){return api('foto_data',{ids:[zf.f],w:1280})});
   var src=rr&&rr[0]&&rr[0].data;
   if(!src){if(rr)toast('Foto tidak bisa dimuat dari Drive. Coba lagi.');return}
@@ -1157,10 +1157,10 @@ async function coretTersimpan(){
   var up=await work('Menyimpan foto...',function(){return api('foto_unggah',{id:zf.d,jenis:zf.j,mime:'image/jpeg',data:out})});
   if(!up)return;   // gagal (mis. sudah mencapai batas foto): foto lama utuh
   S.pv[up.foto.id]=out;putDefect(up.defect);
-  closeZoom();render();
+  render();fotoEditRefresh();
   toastAksi('Foto hasil coretan ditambahkan. Foto asli tidak dihapus.','Hapus foto asli',async function(){
     var del=await work('Menghapus foto asli...',function(){return api('foto_hapus',{id:zf.d,jenis:zf.j,fotoId:zf.f})});
-    if(del){putDefect(del);render();toast('Foto asli dipindah ke folder sampah Drive.')}
+    if(del){putDefect(del);render();fotoEditRefresh();toast('Foto asli dipindah ke folder sampah Drive.')}
   });
 }
 /** Tambah foto Before ke temuan yang sudah tersimpan: foto disiapkan, ditawari tahap coret, baru diantrekan untuk diunggah. */
@@ -1607,9 +1607,10 @@ function fotoEditHtml(f){
     if(!items.length)return lbl+'<div class="none">Belum ada foto '+jenis+'</div>';
     return lbl+'<div class="thumbs">'+items.map(function(x){
       var tanya=f.hapusFoto===x.id;
-      return '<div class="thumb"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[x.id]||thumb(x.id,400))+'">'+
+      return '<div class="fitem"><div class="thumb"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[x.id]||thumb(x.id,400))+'">'+
         (tanya?'<div class="ov2 ask"><b>Hapus foto?</b><span><button type="button" class="pill bad" data-act="fdelya" data-f="'+esc(x.id)+'" data-j="'+jenis+'">Hapus</button><button type="button" class="pill" data-act="fdelbatal">Batal</button></span></div>'
-          :'<button type="button" class="x" data-act="fdel" data-f="'+esc(x.id)+'" aria-label="Hapus foto">&times;</button>')+'</div>';
+          :'<button type="button" class="x" data-act="fdel" data-f="'+esc(x.id)+'" aria-label="Hapus foto">&times;</button>')+'</div>'+
+        (jenis==='before'?'<button type="button" class="pill" data-act="fcoret" data-f="'+esc(x.id)+'">&#9998; Coret</button>':'')+'</div>';
     }).join('')+'</div>';
   }
   return blok('before',d.fotoBefore)+'<div style="height:10px"></div>'+blok('after',d.fotoAfter);
@@ -1823,10 +1824,9 @@ async function onClick(ev){
     case 'muat': return loadDefects(S.sel.r,true);
     case 'tambah': return openForm(null);
     case 'edit': return openForm(findDefect(id));
-    case 'zoom': S.zoomF=el.getAttribute('data-d')?{f:el.getAttribute('data-f'),d:el.getAttribute('data-d'),j:el.getAttribute('data-j')}:null;return openZoom(thumb(el.getAttribute('data-f'),1024));
-    case 'zoomcoret': return coretTersimpan();
+    case 'zoom': return openZoom(thumb(el.getAttribute('data-f'),1024));
     case 'zoomx': return closeZoom();
-    case 'mzoom': readForm();S.zoomF=null;return openZoom(S.modal.f.files[+el.getAttribute('data-i')]);
+    case 'mzoom': readForm();return openZoom(S.modal.f.files[+el.getAttribute('data-i')]);
     case 'foto': {
       var jenis=el.getAttribute('data-j');
       pick(!!el.getAttribute('data-cam'),function(items){
@@ -1852,7 +1852,6 @@ async function onClick(ev){
     case 'upbuang': {var jb=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];S.up=S.up.filter(function(x){return x!==jb});if(jb){qDel(jb.k);upUi(jb.did)}return}
     case 'drafkirim': {if(navigator.onLine===false)toast('Belum ada sinyal.');drafKirim();return}
     case 'drafbuka': return drafBuka();
-    case 'medit': {readForm();var fe=S.modal.f,ie=+el.getAttribute('data-i'),re=await editFoto(fe.files[ie]);if(re&&S.modal&&S.modal.f===fe&&fe.files[ie]){fe.files[ie]=re;mphRefresh()}return}
     case 'mdel': readForm();S.modal.f.files.splice(+el.getAttribute('data-i'),1);return mphRefresh();
     case 'msimpan': return saveForm(false);
     case 'msimpanlagi': return saveForm(true);
@@ -1944,6 +1943,7 @@ async function onClick(ev){
       var r3=await work('Menghapus...',function(){return api('defect_hapus',{id:dd.id})});
       if(r3){dropDefect(dd.id,dd.ruanganId);if(isAdmin())toastAksi('Temuan dihapus.','Urungkan',function(){urungkanHapus(dd)});else toast('Temuan dihapus.');render()}return;
     }
+    case 'fcoret': {var fc=S.modal&&S.modal.f;if(!fc)return;readForm();return coretTersimpan({d:fc.id,j:'before',f:el.getAttribute('data-f')})}
     case 'fdel': {var fd=S.modal&&S.modal.f;if(fd){fd.hapusFoto=el.getAttribute('data-f');fotoEditRefresh()}return}
     case 'fdelbatal': {var fb=S.modal&&S.modal.f;if(fb){fb.hapusFoto=null;fotoEditRefresh()}return}
     case 'fdelya': {
