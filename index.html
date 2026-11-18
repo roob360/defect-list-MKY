@@ -121,6 +121,7 @@
   .row:focus-within .lbl{ color:var(--blue-teks); }
   .kform{ padding:0 var(--margin) 12px; display:grid; gap:8px; }
   .kform .row{ background:var(--fill3); border-radius:12px; padding:8px 12px; min-height:0; }
+  .kform > .row + .row::before{ display:none; }   /* kotak berisi sudah dipisah jarak; garis pemisah daftar bocor di sudut membulat */
   .row.bad .lbl{ color:var(--red); }
   .row input[type=text], .row input[type=date], .row input[type=password], .row textarea, .row select{
     display:block; width:100%; padding:0; margin:0; border:0; outline:0; background:transparent; font:inherit; font-size:17px; line-height:22px; color:var(--label1);
