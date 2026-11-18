@@ -312,6 +312,23 @@
   .sheet.ubah .group .note{ padding:4px 2px 8px; }
   .sheet.ubah .gap{ display:grid; gap:8px; margin-top:6px; }
   .sheet.ubah .gap .btn.sec{ background:var(--fill3); color:var(--label2); border-radius:14px; min-height:48px; }
+  /* set ikon: titik oranye = penanda temuan; kfill = bagian terisi */
+  .kdot{ fill:var(--orange); stroke:none; }
+  .kfill{ fill:currentColor; }
+  .kmenu .row.act{ display:flex; align-items:center; gap:12px; }
+  .kmenu .row.act svg{ flex:none; width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .utiles{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .utile{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:22px 8px; border:1px solid var(--sep); border-radius:18px; background:var(--gbg2); color:var(--label1); font:inherit; font-size:16px; font-weight:600; cursor:pointer; }
+  .utile svg{ width:40px; height:40px; fill:none; stroke:var(--blue-teks); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+  .utile:active{ background:var(--fill4); }
+  .dlgic{ width:56px; height:56px; margin:0 auto 6px; border-radius:50%; display:grid; place-items:center; background:var(--fill3); color:var(--blue-teks); }
+  .dlgic svg{ width:28px; height:28px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .dlgic.bad{ background:var(--red-fill); color:var(--red-text); }
+  .dlgic.warn{ background:var(--orange-fill); color:var(--orange-text); }
+  .dlgic + h2{ text-align:center; }
+  .edtools .ic svg{ width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
+  .fitem .pill svg{ width:16px; height:16px; }
+  .ftype svg{ width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
   .brand{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:24px 0 36px; }
   .brand img{ width:76px; height:76px; border-radius:17px; display:block; }
   .brand h1{ margin:18px 0 0; font-size:30px; line-height:36px; font-weight:700; letter-spacing:-.4px; }
@@ -580,16 +597,27 @@
 <body>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
-  <symbol id="i-img" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M5 18l5-5 4 4 2-2 3 3"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8.6a2.2 2.2 0 012.2-2.2h1.9l1.3-1.9h5.2l1.3 1.9h1.9A2.2 2.2 0 0120 8.6v8.2A2.2 2.2 0 0117.8 19H6.2A2.2 2.2 0 014 16.8z"/><circle cx="12" cy="12.7" r="3.5"/><circle class="kdot flash" cx="17.5" cy="9.3" r="1.2"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24"><rect x="3.8" y="4.8" width="16.4" height="14.4" rx="2.8"/><path d="M4.4 16.2l4.6-4.4 3.4 3.2 2.6-2.5 4.6 4.2"/><circle class="kdot" cx="16.4" cy="9.2" r="1.9"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-  <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></symbol>
+  <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3.6h7l4.6 4.6v11.2A1.6 1.6 0 0117 21H7a1.6 1.6 0 01-1.6-1.6V5.2A1.6 1.6 0 017 3.6z"/><path d="M14 3.6V8.4h4.6"/><path d="M8.8 13.6h6.4M8.8 16.8h4"/><circle class="kdot" cx="15.6" cy="17" r="1.1"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></symbol>
   <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13M14 5l3 3-3 3M20 16H7M10 13l-3 3 3 3"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></symbol>
   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></symbol>
-  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-panah" viewBox="0 0 24 24"><path d="M5.2 19.2C8.6 18 12.8 14.2 16.3 8.3"/><path class="kfill" d="M19.6 4.4l-1 5.2-4.2-3.9z"/><circle class="kdot" cx="4.6" cy="19.6" r="1.9"/></symbol>
+  <symbol id="i-lingkaran" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8.6" ry="6.1" transform="rotate(-14 12 12)" pathLength="100" stroke-dasharray="91 9"/><circle class="kdot" cx="19.9" cy="8.4" r="1.9"/></symbol>
+  <symbol id="i-kotak" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="13" rx="2.6"/><circle class="kdot" cx="20" cy="5.5" r="1.9"/></symbol>
+  <symbol id="i-pena" viewBox="0 0 24 24"><path d="M5.5 16.2c2.3-5.8 4.2 1.8 6.6-2.8 1.8-3.4 3.4.6 6.4-3.4"/><circle class="kdot" cx="4.6" cy="17.6" r="1.9"/></symbol>
+  <symbol id="i-urungkan" viewBox="0 0 24 24"><path d="M8.6 6.2L4.2 10.6l4.4 4.4"/><path d="M4.6 10.6h9.4a5.2 5.2 0 010 10.4h-3"/></symbol>
+  <symbol id="i-sampah" viewBox="0 0 24 24"><g class="lid"><path d="M4.5 7.8h15"/><path d="M9.6 7.8V5.6a1 1 0 011-1h2.8a1 1 0 011 1v2.2"/></g><path d="M6.2 7.8l.9 11.6a1.6 1.6 0 001.6 1.5h6.6a1.6 1.6 0 001.6-1.5l.9-11.6"/><path d="M10 11.4v5.2M14 11.4v5.2"/></symbol>
+  <symbol id="i-ubah" viewBox="0 0 24 24"><path d="M14.6 5.4l4 4L9 19H5v-4z"/><path d="M12.6 7.4l4 4"/><path d="M12.5 20.5h7.5"/></symbol>
+  <symbol id="i-centang" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7.4 12.6l3.2 3.2 6-6.6"/></symbol>
+  <symbol id="i-peringatan" viewBox="0 0 24 24"><path d="M12 4.2l8.8 15.2a.4.4 0 01-.35.6H3.55a.4.4 0 01-.35-.6z"/><path d="M12 9.8v4.2"/><circle class="kdot" cx="12" cy="17" r="1.3"/></symbol>
+  <symbol id="i-zip" viewBox="0 0 24 24"><path d="M7 3.6h7l4.6 4.6v11.2A1.6 1.6 0 0117 21H7a1.6 1.6 0 01-1.6-1.6V5.2A1.6 1.6 0 017 3.6z"/><path d="M14 3.6V8.4h4.6"/><path d="M11 9.2h2M11 11.6h2M11 14h2"/><rect x="10.2" y="15.8" width="3.6" height="2.8" rx="1.1"/></symbol>
+  <symbol id="i-excel" viewBox="0 0 24 24"><path d="M7 3.6h7l4.6 4.6v11.2A1.6 1.6 0 0117 21H7a1.6 1.6 0 01-1.6-1.6V5.2A1.6 1.6 0 017 3.6z"/><path d="M14 3.6V8.4h4.6"/><path d="M8.6 12.4h6.8M8.6 15.4h6.8M12 12.4v6"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
   <symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>

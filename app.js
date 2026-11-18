@@ -460,10 +460,10 @@ function aksiUtama(d){
 /* Isi menu kartu per peran: ADMIN (ubah, ubah keputusan, batalkan mulai, hapus), MK (ubah, ubah keputusan, hapus), PJ (batalkan mulai). */
 function kmenuItems(d){
   var a=[],closed=d.status==='Close';
-  if(canEdit())a.push({a:'edit',t:'Ubah temuan'});
-  if(canEdit()&&d.verifikasi)a.push({a:'verif',t:'Ubah keputusan verifikasi'});
-  if(bisaMulai()&&!closed&&d.mulai&&!d.fotoAfter.length)a.push({a:'batalmulai',t:'Batalkan mulai perbaikan'});
-  if(canEdit())a.push({a:'hapus',t:'Hapus',bad:true});
+  if(canEdit())a.push({a:'edit',t:'Ubah temuan',ic:'ubah'});
+  if(canEdit()&&d.verifikasi)a.push({a:'verif',t:'Ubah keputusan verifikasi',ic:'centang'});
+  if(bisaMulai()&&!closed&&d.mulai&&!d.fotoAfter.length)a.push({a:'batalmulai',t:'Batalkan mulai perbaikan',ic:'urungkan'});
+  if(canEdit())a.push({a:'hapus',t:'Hapus',bad:true,ic:'sampah'});
   return a;
 }
 function entryHtml(d,n,ix,ro){
@@ -534,7 +534,7 @@ function rekapHtml(){
     BIDANG.forEach(function(b){var c=cnt(S.all.filter(function(d){return d.bidang===b}));h+='<tr><td>'+esc(b)+'</td><td>'+c.total+'</td><td>'+c.open+'</td><td>'+c.proses+'</td><td>'+c.close+'</td><td>'+pct(c)+'</td></tr>'});
     h+='</tbody></table></div>';
   }
-  h+='</section><div class="btnrow"><button type="button" class="btn" data-act="xlsx">Unduh Excel</button><button type="button" class="btn out" data-act="pdfbidang">'+ic('pdf')+'Cetak PDF</button></div>';
+  h+='</section><div class="btnrow"><button type="button" class="btn" data-act="xlsx">'+ic('excel')+'Unduh Excel</button><button type="button" class="btn out" data-act="pdfbidang">'+ic('pdf')+'Cetak PDF</button></div>';
   return h;
 }
 
@@ -568,7 +568,7 @@ function rekapBentoHtml(){
   var all=(S.all||[]).filter(function(d){return fg(d.gedung)}),siap=(S.siap||[]).filter(function(d){return fg(d.gedung)});
   var p=function(n){return tot.total?n/tot.total*100:0},pc=Math.round(p(tot.close));
   var muat='<div class="rknote">'+(S.allErr?'Gagal memuat.':'Memuat...')+'</div>';
-  h='<div class="bhead"><div><h1>Rekap</h1><div class="bsub">'+esc(S.rkG||'Semua gedung')+' &middot; '+esc(S.paket.nama)+'</div></div><div class="bact"><select id="rkG" aria-label="Gedung"><option value="">Semua gedung</option>'+T.map(function(g){return '<option'+(g.nama===S.rkG?' selected':'')+'>'+esc(g.nama)+'</option>'}).join('')+'</select><button type="button" class="btn sec sm" data-act="xlsx">Unduh Excel</button><button type="button" class="btn sm" data-act="pdfbidang">Cetak</button></div></div><div class="bgrid">';
+  h='<div class="bhead"><div><h1>Rekap</h1><div class="bsub">'+esc(S.rkG||'Semua gedung')+' &middot; '+esc(S.paket.nama)+'</div></div><div class="bact"><select id="rkG" aria-label="Gedung"><option value="">Semua gedung</option>'+T.map(function(g){return '<option'+(g.nama===S.rkG?' selected':'')+'>'+esc(g.nama)+'</option>'}).join('')+'</select><button type="button" class="btn sec sm" data-act="xlsx">'+ic('excel')+'Unduh Excel</button><button type="button" class="btn sm" data-act="pdfbidang">'+ic('pdf')+'Cetak</button></div></div><div class="bgrid">';
   h+='<section class="bc s6"><div class="cap">Progres keseluruhan</div><div class="bigp"><b>'+pc+'%</b><span><strong>selesai (Close)</strong>'+tot.close+' dari '+tot.total+' temuan'+(S.rkG?'':' di '+T.length+' gedung')+'</span></div>'+
     '<div class="stk"><i style="width:'+p(tot.close)+'%;background:var(--green)"></i><i style="width:'+p(tot.proses)+'%;background:var(--orange)"></i><i style="width:'+p(tot.open)+'%;background:var(--red)"></i></div>'+
     '<div class="tiles"><div class="tl o"><b>'+tot.open+'</b><span>Open</span></div><div class="tl p"><b>'+tot.proses+'</b><span>Proses</span></div><div class="tl c"><b>'+tot.close+'</b><span>Close</span></div></div></section>';
@@ -651,7 +651,7 @@ function renderOverlay(){
   else if(S.file&&desk()){
     var ext=(String(S.file.name).split('.').pop()||'').toUpperCase(),kb=S.file.size/1024,uk=kb>=1024?(kb/1024).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(kb))+' KB',pdf=ext==='PDF';
     h='<div class="ov mid"><div class="sheet gap fileok" role="dialog" aria-label="File siap"><span class="okc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><h2>File siap</h2><div class="note c">Dibuat di komputer ini, tanpa unggah ke server</div>'+
-      '<div class="fcard"><span class="ftype '+ext.toLowerCase()+'">'+esc(ext)+'</span><div><b>'+esc(S.file.name)+'</b><span>'+esc(ext)+' &middot; '+uk+'</span></div></div>'+
+      '<div class="fcard"><span class="ftype '+ext.toLowerCase()+'" aria-hidden="true">'+ic(ext==='ZIP'?'zip':ext==='PDF'?'pdf':'excel')+'</span><div><b>'+esc(S.file.name)+'</b><span>'+esc(ext)+' &middot; '+uk+'</span></div></div>'+
       '<div class="btnrow"><a class="btn" id="dl" href="'+esc(S.file.url)+'" download="'+esc(S.file.name)+'">Unduh</a>'+(pdf?'<a class="btn soft" href="'+esc(S.file.url)+'" target="_blank" rel="noopener">Buka di tab baru</a>':'')+'</div>'+
       '<div class="note c">Setelah Unduh, berkas ada di folder Unduhan browser. Menutup jendela ini tidak menghapusnya.</div><button type="button" class="lnk c" data-act="tutupfile">Selesai</button></div></div>';
   }
@@ -726,14 +726,14 @@ function modalHtml(){
   if(m.t==='ttx')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(m.d.no||'')+'</h2><div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">'+esc(m.d.gedung)+' / '+esc(m.d.lantai)+' / '+esc(m.d.ruangan)+'</div><div class="phs"><div class="ph" data-j="before">'+phHtml(m.d,'before',true)+'</div><div class="ph" data-j="after">'+phHtml(m.d,'after',true)+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='kmenu')
-    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu temuan"><div class="group kmenu"><div class="list">'+kmenuItems(m.d).map(function(it){return '<button type="button" class="row act'+(it.bad?' bad':'')+'" data-act="'+it.a+'" data-d="'+esc(m.d.id)+'">'+it.t+'</button>'}).join('')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu temuan"><div class="group kmenu"><div class="list">'+kmenuItems(m.d).map(function(it){return '<button type="button" class="row act'+(it.bad?' bad':'')+'" data-act="'+it.a+'" data-d="'+esc(m.d.id)+'">'+(it.ic?ic(it.ic):'')+'<span>'+it.t+'</span></button>'}).join('')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='unggah')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Unggah foto"><h2>Foto '+(m.j==='before'?'Before':'After')+'</h2><div class="note" style="padding:0">Foto dipotong otomatis ke rasio 4:3 (landscape) lalu dikecilkan sebelum diunggah.</div>'+
-      '<button type="button" class="btn" data-act="foto" data-d="'+esc(m.d.id)+'" data-j="'+m.j+'" data-cam="1">'+ic('cam')+'Ambil foto (kamera)</button>'+
-      '<button type="button" class="btn sec" data-act="foto" data-d="'+esc(m.d.id)+'" data-j="'+m.j+'">'+ic('img')+'Pilih dari galeri</button>'+
+      '<div class="utiles"><button type="button" class="utile" data-act="foto" data-d="'+esc(m.d.id)+'" data-j="'+m.j+'" data-cam="1">'+ic('cam')+'<span>Kamera</span></button>'+
+      '<button type="button" class="utile" data-act="foto" data-d="'+esc(m.d.id)+'" data-j="'+m.j+'">'+ic('img')+'<span>Galeri</span></button></div>'+
       '<button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div>';
   if(m.t==='hapus')
-    return '<div class="ov mid"><div class="sheet gap"><h2>Hapus temuan?</h2><div class="note" style="padding:0;overflow-wrap:anywhere">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">Temuan hilang dari daftar dan foto dipindah ke folder Sampah. Hanya Admin yang bisa memulihkannya.</div>'+
+    return '<div class="ov mid"><div class="sheet gap"><div class="dlgic bad">'+ic('sampah')+'</div><h2>Hapus temuan?</h2><div class="note" style="padding:0;overflow-wrap:anywhere">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">Temuan hilang dari daftar dan foto dipindah ke folder Sampah. Hanya Admin yang bisa memulihkannya.</div>'+
       '<button type="button" class="btn bad" data-act="hapusya">Hapus</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div>';
   if(m.t==='ruang')
     return '<div class="ov"><div class="sheet" role="dialog" aria-label="Ubah ruangan"><h2>Ubah ruangan</h2><section class="group"><div class="list">'+
@@ -742,7 +742,7 @@ function modalHtml(){
       '<label class="row"><span class="lbl">Ruangan</span><input type="text" id="rN" value="'+esc(m.r.nama)+'"></label></div></section>'+
       '<div class="gap"><button type="button" class="btn" data-act="rsimpan">Simpan</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div></div>';
   if(m.t==='nonaktif')
-    return '<div class="ov mid"><div class="sheet gap"><h2>Nonaktifkan ruangan?</h2><div class="note" style="padding:0">'+esc(m.r.gedung)+' / '+esc(m.r.lantai)+' / '+esc(m.r.nama)+'. Temuannya tetap tersimpan di sheet.</div>'+
+    return '<div class="ov mid"><div class="sheet gap"><div class="dlgic warn">'+ic('peringatan')+'</div><h2>Nonaktifkan ruangan?</h2><div class="note" style="padding:0">'+esc(m.r.gedung)+' / '+esc(m.r.lantai)+' / '+esc(m.r.nama)+'. Temuannya tetap tersimpan di sheet.</div>'+
       '<button type="button" class="btn bad" data-act="nonya">Nonaktifkan</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div>';
   return '';
 }
@@ -1086,7 +1086,6 @@ function wTglNote(f){
  * editFoto(dataUrl) membuka layar penuh dan mengembalikan data URL JPEG baru, atau null bila dibatalkan.
  * Coretan disimpan sebagai daftar bentuk dan digambar ulang di atas foto asli, jadi Urungkan selalu bersih. */
 var EDIT_WARNA=['#ff2d2d','#ffd60a','#ffffff','#111111'];
-function edIkon(d){return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+d+'"/></svg>'}
 function editFoto(src,o){o=o||{};
   return new Promise(function(done){
     var im=new Image();
@@ -1098,9 +1097,9 @@ function editFoto(src,o){o=o||{};
       ov.innerHTML='<div class="edbar"><button type="button" data-e="batal">'+(o.n?'Lewati':'Batal')+'</button><b>'+(o.total>1?'Coret foto '+o.n+' dari '+o.total:'Coret foto')+'</b><button type="button" data-e="ok" class="pri">Selesai</button></div>'+(o.n?'<div class="edhint">Beri panah atau lingkaran pada temuan agar jelas, lalu ketuk Selesai. Tidak perlu? Ketuk Lewati.</div>':'')+
         '<div class="edstage"><canvas></canvas></div>'+
         '<div class="edtools"><div class="edrow"><span class="edgrp" id="edT">'+
-        [['panah','Panah','M5 19L19 5M19 5H9M19 5v10'],['oval','Lingkaran','M12 6c5 0 9 2.7 9 6s-4 6-9 6-9-2.7-9-6 4-6 9-6z'],['kotak','Kotak','M4.5 5.5h15v13h-15z'],['pena','Pena','M3 16c2.5-7 4.5 3 7-3s4.5 3 11-5']].map(function(t){return '<button type="button" class="ic'+(t[0]===tool?' on':'')+'" data-t="'+t[0]+'" aria-label="'+t[1]+'" title="'+t[1]+'">'+edIkon(t[2])+'</button>'}).join('')+'</span>'+
-        '<span class="edgrp"><button type="button" class="ic" data-e="undo" aria-label="Urungkan" title="Urungkan">'+edIkon('M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3')+'</button>'+
-        '<button type="button" class="ic" data-e="clear" aria-label="Hapus semua coretan" title="Hapus semua coretan">'+edIkon('M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3')+'</button></span></div>'+
+        [['panah','Panah','panah'],['oval','Lingkaran','lingkaran'],['kotak','Kotak','kotak'],['pena','Pena','pena']].map(function(t){return '<button type="button" class="ic'+(t[0]===tool?' on':'')+'" data-t="'+t[0]+'" aria-label="'+t[1]+'" title="'+t[1]+'">'+ic(t[2])+'</button>'}).join('')+'</span>'+
+        '<span class="edgrp"><button type="button" class="ic" data-e="undo" aria-label="Urungkan" title="Urungkan">'+ic('urungkan')+'</button>'+
+        '<button type="button" class="ic" data-e="clear" aria-label="Hapus semua coretan" title="Hapus semua coretan">'+ic('sampah')+'</button></span></div>'+
         '<div class="edrow"><span id="edC">'+EDIT_WARNA.map(function(c,i){return '<button type="button" class="sw'+(i?'':' on')+'" data-c="'+c+'" style="background:'+c+'" aria-label="Warna '+c+'"></button>'}).join('')+'</span></div>'+(o.total>1&&o.n<o.total?'<div class="edrow"><button type="button" data-e="semua">Lewati sisa foto</button></div>':'')+'</div>';
       document.body.appendChild(ov);
       var cv=ov.querySelector('canvas'),x=cv.getContext('2d');cv.width=W;cv.height=H;
@@ -1621,7 +1620,7 @@ function fotoEditHtml(f){
       return '<div class="fitem"><div class="thumb"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[x.id]||thumb(x.id,400))+'">'+
         (tanya?'<div class="ov2 ask"><b>Hapus foto?</b><span><button type="button" class="pill bad" data-act="fdelya" data-f="'+esc(x.id)+'" data-j="'+jenis+'">Hapus</button><button type="button" class="pill" data-act="fdelbatal">Batal</button></span></div>'
           :(adm?'<button type="button" class="x" data-act="fdel" data-f="'+esc(x.id)+'" aria-label="Hapus foto">&times;</button>':''))+'</div>'+
-        (adm&&jenis==='before'?'<button type="button" class="pill" data-act="fcoret" data-f="'+esc(x.id)+'">&#9998; Coret</button>':'')+'</div>';
+        (adm&&jenis==='before'?'<button type="button" class="pill" data-act="fcoret" data-f="'+esc(x.id)+'">'+ic('pena')+'Coret</button>':'')+'</div>';
     }).join('')+jobs.map(upHtml).join('')+'</div>'+tombol;
   }
   return blok('before',d.fotoBefore)+'<div style="height:10px"></div>'+blok('after',d.fotoAfter);
