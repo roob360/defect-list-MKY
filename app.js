@@ -434,7 +434,7 @@ function thumbsHtml(items,jenis,d,removable){
 }
 function phHtml(d,jenis,ro){
   var ed=canEdit()&&!ro;
-  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+(ed&&jenis==='before'?'<button type="button" class="phadd" data-act="unggah" data-d="'+esc(d.id)+'" data-j="before">+ Tambah</button>':'')+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,ed);
+  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+(ed&&jenis==='before'?'<button type="button" class="phadd" data-act="unggah" data-d="'+esc(d.id)+'" data-j="before">+ Tambah</button>':'')+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,false);
 }
 /* Stepper empat tahap: Temuan, Perbaikan, After, Verifikasi. Hijau selesai, oranye sedang, merah ditolak. */
 function stepperHtml(d){
@@ -1599,6 +1599,22 @@ function wTapKode(f,ax,v){
   else if(!L.rapi(x.n2)){if(L.kunci(v)===L.kunci(x.n1))x.n1='';else{x.n2=v;if(L.bandingAlami(x.n1,x.n2)>0){var tm=x.n1;x.n1=x.n2;x.n2=tm}}}
   else{x.n1=v;x.n2=''}
 }
+/** Foto yang sudah tersimpan di dialog Ubah temuan, dengan tombol hapus dua langkah (ketuk x, lalu konfirmasi Hapus). */
+function fotoEditHtml(f){
+  var d=findDefect(f.id);if(!d)return '';
+  function blok(jenis,items){
+    var lbl='<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span></div>';
+    if(!items.length)return lbl+'<div class="none">Belum ada foto '+jenis+'</div>';
+    return lbl+'<div class="thumbs">'+items.map(function(x){
+      var tanya=f.hapusFoto===x.id;
+      return '<div class="thumb"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[x.id]||thumb(x.id,400))+'">'+
+        (tanya?'<div class="ov2 ask"><b>Hapus foto?</b><span><button type="button" class="pill bad" data-act="fdelya" data-f="'+esc(x.id)+'" data-j="'+jenis+'">Hapus</button><button type="button" class="pill" data-act="fdelbatal">Batal</button></span></div>'
+          :'<button type="button" class="x" data-act="fdel" data-f="'+esc(x.id)+'" aria-label="Hapus foto">&times;</button>')+'</div>';
+    }).join('')+'</div>';
+  }
+  return blok('before',d.fotoBefore)+'<div style="height:10px"></div>'+blok('after',d.fotoAfter);
+}
+function fotoEditRefresh(){var el=$('fsfoto');if(el&&S.modal&&S.modal.f)el.innerHTML=fotoEditHtml(S.modal.f)}
 function fHtml(m){
   if(!m.f.id&&!m.f.lama)return fWizHtml(m);
   var f=m.f,mm=fModeElemen(f),h;
@@ -1626,6 +1642,7 @@ function fHtml(m){
   h+='<section class="group"><div class="list">'+
     '<label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label>'+
     '<label class="row" id="mUr"><span class="lbl">Temuan / catatan</span><textarea id="mU" placeholder="Tulis atau dikte temuan dengan mikrofon keyboard">'+esc(f.uraian)+'</textarea></label></div></section>';
+  if(f.id&&isAdmin())h+='<section class="group pad"><div class="cap" style="margin-bottom:8px">Foto tersimpan</div><div id="fsfoto">'+fotoEditHtml(f)+'</div><div class="note" style="padding:8px 0 0">Foto yang dihapus dipindah ke folder Sampah di Drive.</div></section>';
   if(!f.id){
     h+='<section class="group pad"><div class="cap" style="margin-bottom:8px">Foto Before</div>'+
       '<div id="mph">'+mphHtml(f)+'</div>'+
@@ -1926,6 +1943,14 @@ async function onClick(ev){
       var dd=S.modal.d;closeModal();
       var r3=await work('Menghapus...',function(){return api('defect_hapus',{id:dd.id})});
       if(r3){dropDefect(dd.id,dd.ruanganId);if(isAdmin())toastAksi('Temuan dihapus.','Urungkan',function(){urungkanHapus(dd)});else toast('Temuan dihapus.');render()}return;
+    }
+    case 'fdel': {var fd=S.modal&&S.modal.f;if(fd){fd.hapusFoto=el.getAttribute('data-f');fotoEditRefresh()}return}
+    case 'fdelbatal': {var fb=S.modal&&S.modal.f;if(fb){fb.hapusFoto=null;fotoEditRefresh()}return}
+    case 'fdelya': {
+      var fy=S.modal&&S.modal.f;if(!fy||!isAdmin())return;
+      readForm();
+      var r5=await work('Menghapus foto...',function(){return api('foto_hapus',{id:fy.id,jenis:el.getAttribute('data-j'),fotoId:el.getAttribute('data-f')})});
+      fy.hapusFoto=null;if(r5){putDefect(r5);render()}fotoEditRefresh();return;
     }
     case 'delfoto': {
       var r4=await work('Menghapus foto...',function(){return api('foto_hapus',{id:id,jenis:el.getAttribute('data-j'),fotoId:el.getAttribute('data-f')})});
