@@ -1085,6 +1085,7 @@ function wTglNote(f){
  * editFoto(dataUrl) membuka layar penuh dan mengembalikan data URL JPEG baru, atau null bila dibatalkan.
  * Coretan disimpan sebagai daftar bentuk dan digambar ulang di atas foto asli, jadi Urungkan selalu bersih. */
 var EDIT_WARNA=['#ff2d2d','#ffd60a','#ffffff','#111111'];
+function edIkon(d){return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+d+'"/></svg>'}
 function editFoto(src){
   return new Promise(function(done){
     var im=new Image();
@@ -1095,10 +1096,11 @@ function editFoto(src){
       var ov=document.createElement('div');ov.className='edfoto';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','Coret foto');
       ov.innerHTML='<div class="edbar"><button type="button" data-e="batal">Batal</button><b>Coret foto</b><button type="button" data-e="ok" class="pri">Selesai</button></div>'+
         '<div class="edstage"><canvas></canvas></div>'+
-        '<div class="edtools"><div class="edrow" id="edT">'+
-        [['panah','Panah'],['oval','Lingkaran'],['kotak','Kotak'],['pena','Pena']].map(function(t){return '<button type="button" data-t="'+t[0]+'"'+(t[0]===tool?' class="on"':'')+'>'+t[1]+'</button>'}).join('')+'</div>'+
-        '<div class="edrow"><span id="edC">'+EDIT_WARNA.map(function(c,i){return '<button type="button" class="sw'+(i?'':' on')+'" data-c="'+c+'" style="background:'+c+'" aria-label="Warna '+c+'"></button>'}).join('')+'</span>'+
-        '<button type="button" data-e="undo">Urungkan</button><button type="button" data-e="clear">Hapus semua</button></div></div>';
+        '<div class="edtools"><div class="edrow"><span class="edgrp" id="edT">'+
+        [['panah','Panah','M5 19L19 5M19 5H9M19 5v10'],['oval','Lingkaran','M12 6c5 0 9 2.7 9 6s-4 6-9 6-9-2.7-9-6 4-6 9-6z'],['kotak','Kotak','M4.5 5.5h15v13h-15z'],['pena','Pena','M3 16c2.5-7 4.5 3 7-3s4.5 3 11-5']].map(function(t){return '<button type="button" class="ic'+(t[0]===tool?' on':'')+'" data-t="'+t[0]+'" aria-label="'+t[1]+'" title="'+t[1]+'">'+edIkon(t[2])+'</button>'}).join('')+'</span>'+
+        '<span class="edgrp"><button type="button" class="ic" data-e="undo" aria-label="Urungkan" title="Urungkan">'+edIkon('M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3')+'</button>'+
+        '<button type="button" class="ic" data-e="clear" aria-label="Hapus semua coretan" title="Hapus semua coretan">'+edIkon('M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3')+'</button></span></div>'+
+        '<div class="edrow"><span id="edC">'+EDIT_WARNA.map(function(c,i){return '<button type="button" class="sw'+(i?'':' on')+'" data-c="'+c+'" style="background:'+c+'" aria-label="Warna '+c+'"></button>'}).join('')+'</span></div></div>';
       document.body.appendChild(ov);
       var cv=ov.querySelector('canvas'),x=cv.getContext('2d');cv.width=W;cv.height=H;
       function gbr(sh,c2){
