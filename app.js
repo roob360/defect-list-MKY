@@ -427,7 +427,7 @@ function thumbsHtml(items,jenis,d,removable){
   var jobs=S.up.filter(function(j){return j.did===d.id&&j.jenis===jenis});
   if(!items.length&&!jobs.length)return '<div class="none">Belum ada foto '+jenis+'</div>';
   return '<div class="thumbs">'+(items.length>1?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+items.map(function(f){
-    return '<div class="thumb"><button type="button" data-act="zoom" data-f="'+esc(f.id)+'" aria-label="Lihat foto"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[f.id]||thumb(f.id,400))+'"></button>'+
+    return '<div class="thumb"><button type="button" data-act="zoom" data-f="'+esc(f.id)+'" data-d="'+esc(d.id)+'" data-j="'+jenis+'" aria-label="Lihat foto"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[f.id]||thumb(f.id,400))+'"></button>'+
       (f.t?'<span class="dt">'+esc(fmt(f.t))+'</span>':'')+
       (removable?'<button type="button" class="x" data-act="delfoto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-f="'+esc(f.id)+'" aria-label="Hapus foto">&times;</button>':'')+'</div>';
   }).join('')+jobs.map(upHtml).join('')+'</div>';
@@ -647,7 +647,7 @@ function kelolaHtml(){
 function renderOverlay(){
   var h='';
   if(S.busy)h='<div class="ov mid" style="z-index:90"><div class="sheet"><div class="busy"><div class="spin d"></div><span>'+esc(S.busy)+'</span></div>'+(S.zipRun?'<button type="button" class="btn sec" data-act="zipbatal" style="margin-top:10px">Batal</button>':'')+'</div></div>';
-  else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button></div>';
+  else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button>'+(isAdmin()&&S.zoomF&&S.zoomF.j==='before'?'<button type="button" class="btn zcoret" data-act="zoomcoret">&#9998; Coret foto</button>':'')+'</div>';
   else if(S.file&&desk()){
     var ext=(String(S.file.name).split('.').pop()||'').toUpperCase(),kb=S.file.size/1024,uk=kb>=1024?(kb/1024).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(kb))+' KB',pdf=ext==='PDF';
     h='<div class="ov mid"><div class="sheet gap fileok" role="dialog" aria-label="File siap"><span class="okc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><h2>File siap</h2><div class="note c">Dibuat di komputer ini, tanpa unggah ke server</div>'+
@@ -1141,6 +1141,23 @@ function editFoto(src){
     };
     im.src=src;
   });
+}
+/** Admin: coret foto Before yang sudah tersimpan. Hasil diunggah sebagai foto baru, baru setelah itu foto lama dibuang
+ * (ke folder sampah Drive, bukan dihapus permanen). Bila unggah gagal, foto lama tidak disentuh. */
+async function coretTersimpan(){
+  var zf=S.zoomF;if(!zf||!isAdmin()||zf.j!=='before')return;
+  var rr=await work('Memuat foto...',function(){return api('foto_data',{ids:[zf.f],w:1280})});
+  var src=rr&&rr[0]&&rr[0].data;
+  if(!src){if(rr)toast('Foto tidak bisa dimuat dari Drive. Coba lagi.');return}
+  var out=await editFoto(src);if(!out)return;
+  var up=await work('Menyimpan foto...',function(){return api('foto_unggah',{id:zf.d,jenis:zf.j,mime:'image/jpeg',data:out})});
+  if(!up)return;   // gagal (mis. sudah mencapai batas foto): foto lama utuh
+  S.pv[up.foto.id]=out;putDefect(up.defect);
+  var del=null;
+  try{del=await api('foto_hapus',{id:zf.d,jenis:zf.j,fotoId:zf.f})}catch(e){}
+  if(del)putDefect(del);
+  closeZoom();render();
+  toast(del?'Foto hasil coretan tersimpan. Foto asli ada di folder sampah Drive.':'Foto hasil coretan tersimpan, tetapi foto lama belum terhapus. Hapus manual.');
 }
 async function modalFotos(f,files){
   f.pend=(f.pend||0)+files.length;mphRefresh();
@@ -1763,7 +1780,8 @@ async function onClick(ev){
     case 'muat': return loadDefects(S.sel.r,true);
     case 'tambah': return openForm(null);
     case 'edit': return openForm(findDefect(id));
-    case 'zoom': return openZoom(thumb(el.getAttribute('data-f'),1024));
+    case 'zoom': S.zoomF=el.getAttribute('data-d')?{f:el.getAttribute('data-f'),d:el.getAttribute('data-d'),j:el.getAttribute('data-j')}:null;return openZoom(thumb(el.getAttribute('data-f'),1024));
+    case 'zoomcoret': return coretTersimpan();
     case 'zoomx': return closeZoom();
     case 'mzoom': readForm();return openZoom(S.modal.f.files[+el.getAttribute('data-i')]);
     case 'foto': {
