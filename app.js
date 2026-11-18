@@ -144,6 +144,7 @@ async function work(label,fn){
 function tree(){
   var gs=[],gm={};
   S.rooms.forEach(function(r){
+    if(!r||!L.rapi(r.gedung)||!L.rapi(r.lantai)||!r.id)return;   // baris rusak (nama atau id kosong) tidak ditampilkan
     var g=gm[r.gedung];if(!g){g=gm[r.gedung]={nama:r.gedung,lantai:[],lm:{}};gs.push(g)}
     var l=g.lm[r.lantai];if(!l){l=g.lm[r.lantai]={nama:r.lantai,ruangan:[]};g.lantai.push(l)}
     l.ruangan.push(r);
@@ -227,6 +228,7 @@ async function loadRooms(){
   if(isPJ())loadPerlu();
 }
 async function loadDefects(rid,force){
+  if(!rid)return;
   if(!force&&((S.defects[rid]&&!S.stale[rid])||S.loading[rid]))return;   // cegah pemuatan ganda
   S.loading[rid]=true;S.errs[rid]='';
   if(!S.defects[rid]&&S.paket){ // tampilkan dulu data tersimpan dari kunjungan sebelumnya, lalu segarkan dari server
@@ -1011,7 +1013,7 @@ var AKTIFCB=null,IDXCB=-1;
 function cbSumber(id){
   var f=S.modal.f,a=f.gedung,m=/^([ab])(k|n)(1|2)$/.exec(id);
   if(id==='gedung'||id==='lantai'){
-    var T0=tree(),LB0=labelBidang(f.bidang),d0={},add=function(n){d0[L.kunci(n)]={nama:n,n:0,t:0}};
+    var T0=tree(),LB0=labelBidang(f.bidang),d0={},add=function(n){if(L.rapi(n))d0[L.kunci(n)]={nama:n,n:0,t:0}};
     if(id==='gedung')T0.forEach(function(g){add(g.nama)});
     else{var g0=T0.filter(function(x){return L.kunci(x.nama)===L.kunci(f.gedung)})[0];if(g0)g0.lantai.forEach(function(l){add(l.nama)})}
     return {d:d0,fuzzy:true,urut:'alami',tambah:(id==='gedung'?LB0.area:LB0.level).toLowerCase(),norm:function(v){return L.rapi(v)}};
@@ -1056,7 +1058,7 @@ function cbPosisi(id){
   box.classList.toggle('up',bawah<270&&rc.top>bawah);
 }
 function cbBuka(id){
-  var el=$(id);if(!el)return;AKTIFCB=id;IDXCB=-1;
+  var el=$(id);if(!el)return;if(AKTIFCB&&AKTIFCB!==id)cbTutup();AKTIFCB=id;IDXCB=-1;
   var v=el.value,s=cbSumber(id),pasti=L.kunci(v)&&!!s.d[L.kunci(v)];
   cbIsi(id,pasti?'':v);
 }
