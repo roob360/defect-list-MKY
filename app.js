@@ -268,6 +268,7 @@ function skel(kind){
   return h+'</div>';
 }
 function render(){
+  document.body.classList.toggle('bento',!!(S.paket&&S.user&&S.view==='rekap'&&canEdit()&&desk()));
   setHead();setDock();
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
   var key=!S.paket?'pick':!S.user?'login':S.view+(S.view==='form'?':'+S.sel.r:'');
@@ -339,7 +340,7 @@ function renderMain(){
   if(S.net)h+='<div class="err" role="status">'+esc(S.net)+'</div>';
   if(S.view==='verif'&&canEdit())h+=verifHtml();
   else if(S.view==='perbaikan'&&(isPJ()||isAdmin()))h+=perbaikanHtml();
-  else if(S.view==='rekap'&&canEdit())h+=rekapHtml();
+  else if(S.view==='rekap'&&canEdit())h+=(desk()?rekapBentoHtml():rekapHtml());
   else if(S.view==='kelola'&&isAdmin())h+=kelolaHtml();
   else h+=formHtml();
   app.innerHTML=h;
@@ -532,6 +533,63 @@ function rekapHtml(){
   }
   h+='</section><div class="btnrow"><button type="button" class="btn" data-act="xlsx">Unduh Excel</button><button type="button" class="btn out" data-act="pdfbidang">'+ic('pdf')+'Cetak PDF</button></div>';
   return h;
+}
+
+/* ----- Rekap bento (hanya desktop/tablet lebar, >= 1100 px; mobile memakai rekapHtml) ----- */
+var MQ_DESK=window.matchMedia('(min-width:1100px)');
+function desk(){return MQ_DESK.matches}
+if(MQ_DESK.addEventListener)MQ_DESK.addEventListener('change',function(){if(S.paket&&S.user&&S.view==='rekap')render()});
+function rkBar(p,w){return '<div class="rkbar"><i style="width:'+Math.max(0,Math.min(100,p))+'%;background:var(--'+(w||'blue')+')"></i></div>'}
+function rkTgl(v){return String(v||'').slice(0,10)}
+function rkTren(all){
+  var hari=[],i,d=new Date();
+  for(i=13;i>=0;i--){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()-i);hari.push(x.getFullYear()+'-'+('0'+(x.getMonth()+1)).slice(-2)+'-'+('0'+x.getDate()).slice(-2))}
+  var baru=hari.map(function(t){return all.filter(function(r){return rkTgl(r.tglTemuan)===t}).length});
+  var tutup=hari.map(function(t){return all.filter(function(r){return r.status==='Close'&&rkTgl(r.tglVerif)===t}).length});
+  var cb=0,ct=0,sb=[],st=[];baru.forEach(function(n,k){cb+=n;ct+=tutup[k];sb.push(cb);st.push(ct)});
+  var mx=Math.max(1,cb,ct),W=360,H=120,P=6;
+  var pts=function(a){return a.map(function(v,k){return (P+k*(W-2*P)/13).toFixed(1)+','+(H-P-v/mx*(H-2*P)).toFixed(1)}).join(' ')};
+  var wk=function(a){return a.slice(7).reduce(function(p,n){return p+n},0)};
+  return '<svg class="rkline" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Tren 14 hari"><polyline fill="none" stroke="var(--prominent)" stroke-width="2.5" stroke-linejoin="round" points="'+pts(sb)+'"/><polyline fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round" points="'+pts(st)+'"/></svg>'+
+    '<div class="rknote">Minggu ini: '+wk(baru)+' temuan baru, '+wk(tutup)+' ditutup</div>';
+}
+function rekapBentoHtml(){
+  var T=tree(),h;
+  if(!S.roomsReady&&!S.rooms.length)return '<div class="pagehead"><h1>Rekap</h1></div>'+skel('table');
+  if(!T.length)return '<div class="pagehead"><h1>Rekap</h1></div><div class="empty">Belum ada ruangan.</div>';
+  if(S.rkG&&!T.some(function(g){return g.nama===S.rkG}))S.rkG='';
+  if(!S.all&&!S.allBusy&&!S.allErr){S.allBusy=true;loadAll().then(function(){S.allBusy=false;if(S.view==='rekap')render()}).catch(function(){S.allBusy=false;S.allErr=true;if(S.view==='rekap')render()})}
+  var fg=function(x){return !S.rkG||x===S.rkG};
+  var rooms=[];T.forEach(function(g){if(!fg(g.nama))return;g.lantai.forEach(function(l){l.ruangan.forEach(function(r){rooms.push({g:g.nama,l:l.nama,r:r})})})});
+  var tot={total:0,open:0,proses:0,close:0};rooms.forEach(function(o){['total','open','proses','close'].forEach(function(k){tot[k]+=o.r[k]||0})});
+  var all=(S.all||[]).filter(function(d){return fg(d.gedung)}),siap=(S.siap||[]).filter(function(d){return fg(d.gedung)});
+  var p=function(n){return tot.total?n/tot.total*100:0},pc=Math.round(p(tot.close));
+  var muat='<div class="rknote">'+(S.allErr?'Gagal memuat.':'Memuat...')+'</div>';
+  h='<div class="bhead"><div><h1>Rekap</h1><div class="bsub">'+esc(S.rkG||'Semua gedung')+' &middot; '+esc(S.paket.nama)+'</div></div><div class="bact"><select id="rkG" aria-label="Gedung"><option value="">Semua gedung</option>'+T.map(function(g){return '<option'+(g.nama===S.rkG?' selected':'')+'>'+esc(g.nama)+'</option>'}).join('')+'</select><button type="button" class="btn sec sm" data-act="xlsx">Unduh Excel</button><button type="button" class="btn sm" data-act="pdfbidang">Cetak</button></div></div><div class="bgrid">';
+  h+='<section class="bc s6"><div class="cap">Progres keseluruhan</div><div class="bigp"><b>'+pc+'%</b><span><strong>selesai (Close)</strong>'+tot.close+' dari '+tot.total+' temuan'+(S.rkG?'':' di '+T.length+' gedung')+'</span></div>'+
+    '<div class="stk"><i style="width:'+p(tot.close)+'%;background:var(--green)"></i><i style="width:'+p(tot.proses)+'%;background:var(--orange)"></i><i style="width:'+p(tot.open)+'%;background:var(--red)"></i></div>'+
+    '<div class="tiles"><div class="tl o"><b>'+tot.open+'</b><span>Open</span></div><div class="tl p"><b>'+tot.proses+'</b><span>Proses</span></div><div class="tl c"><b>'+tot.close+'</b><span>Close</span></div></div></section>';
+  h+='<section class="bc s3"><div class="cap">Per bidang</div>';
+  if(!S.all)h+=muat;
+  else{var bc=BIDANG.map(function(b){return {b:b,n:all.filter(function(d){return d.bidang===b}).length}}),mx=Math.max(1,Math.max.apply(null,bc.map(function(x){return x.n})));
+    h+=bc.map(function(x){return '<div class="rkrow"><b>'+esc(KODE_BID[x.b]||x.b)+'</b>'+rkBar(x.n/mx*100)+'<span>'+x.n+'</span></div>'}).join('')}
+  h+='</section>';
+  h+='<section class="bc s3 hi"><div class="cap">Menunggu verifikasi</div><b class="huge">'+siap.length+'</b><p>temuan sudah ada foto After, belum diputuskan MK</p><button type="button" class="pill" data-act="tab" data-v="verif">Buka Verifikasi &rsaquo;</button></section>';
+  h+='<section class="bc s4"><div class="cap">Per gedung (selesai)</div>';
+  T.forEach(function(g){if(!fg(g.nama))return;var c={total:0,close:0};g.lantai.forEach(function(l){l.ruangan.forEach(function(r){c.total+=r.total||0;c.close+=r.close||0})});var q=c.total?Math.round(c.close/c.total*100):0;
+    h+='<div class="rkg"><div><b>'+esc(g.nama)+'</b><span>'+q+'% &middot; '+c.total+' temuan</span></div>'+rkBar(q,'green')+'</div>'});
+  h+='</section>';
+  h+='<section class="bc s4"><div class="cap">Tren 14 hari <span class="lg"><i style="background:var(--prominent)"></i>Baru <i style="background:var(--green)"></i>Close</span></div>'+(S.all?rkTren(all):muat)+'</section>';
+  var nowT=Date.now(),kritis=all.filter(function(d){return d.tingkat==='Kritis'&&d.status==='Open'}).length,tolak=all.filter(function(d){return d.verifikasi==='Ditolak'&&d.status!=='Close'&&d.perlu}).length,lama=all.filter(function(d){var t=Date.parse(d.mulai);return d.status==='Dalam proses'&&t&&nowT-t>7*864e5}).length;
+  var pr=function(n,t,cls,v){return n?'<button type="button" class="att '+cls+'" data-act="tab" data-v="'+v+'"><span>'+n+' '+t+'</span><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>':''};
+  var at=S.all?pr(kritis,'temuan Kritis masih Open','r','form')+pr(tolak,'ditolak MK, belum ada After baru','o','perbaikan')+pr(lama,'temuan Proses lebih dari 7 hari','n','perbaikan'):'';
+  h+='<section class="bc s4"><div class="cap">Perlu perhatian</div>'+(S.all?(at||'<div class="rknote">Tidak ada yang perlu perhatian.</div>'):muat)+'</section>';
+  var urut=rooms.filter(function(o){return o.r.total}).sort(function(a,b){return ((b.r.open||0)+(b.r.proses||0))-((a.r.open||0)+(a.r.proses||0))||(b.r.total-a.r.total)}),tampil=S.rkAll?urut:urut.slice(0,8);
+  h+='<section class="bc s8"><div class="bch"><div class="cap">Per lokasi</div>'+(urut.length>8?'<button type="button" class="lnk" data-act="rkall">'+(S.rkAll?'Ringkas':'Lihat semua '+urut.length+' lokasi')+' &rsaquo;</button>':'')+'</div>'+
+    '<table class="t rkt"><thead><tr><th>Lokasi</th><th>Total</th><th>Open</th><th>Proses</th><th>Close</th><th>%</th></tr></thead><tbody>'+
+    (tampil.map(function(o){return '<tr><td>'+esc(o.g+' › '+o.l+' › '+o.r.nama)+'</td><td>'+o.r.total+'</td><td class="o">'+o.r.open+'</td><td class="p">'+o.r.proses+'</td><td class="c">'+o.r.close+'</td><td class="b">'+pct(o.r)+'</td></tr>'}).join('')||'<tr><td colspan="6">Belum ada temuan.</td></tr>')+'</tbody></table></section>';
+  h+='<section class="bc s4"><div class="cap">Cetak dan unduh</div><button type="button" class="dl" data-act="xlsx"><b>Rekap Excel (datar)</b><span>.xlsx</span></button><button type="button" class="dl" data-act="pdfbidang"><b>PDF per gedung dan bidang</b><span>.pdf / .zip</span></button></section>';
+  return h+'</div>';
 }
 
 /* ----- kelola ----- */
@@ -1482,7 +1540,7 @@ async function onClick(ev){
       var nv=el.getAttribute('data-v');if(nv===S.view)return;
       if(nv==='form')hpopTop('view');else if(S.view==='form')hpush('view');
       S.view=nv;}
-      lsSet('dl-view',S.view);if(S.view==='rekap')S.all=null;render();
+      lsSet('dl-view',S.view);if(S.view==='rekap'){S.all=null;S.allErr=false}render();
       if(S.view==='verif')loadSiap();
       else if(S.view==='perbaikan')loadPerlu();
       else if(S.view==='rekap'||S.view==='kelola')loadRooms();
@@ -1613,6 +1671,7 @@ async function onClick(ev){
     }
     case 'pdf': return exportPdf();
     case 'xlsx': return exportXlsx();
+    case 'rkall': S.rkAll=!S.rkAll;return render();
     case 'rekapall': {var ok=await work('Memuat semua temuan...',loadAll);if(ok)render();return}
     case 'addroom': return tambahRuangan();
     case 'fst': S.flt.st=el.getAttribute('data-v')||'';return refreshList();
@@ -1666,6 +1725,7 @@ async function onClick(ev){
 document.addEventListener('click',onClick);
 ['gesturestart','gesturechange'].forEach(function(t){document.addEventListener(t,function(e){if(!(e.target.closest&&e.target.closest('.ov.zoom')))e.preventDefault()},{passive:false})});
 document.addEventListener('change',function(e){
+  if(e.target.id==='rkG'){S.rkG=e.target.value;render();return}
   if(e.target.getAttribute&&e.target.getAttribute('data-rg')==='area'){S.rg.area=e.target.value;S.rg.pakai=null;render();return}
   if((e.target.id==='fG'||e.target.id==='fL')&&S.modal&&S.modal.t==='temuan'){
     fBaca();var fg=S.modal.f;fg.konfirmasiBaru=false;
