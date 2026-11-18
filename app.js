@@ -434,7 +434,7 @@ function thumbsHtml(items,jenis,d,removable){
 }
 function phHtml(d,jenis,ro){
   var ed=canEdit()&&!ro;
-  return '<div class="phl">'+(jenis==='before'?'Before':'After')+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,ed);
+  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+(ed&&jenis==='before'?'<button type="button" class="phadd" data-act="unggah" data-d="'+esc(d.id)+'" data-j="before">+ Tambah</button>':'')+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,ed);
 }
 /* Stepper empat tahap: Temuan, Perbaikan, After, Verifikasi. Hijau selesai, oranye sedang, merah ditolak. */
 function stepperHtml(d){
@@ -463,6 +463,7 @@ function kmenuItems(d){
   if(canEdit())a.push({a:'edit',t:'Ubah temuan'});
   if(canEdit()&&d.verifikasi)a.push({a:'verif',t:'Ubah keputusan verifikasi'});
   if(bisaMulai()&&!closed&&d.mulai&&!d.fotoAfter.length)a.push({a:'batalmulai',t:'Batalkan mulai perbaikan'});
+  if(canEdit())a.push({a:'unggahbefore',t:'Tambah foto Before'});
   if(canEdit())a.push({a:'hapus',t:'Hapus',bad:true});
   return a;
 }
@@ -1145,8 +1146,8 @@ function editFoto(src,o){o=o||{};
     im.src=src;
   });
 }
-/** Admin: coret foto Before yang sudah tersimpan. Hasil diunggah sebagai foto baru, baru setelah itu foto lama dibuang
- * (ke folder sampah Drive, bukan dihapus permanen). Bila unggah gagal, foto lama tidak disentuh. */
+/** Admin: coret foto Before yang sudah tersimpan. Hasil diunggah sebagai foto BARU dan foto asli tetap ada; menghapus foto asli
+ * hanya bila Admin menekan "Hapus foto asli" (dipindah ke folder sampah Drive). Tidak ada penghapusan tanpa diminta. */
 async function coretTersimpan(){
   var zf=S.zoomF;if(!zf||!isAdmin()||zf.j!=='before')return;
   var rr=await work('Memuat foto...',function(){return api('foto_data',{ids:[zf.f],w:1280})});
@@ -1156,11 +1157,25 @@ async function coretTersimpan(){
   var up=await work('Menyimpan foto...',function(){return api('foto_unggah',{id:zf.d,jenis:zf.j,mime:'image/jpeg',data:out})});
   if(!up)return;   // gagal (mis. sudah mencapai batas foto): foto lama utuh
   S.pv[up.foto.id]=out;putDefect(up.defect);
-  var del=null;
-  try{del=await api('foto_hapus',{id:zf.d,jenis:zf.j,fotoId:zf.f})}catch(e){}
-  if(del)putDefect(del);
   closeZoom();render();
-  toast(del?'Foto hasil coretan tersimpan. Foto asli ada di folder sampah Drive.':'Foto hasil coretan tersimpan, tetapi foto lama belum terhapus. Hapus manual.');
+  toastAksi('Foto hasil coretan ditambahkan. Foto asli tidak dihapus.','Hapus foto asli',async function(){
+    var del=await work('Menghapus foto asli...',function(){return api('foto_hapus',{id:zf.d,jenis:zf.j,fotoId:zf.f})});
+    if(del){putDefect(del);render();toast('Foto asli dipindah ke folder sampah Drive.')}
+  });
+}
+/** Tambah foto Before ke temuan yang sudah tersimpan: foto disiapkan, ditawari tahap coret, baru diantrekan untuk diunggah. */
+async function fotoBeforeCoret(did,files){
+  var siap=[];
+  await work('Menyiapkan foto...',async function(){
+    for(var i=0;i<files.length;i++){try{var o={};siap.push({d:await prep(files[i],o),tn:o.tn})}catch(e){toast('Foto tidak bisa dibaca. Coba foto lain.')}}
+  });
+  for(var k=0;k<siap.length;k++){
+    var h=await editFoto(siap[k].d,{n:k+1,total:siap.length});
+    if(h===false)break;   // Lewati sisa foto: sisanya tetap diunggah apa adanya
+    if(h)siap[k].d=h;
+  }
+  siap.forEach(function(x){var jb={k:nk(),did:did,jenis:'before',data:x.d,tn:x.tn,st:'wait'};S.up.push(jb);qSave(jb)});
+  if(siap.length){upUi(did);upBar();runQueue()}
 }
 async function modalFotos(f,files){
   f.pend=(f.pend||0)+files.length;mphRefresh();
@@ -1794,11 +1809,11 @@ async function onClick(ev){
     case 'zoom': S.zoomF=el.getAttribute('data-d')?{f:el.getAttribute('data-f'),d:el.getAttribute('data-d'),j:el.getAttribute('data-j')}:null;return openZoom(thumb(el.getAttribute('data-f'),1024));
     case 'zoomcoret': return coretTersimpan();
     case 'zoomx': return closeZoom();
-    case 'mzoom': readForm();return openZoom(S.modal.f.files[+el.getAttribute('data-i')]);
+    case 'mzoom': readForm();S.zoomF=null;return openZoom(S.modal.f.files[+el.getAttribute('data-i')]);
     case 'foto': {
       var jenis=el.getAttribute('data-j');
       pick(!!el.getAttribute('data-cam'),function(items){
-        enqueue(id,jenis,items);
+        if(jenis==='before'&&canEdit())fotoBeforeCoret(id,items);else enqueue(id,jenis,items);
       });
       if(S.modal&&S.modal.t==='unggah')closeModal();
       return;
@@ -1813,6 +1828,7 @@ async function onClick(ev){
     case 'fclr2': {var s0=ensureSel(tree());S.flt={rid:S.flt.rid,q:S.flt.q,st:S.flt.st,bd:'',tk:'',el:''};if(S.modal&&S.modal.t==='filter')renderOverlay();refreshList();render();return}
     case 'kmenu': return openModal({t:'kmenu',d:findDefect(id)});
     case 'ttx': {if(!desk())return;var dt=findDefect(id);if(dt)openModal({t:'ttx',d:dt});return}
+    case 'unggahbefore': return openModal({t:'unggah',d:findDefect(id),j:'before'});
     case 'unggah': return openModal({t:'unggah',d:findDefect(id),j:el.getAttribute('data-j')||'after'});
     case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){modalFotos(S.modal.f,items)});
     case 'upretry': {var jr=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];if(jr){jr.st='wait';upUi(jr.did);runQueue()}return}

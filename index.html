@@ -344,7 +344,9 @@
   .stp .lbls .on{ color:var(--green-text); } .stp .lbls .go{ color:var(--orange-text); } .stp .lbls .bad{ color:var(--red-text); }
   .phs{ display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px var(--margin) 0; align-items:start; }
   .phs .ph{ padding:0; min-width:0; }
-  .phl{ margin:0 0 6px; font-size:12px; line-height:16px; font-weight:600; color:var(--label2); }
+  .phl{ display:flex; align-items:center; justify-content:space-between; margin:0 0 6px; font-size:12px; line-height:16px; font-weight:600; color:var(--label2); }
+  .phadd{ position:relative; min-height:26px; padding:0 10px; border:0; border-radius:999px; background:var(--fill3); color:var(--blue-teks); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+  .phadd::after{ content:""; position:absolute; inset:-9px -6px; }
   .thumb{ aspect-ratio:4/3; }
   .phs .thumbs{ grid-template-columns:repeat(auto-fit,minmax(96px,1fr)); gap:8px; }
   .phs .none{ aspect-ratio:4/3; min-height:0; padding:6px; text-align:center; }
