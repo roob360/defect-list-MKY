@@ -62,7 +62,7 @@
   #overlay .ov.zoom, #overlay .ov.zoom *{ touch-action:pinch-zoom pan-x pan-y; }
   [hidden]{ display:none !important; }
 
-  .pwrap{ position:absolute; top:0; left:0; right:0; z-index:20; max-width:1100px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 12px) var(--margin) 0; display:flex; justify-content:space-between; align-items:center; pointer-events:none; }
+  .pwrap{ position:absolute; top:0; left:0; right:0; z-index:20; max-width:860px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 12px) var(--margin) 0; display:flex; justify-content:space-between; align-items:center; pointer-events:none; }
   .pwrap > *{ pointer-events:auto; }
   .prof{ width:40px; height:40px; padding:0; border:0; border-radius:50%; display:grid; place-items:center; background:var(--fill3); color:var(--blue-teks); font:inherit; font-size:17px; font-weight:700; cursor:pointer; }
   .prof svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
@@ -332,8 +332,8 @@
   .kmenu .row.act.bad{ color:var(--red-text); }
   .kmenu .row.act:active{ background:var(--fill4); }
   /* kerangka layar mobile sesuai desain (FigCraft): header, pemilih lokasi, ringkasan, pencarian, chip, banner, KPI */
-  .prof.role{ width:auto; height:30px; padding:0 12px; font-size:12px; font-weight:700; letter-spacing:.04em; }
-  .prof.role::after{ content:""; position:absolute; inset:-7px -4px; }
+  .pwrap.in{ padding-top:calc(env(safe-area-inset-top,0px) + 45px); }   /* tengah lingkaran 40px sejajar dengan judul halaman (h1) */
+  .prof.role{ font-size:17px; font-weight:700; }
   .prof{ position:relative; }
   .prof.role.admin{ background:var(--purple-fill); color:var(--purple-teks); }
   .prof.role.mk{ background:var(--blue-fill); color:var(--blue-teks); }

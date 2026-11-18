@@ -251,7 +251,7 @@ async function loadAll(){
 /* ---------- tampilan ---------- */
 function setHead(){
   var pr=$('bProf'),k=S.user?'u':'g';
-  if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);pr.innerHTML=S.user?'<span>'+esc(S.user.peran)+'</span>':ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'')}
+  if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);pr.innerHTML=S.user?'<span>'+esc(String(S.user.nama||S.user.peran).trim().charAt(0).toUpperCase())+'</span>':ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'');pr.setAttribute('aria-label',S.user?'Pengaturan, '+S.user.nama+' ('+S.user.peran+')':'Pengaturan');pr.title=S.user?S.user.nama+' · '+S.user.peran:'Pengaturan';pr.parentNode.classList.toggle('in',!!S.user)}
   $('bBack').hidden=!(S.paket&&!S.user);
 }
 function skb(w,h,c){return '<div class="sk'+(c?' c':'')+'" style="width:'+w+';height:'+h+'px"></div>'}
