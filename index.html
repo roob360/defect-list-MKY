@@ -494,10 +494,10 @@
   @media (min-width:1100px){
     body.bento .wrap, body.bento .pwrap{ max-width:1440px; }
     body.bento .pwrap.in{ padding-top:calc(env(safe-area-inset-top,0px) + 22px); }
-    .bhead{ display:flex; justify-content:space-between; align-items:center; gap:16px; padding:4px 64px 18px 0; }
+    .bhead{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:4px 50px 18px 0; }   /* tombol akun 10 px dari aksi, sejajar tengahnya */
     .bhead h1{ margin:0; font-size:36px; line-height:42px; font-weight:700; letter-spacing:-.4px; }
     .bsub{ font-size:14px; color:var(--label2); }
-    .bact{ display:flex; align-items:center; gap:10px; }
+    .bact{ display:flex; align-items:center; gap:10px; height:40px; }
     .bact select{ height:40px; padding:0 14px; border:0; border-radius:var(--r-cap); background:var(--gbg2); color:var(--label1); font:inherit; font-size:14px; font-weight:600; }
     .btn.sm{ width:auto; height:40px; padding:0 18px; font-size:14px; }
     .bgrid{ display:grid; grid-template-columns:repeat(12,1fr); gap:16px; align-items:stretch; }

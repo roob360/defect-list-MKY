@@ -434,7 +434,7 @@ function thumbsHtml(items,jenis,d,removable){
 }
 function phHtml(d,jenis,ro){
   var ed=canEdit()&&!ro;
-  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+(ed&&jenis==='before'?'<button type="button" class="phadd" data-act="unggah" data-d="'+esc(d.id)+'" data-j="before">+ Tambah</button>':'')+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,false);
+  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,false);
 }
 /* Stepper empat tahap: Temuan, Perbaikan, After, Verifikasi. Hijau selesai, oranye sedang, merah ditolak. */
 function stepperHtml(d){
@@ -463,7 +463,6 @@ function kmenuItems(d){
   if(canEdit())a.push({a:'edit',t:'Ubah temuan'});
   if(canEdit()&&d.verifikasi)a.push({a:'verif',t:'Ubah keputusan verifikasi'});
   if(bisaMulai()&&!closed&&d.mulai&&!d.fotoAfter.length)a.push({a:'batalmulai',t:'Batalkan mulai perbaikan'});
-  if(canEdit())a.push({a:'unggahbefore',t:'Tambah foto Before'});
   if(canEdit())a.push({a:'hapus',t:'Hapus',bad:true});
   return a;
 }
@@ -882,6 +881,7 @@ function upUi(did){
   if(d){
     var a=Array.prototype.filter.call(document.querySelectorAll('article.entry'),function(x){return x.getAttribute('data-id')===did})[0];
     if(a){var ro=a.getAttribute('data-ro')==='1';['before','after'].forEach(function(jn){var p=a.querySelector('.ph[data-j="'+jn+'"]');if(p)p.innerHTML=phHtml(d,jn,ro)})}
+    if(S.modal&&S.modal.f&&S.modal.f.id===did)fotoEditRefresh();
   }
   upBar();
 }
@@ -1165,6 +1165,7 @@ async function coretTersimpan(zf){
 }
 /** Tambah foto Before ke temuan yang sudah tersimpan: foto disiapkan, ditawari tahap coret, baru diantrekan untuk diunggah. */
 async function fotoBeforeCoret(did,files){
+  if(S.modal&&S.modal.f)readForm();   // simpan isian dialog sebelum layar memuat menggantikannya
   var siap=[];
   await work('Menyiapkan foto...',async function(){
     for(var i=0;i<files.length;i++){try{var o={};siap.push({d:await prep(files[i],o),tn:o.tn})}catch(e){toast('Foto tidak bisa dibaca. Coba foto lain.')}}
@@ -1175,7 +1176,7 @@ async function fotoBeforeCoret(did,files){
     if(h)siap[k].d=h;
   }
   siap.forEach(function(x){var jb={k:nk(),did:did,jenis:'before',data:x.d,tn:x.tn,st:'wait'};S.up.push(jb);qSave(jb)});
-  if(siap.length){upUi(did);upBar();runQueue()}
+  if(siap.length){upUi(did);upBar();runQueue();fotoEditRefresh()}
 }
 async function modalFotos(f,files){
   f.pend=(f.pend||0)+files.length;mphRefresh();
@@ -1330,6 +1331,7 @@ function fBuat(d,ex){
     if(cur.bidang)f.bidang=cur.bidang;
     fAtur(f,cur);
   }
+  f.satu=!f.lama&&(!!d||!desk());
   return f;
 }
 /** Bawaan Lokasi dan bentuk Titik menurut bidang. cur = ruangan yang sedang dibuka di layar Form. */
@@ -1516,7 +1518,13 @@ function wElemenList(f){
   return h+'<div class="note">Daftar per bidang. Urut dari yang paling sering dipakai. Memilih elemen akan mengingat bentuk titiknya.</div>';
 }
 function wStep(s){
-  var f=S.modal&&S.modal.f;if(!f)return;fBaca();cbTutup();if(desk()&&(s==='foto'||s==='lokasi'))s='detail';f.step=s;renderOverlay();fSegar();
+  var f=S.modal&&S.modal.f;if(!f)return;fBaca();cbTutup();
+  if(f.satu){   // satu dialog: panel Elemen atau Titik dibuka di tempat
+    f.bukaEl=(s==='elemen');f.bukaTitik=(s==='titik');fRender();
+    var pn=overlay.querySelector(f.bukaEl?'#elsek':f.bukaTitik?'#titiksek':'#none');if(pn&&pn.scrollIntoView)pn.scrollIntoView({block:'nearest'});
+    return;
+  }
+  if(desk()&&(s==='foto'||s==='lokasi'))s='detail';f.step=s;renderOverlay();fSegar();
   var sh=overlay.querySelector('.sheet');if(sh)sh.scrollTop=0;
 }
 function wLanjutLokasi(f){
@@ -1602,22 +1610,72 @@ function wTapKode(f,ax,v){
 /** Foto yang sudah tersimpan di dialog Ubah temuan, dengan tombol hapus dua langkah (ketuk x, lalu konfirmasi Hapus). */
 function fotoEditHtml(f){
   var d=findDefect(f.id);if(!d)return '';
+  var adm=isAdmin();
   function blok(jenis,items){
     var lbl='<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span></div>';
-    if(!items.length)return lbl+'<div class="none">Belum ada foto '+jenis+'</div>';
+    var jobs=S.up.filter(function(j){return j.did===d.id&&j.jenis===jenis});
+    var tombol=jenis==='before'?'<div class="pbtn"><button type="button" class="pill" data-act="fadd" data-cam="1">'+ic('cam')+'Kamera</button><button type="button" class="pill" data-act="fadd">'+ic('img')+'Galeri</button></div>':'';
+    if(!items.length&&!jobs.length)return lbl+'<div class="none">Belum ada foto '+jenis+'</div>'+tombol;
     return lbl+'<div class="thumbs">'+items.map(function(x){
-      var tanya=f.hapusFoto===x.id;
+      var tanya=adm&&f.hapusFoto===x.id;
       return '<div class="fitem"><div class="thumb"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[x.id]||thumb(x.id,400))+'">'+
         (tanya?'<div class="ov2 ask"><b>Hapus foto?</b><span><button type="button" class="pill bad" data-act="fdelya" data-f="'+esc(x.id)+'" data-j="'+jenis+'">Hapus</button><button type="button" class="pill" data-act="fdelbatal">Batal</button></span></div>'
-          :'<button type="button" class="x" data-act="fdel" data-f="'+esc(x.id)+'" aria-label="Hapus foto">&times;</button>')+'</div>'+
-        (jenis==='before'?'<button type="button" class="pill" data-act="fcoret" data-f="'+esc(x.id)+'">&#9998; Coret</button>':'')+'</div>';
-    }).join('')+'</div>';
+          :(adm?'<button type="button" class="x" data-act="fdel" data-f="'+esc(x.id)+'" aria-label="Hapus foto">&times;</button>':''))+'</div>'+
+        (adm&&jenis==='before'?'<button type="button" class="pill" data-act="fcoret" data-f="'+esc(x.id)+'">&#9998; Coret</button>':'')+'</div>';
+    }).join('')+jobs.map(upHtml).join('')+'</div>'+tombol;
   }
   return blok('before',d.fotoBefore)+'<div style="height:10px"></div>'+blok('after',d.fotoAfter);
 }
 function fotoEditRefresh(){var el=$('fsfoto');if(el&&S.modal&&S.modal.f)el.innerHTML=fotoEditHtml(S.modal.f)}
+/** Satu dialog untuk Tambah temuan (HP) dan Ubah temuan: komponen tampilan baru (chip Bidang, tombol Tingkat, chip Elemen, Titik)
+ * dalam satu layar gulir. Elemen dan Titik terbuka di tempat (f.bukaEl, f.bukaTitik), bukan pindah layar. */
+function fSatuHtml(m){
+  var f=m.f,baru=!f.id,tg=fTitik(f,false),judul=baru?'Tambah temuan':'Ubah temuan';
+  var h='<div class="ov" data-act="modalbg"><div class="sheet wz satu" role="dialog" aria-label="'+judul+'">'+
+    '<div class="wh"><h2>'+judul+'</h2><button type="button" class="btn-ic wx" data-act="mtutup" aria-label="Tutup">'+ic('x')+'</button></div>';
+  h+='<div class="chips wb" role="group" aria-label="Bidang">'+BIDANG.map(function(b){return '<button type="button" class="chip'+(b===f.bidang?' on':'')+'"'+(f.kunciBidang&&b!==f.bidang?' disabled':'')+' data-act="wbid" data-v="'+esc(b)+'">'+esc(KODE_BID[b]||b)+'</button>'}).join('')+'</div>';
+  // lokasi
+  if(baru){
+    var o=wTerakhir();
+    if(o&&!(o.bidang===f.bidang&&o.gedung===f.gedung&&o.lantai===f.lantai&&(o.lok==='ruang'?o.ruang===f.ruang:true)))
+      h+='<button type="button" class="pakai" data-act="wpakai"><span>'+esc(o.gedung+' \u203a '+o.lantai+' \u203a '+(o.lok==='ruang'?o.ruang:'Umum - '+o.bidang))+'</span><b>Pakai</b></button>';
+    h+=fLokasiHtml(f);
+    if(f.lok==='ruang')h+='<div class="row"><span class="lbl">'+esc(labelBidang(f.bidang).lokasi)+'</span>'+cbHtml('ruang','Ketik atau pilih nama ruangan',f.ruang)+'</div>'+
+      '<div class="note">Ketuk untuk memilih. Ketik untuk menambah yang baru; nama yang mirip akan ditandai.</div>';
+    else h+='<div class="row fix"><span class="lbl">Lokasi</span><div>Umum - '+esc(f.bidang)+'</div><span class="oto">otomatis</span></div>'+
+      '<div class="note">'+esc(f.bidang)+' tidak memakai ruangan, jadi lokasinya otomatis.</div>';
+  }else h+='<div class="row fix"><span class="lbl">Lokasi</span><div>'+esc(f.gedung+' / '+f.lantai+' / '+f.lokasiTeks)+'</div></div>';
+  // foto
+  if(baru)h+='<div class="cap">Foto Before</div><div id="mph" class="phs">'+mphHtml(f)+'</div>'+
+    '<div class="pbtn"><button type="button" class="pill" data-act="mfoto" data-cam="1">'+ic('cam')+'Kamera</button><button type="button" class="pill" data-act="mfoto">'+ic('img')+'Galeri</button></div>';
+  else if(canEdit())h+='<div class="cap">Foto</div><div id="fsfoto">'+fotoEditHtml(f)+'</div>'+(isAdmin()?'<div class="note">Foto yang dihapus dipindah ke folder Sampah di Drive.</div>':'');
+  // detail
+  h+='<div class="cap">Temuan</div><div class="row dikte" id="mUr"><textarea id="mU" aria-label="Temuan" placeholder="Apa temuannya?">'+esc(f.uraian)+'</textarea></div>';
+  h+='<div class="cap">Seberapa parah?</div><div class="sev" role="group" aria-label="Tingkat">'+TINGKAT.map(function(x,i){return '<button type="button" class="s'+i+(x===f.tingkat?' on':'')+'" data-act="wsev" data-v="'+esc(x)+'">'+esc(x)+'</button>'}).join('')+'</div>';
+  var all=regDaftar('elemen',f.bidang),arr=Object.keys(all).map(function(k){return all[k]}).sort(function(x,y){return (y.n-x.n)||(y.t-x.t)||L.bandingNama(x.nama,y.nama)}),top=arr.slice(0,4).map(function(e){return e.nama});
+  if(f.elemen&&top.every(function(n){return L.kunci(n)!==L.kunci(f.elemen)}))top.unshift(f.elemen);
+  h+='<div class="cap">Elemen <small>(opsional)</small></div><div class="epil">'+top.map(function(n){return '<button type="button" class="chip'+(L.kunci(n)===L.kunci(f.elemen)?' on blue':'')+'" data-act="welpick" data-v="'+esc(n)+'">'+esc(n)+'</button>'}).join('')+
+    '<button type="button" class="chip dash" data-act="'+(f.bukaEl?'wtutupel':'welbuka')+'">'+(f.bukaEl?'Tutup daftar':(arr.length>=8?'Semua / cari':'+ Elemen lain'))+' &rsaquo;</button></div>';
+  if(f.bukaEl)h+='<div id="elsek"><div class="sbar"><span class="si">'+ic('search')+'</span><input type="text" id="elq" class="sinp" maxlength="60" autocomplete="off" placeholder="Cari atau ketik elemen baru" value="'+esc(f.elq||'')+'"></div><div id="ell">'+wElemenList(f)+'</div></div>';
+  if(!BID_RUANG[f.bidang]){
+    if(f.bukaTitik){
+      var mm=fModeElemen(f);
+      h+='<div id="titiksek"><div class="cap">Titik'+(f.elemen?' \u00b7 '+esc(f.elemen):'')+'</div><div class="seg in" role="group" aria-label="Bentuk titik">'+
+        [['grid','Grid'],['kode','Kode'],['teks','Teks'],['tanpa','Tanpa']].map(function(o){return '<button type="button" data-act="fmode" data-v="'+o[0]+'"'+(f.mode===o[0]?' class="on"':'')+'>'+o[1]+'</button>'}).join('')+'</div>';
+      if(mm&&mm!==f.mode)h+='<div class="note">Terakhir untuk "'+esc(f.elemen)+'" dipakai bentuk '+esc(mm)+'.</div>';
+      if(f.mode==='grid')h+=wSumbuHtml(f,'a','Sumbu 1')+wSumbuHtml(f,'b','Sumbu 2');
+      if(f.mode==='kode')h+=wKodeHtml(f);
+      if(f.mode==='teks')h+=wTeksHtml(f);
+      h+='<div id="fpem" class="note"></div><div id="fprev" class="note"></div><button type="button" class="btn sec" data-act="wtitikok">Selesai isi titik</button></div>';
+    }else h+='<button type="button" class="row titikrow" data-act="wtitik"><span class="lbl">Titik ('+esc(f.mode)+')</span><div>'+(tg.ok&&tg.teks?esc(tg.teks):'<span class="mute">Belum diisi (opsional)</span>')+'</div><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
+  }
+  h+='<label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label>';
+  h+='<button type="button" class="btn rect" data-act="msimpan">Simpan</button>'+(baru?'<button type="button" class="btn sec" data-act="msimpanlagi">Simpan &amp; tambah lagi di lokasi ini</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Batal</button>';
+  return h+'</div></div>';
+}
 function fHtml(m){
-  if(!m.f.id&&!m.f.lama)return fWizHtml(m);
+  if(m.f.satu)return fSatuHtml(m);
+  if(!m.f.id&&!m.f.lama&&desk())return fWizHtml(m);   // desktop: layar lebar O3; HP: satu dialog seperti Ubah temuan
   var f=m.f,mm=fModeElemen(f),h;
   h='<div class="ov" data-act="modalbg"><div class="sheet ubah" role="dialog" aria-label="Temuan"><div class="grab"></div><h2>'+(f.id?'Ubah temuan':'Tambah temuan')+'</h2>';
   h+='<section class="group vis"><div class="list">';
@@ -1643,7 +1701,7 @@ function fHtml(m){
   h+='<section class="group"><div class="list">'+
     '<label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label>'+
     '<label class="row" id="mUr"><span class="lbl">Temuan / catatan</span><textarea id="mU" placeholder="Tulis atau dikte temuan dengan mikrofon keyboard">'+esc(f.uraian)+'</textarea></label></div></section>';
-  if(f.id&&isAdmin())h+='<section class="group pad"><div class="cap" style="margin-bottom:8px">Foto tersimpan</div><div id="fsfoto">'+fotoEditHtml(f)+'</div><div class="note" style="padding:8px 0 0">Foto yang dihapus dipindah ke folder Sampah di Drive.</div></section>';
+  if(f.id&&canEdit())h+='<section class="group pad"><div class="cap" style="margin-bottom:8px">Foto</div><div id="fsfoto">'+fotoEditHtml(f)+'</div>'+(isAdmin()?'<div class="note" style="padding:8px 0 0">Foto yang dihapus dipindah ke folder Sampah di Drive.</div>':'')+'</section>';
   if(!f.id){
     h+='<section class="group pad"><div class="cap" style="margin-bottom:8px">Foto Before</div>'+
       '<div id="mph">'+mphHtml(f)+'</div>'+
@@ -1750,7 +1808,7 @@ async function drafKirim(){
 }
 function drafBuka(){
   var d=DRAF.filter(function(x){return x.st==='cek'})[0];if(!d)return;
-  var f=d.f;f.files=d.files.slice();f.pend=0;f.step='detail';f.drafK=d.k;f.konfirmasiBaru=false;
+  var f=d.f;f.files=d.files.slice();f.pend=0;f.step='detail';f.drafK=d.k;f.konfirmasiBaru=false;f.satu=!f.lama&&!desk();
   if(d.pesan)toast(d.pesan);
   openModal({t:'temuan',f:f});
 }
@@ -1759,7 +1817,7 @@ setInterval(function(){if(DRAF.length&&navigator.onLine!==false)drafKirim()},600
 
 async function saveForm(lagi){
   fBaca();var f=S.modal.f;
-  if(!f.id&&!f.lama&&f.step!=='detail')return;
+  if(!f.id&&!f.lama&&desk()&&f.step!=='detail')return;
   if(!f.uraian.trim()){$('mUr').classList.add('bad');toast('Isi temuan terlebih dahulu.');return}
   if(f.pend){toast('Foto masih disiapkan, tunggu sebentar.');return}
   var p={id:f.id,bidang:f.bidang,tingkat:f.tingkat,tglTemuan:f.tgl,uraian:f.uraian,gedung:f.gedung,lantai:f.lantai,ukur:UKUR?1:0};
@@ -1845,7 +1903,6 @@ async function onClick(ev){
     case 'fclr2': {var s0=ensureSel(tree());S.flt={rid:S.flt.rid,q:S.flt.q,st:S.flt.st,bd:'',tk:'',el:''};if(S.modal&&S.modal.t==='filter')renderOverlay();refreshList();render();return}
     case 'kmenu': return openModal({t:'kmenu',d:findDefect(id)});
     case 'ttx': {if(!desk())return;var dt=findDefect(id);if(dt)openModal({t:'ttx',d:dt});return}
-    case 'unggahbefore': return openModal({t:'unggah',d:findDefect(id),j:'before'});
     case 'unggah': return openModal({t:'unggah',d:findDefect(id),j:el.getAttribute('data-j')||'after'});
     case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){modalFotos(S.modal.f,items)});
     case 'upretry': {var jr=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];if(jr){jr.st='wait';upUi(jr.did);runQueue()}return}
@@ -1896,12 +1953,14 @@ async function onClick(ev){
       if(wb.step==='titik'){fBaca();var tt=fTitik(wb,false);if(!tt.ok){toast(tt.err);return}}
       return wStep(mp[wb.step]||'lokasi')}
     case 'wbid': {fBaca();var wd=S.modal.f,nb=el.getAttribute('data-v');if(nb===wd.bidang)return;
+      if(wd.id){wd.bidang=nb;return fRender()}
       wd.bidang=nb;wd.conf={};wd.elemen='';var ss=ensureSel(tree());fAtur(wd,ss?ss.r:null);return wStep('lokasi')}
     case 'wpakai': {var po=wTerakhir(),wp=S.modal.f;if(!po)return;
       wp.bidang=po.bidang;wp.gedung=po.gedung;wp.lantai=po.lantai;wp.gMode=false;wp.lMode=false;wp.conf={};
       wp.lok=po.lok;wp.ruang=po.lok==='ruang'?po.ruang:'';wp.mode=BID_RUANG[wp.bidang]?'tanpa':(wp.mode==='tanpa'?(wp.bidang==='Struktur'?'grid':'teks'):wp.mode);
       return wStep('foto')}
     case 'wsev': {fBaca();S.modal.f.tingkat=el.getAttribute('data-v');return wStep('detail')}
+    case 'wtutupel': {fBaca();S.modal.f.bukaEl=false;return fRender()}
     case 'welbuka': {S.modal.f.elq='';return wStep('elemen')}
     case 'welpick': {fBaca();return wPilihElemen(el.getAttribute('data-v'))}
     case 'weltambah': {fBaca();return wPilihElemen(L.rapi(el.getAttribute('data-v')))}
@@ -1943,6 +2002,7 @@ async function onClick(ev){
       var r3=await work('Menghapus...',function(){return api('defect_hapus',{id:dd.id})});
       if(r3){dropDefect(dd.id,dd.ruanganId);if(isAdmin())toastAksi('Temuan dihapus.','Urungkan',function(){urungkanHapus(dd)});else toast('Temuan dihapus.');render()}return;
     }
+    case 'fadd': {var fa=S.modal&&S.modal.f;if(!fa)return;pick(!!el.getAttribute('data-cam'),function(items){fotoBeforeCoret(fa.id,items)});return}
     case 'fcoret': {var fc=S.modal&&S.modal.f;if(!fc)return;readForm();return coretTersimpan({d:fc.id,j:'before',f:el.getAttribute('data-f')})}
     case 'fdel': {var fd=S.modal&&S.modal.f;if(fd){fd.hapusFoto=el.getAttribute('data-f');fotoEditRefresh()}return}
     case 'fdelbatal': {var fb=S.modal&&S.modal.f;if(fb){fb.hapusFoto=null;fotoEditRefresh()}return}
