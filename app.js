@@ -1083,7 +1083,7 @@ function cbAktif(){return !!AKTIFCB}
 
 /* ----- keadaan form ----- */
 function fBuat(d,ex){
-  var T=tree(),s=ensureSel(T),cur=s.r,reg=S.regOk;
+  var T=tree(),s=ensureSel(T)||{g:{nama:''},l:{nama:''},r:{id:''}},cur=s.r,reg=S.regOk;
   var f={id:null,gedung:s.g.nama,lantai:s.l.nama,bidang:BIDANG[0],tingkat:TINGKAT[0],tgl:today(),uraian:'',files:[],lama:!reg,
     ruanganId:cur.id,lok:'ruang',ruang:'',elemen:'',mode:'tanpa',a:{k1:'',n1:'',k2:'',n2:''},b:{k1:'',n1:'',k2:'',n2:''},kd:{k:'',n:''},teks:'',pemBaru:{},conf:{},kunciBidang:false,lokasiTeks:'',step:d?null:'lokasi',xk:{},baru:null,abc:false};
   if(d){
@@ -1111,8 +1111,12 @@ function fAtur(f,cur){
   else{f.lok='umum';f.mode=f.bidang==='Struktur'?'grid':'teks'}
 }
 function openForm(d){
-  var s=ensureSel(tree());if(!s)return;
-  openModal({t:'temuan',f:fBuat(d,null)});
+  try{
+    var s=ensureSel(tree());
+    if(!s&&d)return;
+    if(!s&&!S.roomsReady){toast('Daftar lokasi belum dimuat. Tunggu sebentar lalu coba lagi.');loadRooms();return}   // jangan diam saja
+    openModal({t:'temuan',f:fBuat(d,null)});
+  }catch(e){toast('Tidak bisa membuka formulir: '+(e&&e.message||e))}
 }
 function fRender(){ // gambar ulang tanpa kehilangan posisi gulir
   var sh=overlay.querySelector('.sheet'),sc=sh?sh.scrollTop:0;
