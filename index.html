@@ -378,7 +378,10 @@
   .pakai b{ flex:none; }
   .wl2{ display:flex; gap:12px; align-items:center; }
   .wl2 img, .wl2 .ph{ width:48px; height:36px; border-radius:8px; object-fit:cover; background:var(--fill3); flex:none; }
-  .wl2 b{ display:block; font-size:14px; }
+  .wl2 b{ display:block; font-size:14px; overflow-wrap:anywhere; }
+  .wl2 > div{ min-width:0; }
+  .wz{ overflow-x:hidden; }
+  .wz input, .wz textarea, .wz select{ font-size:16px; }
   .sev{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
   .sev button{ height:44px; border:0; border-radius:var(--r-cap); background:var(--gbg2); box-shadow:inset 0 0 0 1px var(--sep); font:inherit; font-weight:600; color:var(--label1); cursor:pointer; }
   .sev .s0.on{ background:var(--blue-fill); color:var(--blue-teks); box-shadow:none; }
@@ -396,7 +399,7 @@
   .wz .tk .two{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .wz .tk .two .row{ margin-top:0; }
   .wz .tk .note{ padding-top:10px; font-weight:600; }
-  .wl{ padding-top:0; font-weight:600; color:var(--label1); }
+  .wl{ padding-top:0; font-weight:600; color:var(--label1); overflow-wrap:anywhere; }
 
   .sumbu{ background:var(--gbg2); border-radius:14px; padding:12px; margin-top:10px; }
   .sh2{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }

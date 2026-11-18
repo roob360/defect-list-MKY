@@ -1010,6 +1010,12 @@ async function muatRegistri(){
 var AKTIFCB=null,IDXCB=-1;
 function cbSumber(id){
   var f=S.modal.f,a=f.gedung,m=/^([ab])(k|n)(1|2)$/.exec(id);
+  if(id==='gedung'||id==='lantai'){
+    var T0=tree(),LB0=labelBidang(f.bidang),d0={},add=function(n){d0[L.kunci(n)]={nama:n,n:0,t:0}};
+    if(id==='gedung')T0.forEach(function(g){add(g.nama)});
+    else{var g0=T0.filter(function(x){return L.kunci(x.nama)===L.kunci(f.gedung)})[0];if(g0)g0.lantai.forEach(function(l){add(l.nama)})}
+    return {d:d0,fuzzy:true,urut:'alami',tambah:(id==='gedung'?LB0.area:LB0.level).toLowerCase(),norm:function(v){return L.rapi(v)}};
+  }
   if(id==='ruang')return {d:regDaftar('ruang',f.gedung,f.lantai),fuzzy:true,urut:'frek',tambah:'ruangan',norm:function(v){return L.rapi(v)}};
   if(id==='elemen')return {d:regDaftar('elemen',f.bidang),fuzzy:true,urut:'frek',tambah:'elemen',norm:function(v){return L.rapi(v)}};
   if(id==='teks')return {d:regDaftar('teks',a),fuzzy:true,urut:'frek',tambah:null,norm:function(v){return L.rapi(v)}};
@@ -1019,8 +1025,8 @@ function cbSumber(id){
   return {d:regDaftar('kode',a,kk.ok?kk.val:''),fuzzy:false,urut:'alami',pref:(m?(m[1]==='a'?'huruf':'angka'):null),tambah:'kode',norm:function(v){var r=L.kode(v);return r.ok?r.val:null}};
 }
 function cbHtml(id,ph,val){
-  var mx=id==='ruang'?80:id==='elemen'?60:id==='teks'?100:10;
-  return '<div class="ck"><input type="text" id="'+id+'" data-cb="'+id+'" maxlength="'+mx+'" placeholder="'+ph+'" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="'+id+'_l" value="'+esc(val)+'"><div class="ckl hide" id="'+id+'_l" role="listbox"></div></div>';
+  var mx=id==='ruang'||id==='gedung'?80:id==='elemen'?60:id==='teks'?100:id==='lantai'?40:10,cap=(id==='gedung'||id==='lantai'||id==='ruang')?'words':'off';
+  return '<div class="ck"><input type="text" id="'+id+'" data-cb="'+id+'" maxlength="'+mx+'" placeholder="'+ph+'" autocomplete="off" autocapitalize="'+cap+'" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="'+id+'_l" value="'+esc(val)+'"><div class="ckl hide" id="'+id+'_l" role="listbox"></div></div>';
 }
 function cbOpsi(id,q){
   var s=cbSumber(id),all=Object.keys(s.d).map(function(k){return s.d[k]}),kq=L.kunci(q),out=[];
@@ -1059,6 +1065,13 @@ function cbPilih(id,nilai,tambah){
   var f=S.modal.f,el=$(id);el.value=nilai;el.closest('.row')&&el.closest('.row').classList.remove('bad');
   if(tambah)f.conf[id]=L.kunci(nilai);else delete f.conf[id];
   cbTutup();fBaca();
+  if(id==='gedung'||id==='lantai'){
+    f.ruang='';delete f.conf.ruang;var er=$('ruang');if(er)er.value='';
+    if(id==='gedung'){var gx=tree().filter(function(x){return x.nama===f.gedung})[0],ok=gx&&gx.lantai.some(function(l){return l.nama===f.lantai});
+      if(!ok){f.lantai='';var elx=$('lantai');if(elx){elx.value='';elx.focus()}}}
+    else if(er&&!L.rapi(er.value))er.focus();
+    fSegar();return;
+  }
   if(id==='elemen'){var mm=fModeElemen(f);if(mm&&mm!==f.mode){f.mode=mm;fRender();return}}
   fSegar();
   var nx={ak1:'an1',bk1:'bn1',kdk:'kdn'}[id];                 // setelah Kelompok, lompat ke kotak Kode
@@ -1110,10 +1123,12 @@ function fBaca(){
   ['ruang','elemen','teks'].forEach(function(k){var e=$(k);if(e)f[k]=e.value});
   ['a','b'].forEach(function(ax){['k1','n1','k2','n2'].forEach(function(x){var e=$(ax+x);if(e)f[ax][x]=e.value})});
   if($('kdk'))f.kd.k=$('kdk').value;if($('kdn'))f.kd.n=$('kdn').value;
-  var sg=$('fG');if(sg){if(sg.value==='__baru'){f.gMode=true}else{f.gMode=false;f.gedung=sg.value}}
-  var ig=$('fGn');if(ig&&f.gMode)f.gedung=ig.value;
-  var sl=$('fL');if(sl){if(sl.value==='__baru'){f.lMode=true}else{f.lMode=false;f.lantai=sl.value}}
-  var il=$('fLn');if(il&&(f.lMode||f.gMode))f.lantai=il.value;
+  var eg=$('gedung'),el=$('lantai');
+  if(eg){
+    f.gedung=eg.value;var T=tree(),gm=T.filter(function(x){return L.kunci(x.nama)===L.kunci(f.gedung)})[0];
+    f.gMode=!gm&&!!L.rapi(f.gedung);if(gm)f.gedung=gm.nama;
+    if(el){f.lantai=el.value;var lm=gm&&gm.lantai.filter(function(x){return L.kunci(x.nama)===L.kunci(f.lantai)})[0];f.lMode=!lm&&!!L.rapi(f.lantai);if(lm)f.lantai=lm.nama}
+  }
   if($('mB'))f.bidang=$('mB').value;if($('mT'))f.tingkat=$('mT').value;if($('mD'))f.tgl=$('mD').value||today();if($('mU'))f.uraian=$('mU').value;
 }
 function readForm(){fBaca()}
@@ -1172,14 +1187,9 @@ function fAxisHtml(f,ax,judul){
 }
 /* Pilih Gedung dan Lantai yang ada, atau buat baru (ADMIN dan MK). Nama yang mirip dengan yang sudah ada ditanyakan oleh server (dialog "mirip"). */
 function fLokasiHtml(f){
-  var LB=labelBidang(f.bidang),T=tree(),g0=T.filter(function(x){return x.nama===f.gedung})[0],ls=g0?g0.lantai.map(function(l){return l.nama}):[];
-  var opt=function(n,cur){return '<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>'};
-  var h='<div class="two"><label class="row"><span class="lbl">'+esc(LB.area)+'</span><select id="fG">'+T.map(function(g){return opt(g.nama,f.gMode?'':f.gedung)}).join('')+'<option value="__baru"'+(f.gMode?' selected':'')+'>+ '+esc(LB.area)+' baru...</option></select></label>';
-  if(f.gMode)h+='<div class="row"><span class="lbl">'+esc(LB.level)+'</span><div class="note" style="padding:0">Ketik di bawah</div></div></div>';
-  else h+='<label class="row"><span class="lbl">'+esc(LB.level)+'</span><select id="fL">'+ls.map(function(n){return opt(n,f.lMode?'':f.lantai)}).join('')+'<option value="__baru"'+(f.lMode?' selected':'')+'>+ '+esc(LB.level)+' baru...</option></select></label></div>';
-  if(f.gMode)h+='<label class="row"><span class="lbl">Nama '+esc(LB.area)+' baru</span><input type="text" id="fGn" maxlength="80" autocomplete="off" placeholder="'+(LB===LBL?'Mis. Gedung C':'Mis. Kawasan B')+'" value="'+esc(f.gedung)+'"></label>';
-  if(f.gMode||f.lMode)h+='<label class="row"><span class="lbl">Nama '+esc(LB.level)+' baru</span><input type="text" id="fLn" maxlength="40" autocomplete="off" placeholder="'+(LB===LBL?'Mis. Lantai 4':'Mis. Jalan Utama')+'" value="'+esc(f.lantai)+'"></label>';
-  return h;
+  var LB=labelBidang(f.bidang);
+  return '<div class="row"><span class="lbl">'+esc(LB.area)+'</span>'+cbHtml('gedung','Ketik atau pilih '+LB.area.toLowerCase(),f.gedung)+'</div>'+
+    '<div class="row"><span class="lbl">'+esc(LB.level)+'</span>'+cbHtml('lantai','Ketik atau pilih '+LB.level.toLowerCase(),f.lantai)+'</div>';
 }
 
 /* ----- tambah temuan bertahap (M1 Lokasi, M2 Foto, M3 Detail, M4 Elemen, M5-M7 Titik) ----- */
@@ -1230,7 +1240,7 @@ function fWizHtml(m){
     var all=regDaftar('elemen',f.bidang),arr=Object.keys(all).map(function(k){return all[k]}).sort(function(x,y){return (y.n-x.n)||(y.t-x.t)||L.bandingNama(x.nama,y.nama)}),top=arr.slice(0,4).map(function(e){return e.nama});
     if(f.elemen&&top.every(function(n){return L.kunci(n)!==L.kunci(f.elemen)}))top.unshift(f.elemen);
     h+=wHead(f,'Detail temuan',true)+'<div class="wl2">'+(f.files[0]?'<img alt="" src="'+f.files[0]+'">':'<span class="ph"></span>')+'<div><b>'+esc(wLokTeks(f))+'</b><span class="tag">'+esc(KODE_BID[f.bidang]||f.bidang)+'</span></div></div>'+
-      '<div class="row dikte" id="mUr"><button type="button" class="mic" data-act="wmic" aria-label="Dikte temuan">'+ic('mic')+'</button><textarea id="mU" aria-label="Temuan" placeholder="Apa temuannya? (ketuk, bicara, atau ketik)">'+esc(f.uraian)+'</textarea></div>'+
+      '<div class="row dikte" id="mUr"><textarea id="mU" aria-label="Temuan" placeholder="Apa temuannya? (ketuk, bicara, atau ketik)">'+esc(f.uraian)+'</textarea></div>'+
       '<div class="cap">Seberapa parah?</div><div class="sev" role="group" aria-label="Tingkat">'+TINGKAT.map(function(x,i){return '<button type="button" class="s'+i+(x===f.tingkat?' on':'')+'" data-act="wsev" data-v="'+esc(x)+'">'+esc(x)+'</button>'}).join('')+'</div>'+
       '<div class="cap">Elemen <small>(opsional)</small></div><div class="epil">'+top.map(function(n){return '<button type="button" class="chip'+(L.kunci(n)===L.kunci(f.elemen)?' on blue':'')+'" data-act="welpick" data-v="'+esc(n)+'">'+esc(n)+'</button>'}).join('')+'<button type="button" class="chip dash" data-act="welbuka">'+(arr.length>=8?'Semua / cari':'+ Elemen lain')+' &rsaquo;</button></div>';
     if(!BID_RUANG[f.bidang])h+='<button type="button" class="row titikrow" data-act="wtitik"><span class="lbl">Titik ('+esc(f.mode)+')</span><div>'+(tg.ok&&tg.teks?esc(tg.teks):'<span class="mute">Belum diisi (opsional)</span>')+'</div><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
@@ -1258,8 +1268,8 @@ function wStep(s){
 }
 function wLanjutLokasi(f){
   fBaca();
-  if(!L.rapi(f.gedung))return fGalat('Isi nama '+labelBidang(f.bidang).area+'.','fGn')||false;
-  if(!L.rapi(f.lantai))return fGalat('Isi nama '+labelBidang(f.bidang).level+'.','fLn')||false;
+  if(!L.rapi(f.gedung))return fGalat('Isi nama '+labelBidang(f.bidang).area+'.','gedung')||false;
+  if(!L.rapi(f.lantai))return fGalat('Isi nama '+labelBidang(f.bidang).level+'.','lantai')||false;
   if(f.lok==='ruang'){
     if(!L.rapi(f.ruang))return fGalat('Pilih atau tambah ruangan.','ruang');
     var bm=fPeriksaDaftar(f);if(bm)return fGalat(bm[1],bm[0]);
@@ -1315,7 +1325,7 @@ function wKodeHtml(f){
   return h;
 }
 function wTeksHtml(f){
-  return '<div class="row dikte"><div style="flex:1;min-width:0"><span class="lbl">Posisi (nama jalan, STA, zona)</span><input type="text" id="teks" maxlength="100" autocomplete="off" placeholder="Mis. STA 2+3" value="'+esc(f.teks)+'"></div><button type="button" class="mic" data-act="wmic" data-t="teks" aria-label="Dikte posisi">'+ic('mic')+'</button></div><div id="tkl">'+wTeksSaran(f)+'</div>'+
+  return '<div class="row dikte"><div style="flex:1;min-width:0"><span class="lbl">Posisi (nama jalan, STA, zona)</span><input type="text" id="teks" maxlength="100" autocomplete="off" placeholder="Mis. STA 2+3" value="'+esc(f.teks)+'"></div></div><div id="tkl">'+wTeksSaran(f)+'</div>'+
     '<div class="note">Teks bebas. Tidak perlu dipilih dari daftar. Saran hanya agar penulisan seragam.</div>';
 }
 function wTeksSaran(f){
@@ -1413,8 +1423,8 @@ async function saveForm(lagi){
   var rmIni=null;
   if(f.lama||f.id)p.ruanganId=f.ruanganId;
   else{
-    if(!L.rapi(f.gedung))return fGalat('Isi nama '+labelBidang(f.bidang).area+'.','fGn');
-    if(!L.rapi(f.lantai))return fGalat('Isi nama '+labelBidang(f.bidang).level+'.','fLn');
+    if(!L.rapi(f.gedung))return fGalat('Isi nama '+labelBidang(f.bidang).area+'.','gedung');
+    if(!L.rapi(f.lantai))return fGalat('Isi nama '+labelBidang(f.bidang).level+'.','lantai');
     if(f.konfirmasiBaru)p.konfirmasiBaru=true;
   }
   if(!f.lama){
@@ -1567,7 +1577,6 @@ async function onClick(ev){
       if(cc!==null){wy.kd.n=cc}else if(kk==='bs')wy.kd.n=(wy.kd.n||'').slice(0,-1);else if((wy.kd.n||'').length<10)wy.kd.n=(wy.kd.n||'')+kk;
       return fRender()}
     case 'wteks': {S.modal.f.teks=el.getAttribute('data-v');return fRender()}
-    case 'wmic': {var mt=$(el.getAttribute('data-t')||'mU');if(mt){mt.focus();toast('Ketuk ikon mikrofon di keyboard HP untuk bicara.')}return}
     case 'wtutup': return closeModal();
     case 'flok': {fBaca();var ff=S.modal.f;ff.lok=el.getAttribute('data-v');ff.conf={};cbTutup();return fRender()}
     case 'fmode': {fBaca();S.modal.f.mode=el.getAttribute('data-v');cbTutup();return fRender()}
