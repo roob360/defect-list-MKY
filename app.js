@@ -268,6 +268,7 @@ function skel(kind){
   return h+'</div>';
 }
 function render(){
+  document.body.classList.toggle('wide',!!(S.paket&&S.user&&(S.view==='form'||S.view==='verif'||S.view==='perbaikan')&&desk()));
   document.body.classList.toggle('bento',!!(S.paket&&S.user&&((S.view==='rekap'&&canEdit())||(S.view==='kelola'&&isAdmin()))&&desk()));
   setHead();setDock();
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
@@ -425,7 +426,7 @@ function formHtml(){
 function thumbsHtml(items,jenis,d,removable){
   var jobs=S.up.filter(function(j){return j.did===d.id&&j.jenis===jenis});
   if(!items.length&&!jobs.length)return '<div class="none">Belum ada foto '+jenis+'</div>';
-  return '<div class="thumbs">'+items.map(function(f){
+  return '<div class="thumbs">'+(items.length>1?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+items.map(function(f){
     return '<div class="thumb"><button type="button" data-act="zoom" data-f="'+esc(f.id)+'" aria-label="Lihat foto"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[f.id]||thumb(f.id,400))+'"></button>'+
       (f.t?'<span class="dt">'+esc(fmt(f.t))+'</span>':'')+
       (removable?'<button type="button" class="x" data-act="delfoto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-f="'+esc(f.id)+'" aria-label="Hapus foto">&times;</button>':'')+'</div>';
@@ -467,7 +468,7 @@ function kmenuItems(d){
 }
 function entryHtml(d,n,ix,ro){
   var fresh=!S.seen[d.id];S.seen[d.id]=1;
-  var h='<article class="group entry'+(fresh?' pop':'')+'"'+(fresh?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh"><span class="no">'+n+'</span><span class="tx">'+esc(d.uraian)+'</span></div>'+
+  var h='<article class="group entry'+(fresh?' pop':'')+'"'+(fresh?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
     '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+'</div>'+
     stepperHtml(d);
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
@@ -486,8 +487,9 @@ function verifHtml(){
   if(!S.siap)return h+skel('entries');
   h+='<div class="banner" role="status"><span>'+S.siap.length+' temuan menunggu keputusan MK</span><button type="button" data-act="muatsiap">Muat ulang</button></div>';
   if(!S.siap.length)return h+'<div class="empty">Tidak ada temuan yang menunggu verifikasi.</div>';
-  S.siap.forEach(function(d,i){h+='<div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+entryHtml(d,d.no||i+1,i,true)});
-  return h;
+  var g='';
+  S.siap.forEach(function(d,i){g+='<div class="ent"><div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+entryHtml(d,d.no||i+1,i,true)+'</div>'});
+  return h+'<div class="entgrid">'+g+'</div>';
 }
 
 /* ----- antrean perbaikan (PJ) ----- */
@@ -498,8 +500,9 @@ function perbaikanHtml(){
   var tl=S.perlu.filter(function(d){return d.verifikasi==='Ditolak'}).length;
   h+='<div class="banner" role="status"><span>'+S.perlu.length+' perlu dikerjakan'+(tl?' &middot; '+tl+' ditolak MK':'')+'</span><button type="button" data-act="muatperlu">Muat ulang</button></div>';
   if(!S.perlu.length)return h+'<div class="empty">Semua temuan sudah dikerjakan. Tidak ada yang perlu di-close.</div>';
-  S.perlu.forEach(function(d,i){h+='<div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+entryHtml(d,d.no||i+1,i)});
-  return h;
+  var g='';
+  S.perlu.forEach(function(d,i){g+='<div class="ent"><div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+entryHtml(d,d.no||i+1,i)+'</div>'});
+  return h+'<div class="entgrid">'+g+'</div>';
 }
 
 /* ----- rekap ----- */
@@ -645,6 +648,13 @@ function renderOverlay(){
   var h='';
   if(S.busy)h='<div class="ov mid" style="z-index:90"><div class="sheet"><div class="busy"><div class="spin d"></div><span>'+esc(S.busy)+'</span></div>'+(S.zipRun?'<button type="button" class="btn sec" data-act="zipbatal" style="margin-top:10px">Batal</button>':'')+'</div></div>';
   else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button></div>';
+  else if(S.file&&desk()){
+    var ext=(String(S.file.name).split('.').pop()||'').toUpperCase(),kb=S.file.size/1024,uk=kb>=1024?(kb/1024).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(kb))+' KB',pdf=ext==='PDF';
+    h='<div class="ov mid"><div class="sheet gap fileok" role="dialog" aria-label="File siap"><span class="okc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><h2>File siap</h2><div class="note c">Dibuat di komputer ini, tanpa unggah ke server</div>'+
+      '<div class="fcard"><span class="ftype '+ext.toLowerCase()+'">'+esc(ext)+'</span><div><b>'+esc(S.file.name)+'</b><span>'+esc(ext)+' &middot; '+uk+'</span></div></div>'+
+      '<div class="btnrow"><a class="btn" id="dl" href="'+esc(S.file.url)+'" download="'+esc(S.file.name)+'">Unduh</a>'+(pdf?'<a class="btn soft" href="'+esc(S.file.url)+'" target="_blank" rel="noopener">Buka di tab baru</a>':'')+'</div>'+
+      '<div class="note c">Setelah Unduh, berkas ada di folder Unduhan browser. Menutup jendela ini tidak menghapusnya.</div><button type="button" class="lnk c" data-act="tutupfile">Selesai</button></div></div>';
+  }
   else if(S.file)h='<div class="ov mid"><div class="sheet gap"><h2>File siap</h2><div class="note" style="padding:0 0 4px">'+esc(S.file.name)+'</div>'+
     '<a class="btn" id="dl" href="'+esc(S.file.url)+'" download="'+esc(S.file.name)+'">Unduh</a>'+
     (S.file.canShare?'<button type="button" class="btn sec" data-act="bagi">Bagikan</button>':'')+
@@ -713,6 +723,8 @@ function modalHtml(){
     return '<div class="ov mid"><div class="sheet gap" role="dialog" aria-label="Nama mirip"><h2>Sudah ada '+esc(mp.entri)+'</h2><div class="note" style="padding:0;overflow-wrap:anywhere">Anda mengetik "'+esc(mp.masuk)+'"'+(mp.jenis==='lantai'?' di '+esc(mp.gedung):'')+'. '+esc(tj)+' yang sudah ada: "'+esc(mp.entri)+'". Pakai yang sudah ada supaya tidak ganda.</div>'+
       '<button type="button" class="btn" data-act="miripPakai">Pakai '+esc(mp.entri)+'</button><button type="button" class="btn sec" data-act="miripBaru">Tetap buat baru</button><button type="button" class="btn sec" data-act="miripBatal">Batal</button></div></div>';
   }
+  if(m.t==='ttx')
+    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(m.d.no||'')+'</h2><div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">'+esc(m.d.gedung)+' / '+esc(m.d.lantai)+' / '+esc(m.d.ruangan)+'</div><div class="phs"><div class="ph" data-j="before">'+phHtml(m.d,'before',true)+'</div><div class="ph" data-j="after">'+phHtml(m.d,'after',true)+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='kmenu')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu temuan"><div class="group kmenu"><div class="list">'+kmenuItems(m.d).map(function(it){return '<button type="button" class="row act'+(it.bad?' bad':'')+'" data-act="'+it.a+'" data-d="'+esc(m.d.id)+'">'+it.t+'</button>'}).join('')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='unggah')
@@ -778,6 +790,18 @@ function onFiles(ev){
   if(!files.length||!pickCb)return;
   var cb=pickCb;pickCb=null;cb(files);
 }
+['dragenter','dragover'].forEach(function(t){document.addEventListener(t,function(e){
+  if(!(desk()&&S.modal&&S.modal.t==='temuan'&&S.modal.f&&!S.modal.f.id))return;
+  e.preventDefault();var z=$('dropz');if(z)z.classList.add('on')})});
+document.addEventListener('dragleave',function(e){var z=$('dropz');if(z&&(!e.relatedTarget||!z.contains(e.relatedTarget)))z.classList.remove('on')});
+document.addEventListener('drop',function(e){
+  var z=$('dropz');if(z)z.classList.remove('on');
+  if(!(desk()&&S.modal&&S.modal.t==='temuan'&&S.modal.f&&!S.modal.f.id))return;
+  e.preventDefault();
+  var fs=Array.prototype.slice.call((e.dataTransfer&&e.dataTransfer.files)||[]).filter(function(x){return /^image\//.test(x.type)});
+  if(!fs.length){toast('Seret berkas foto (JPG atau PNG).');return}
+  readForm();modalFotos(S.modal.f,fs);
+});
 $('fGal').addEventListener('change',onFiles);$('fCam').addEventListener('change',onFiles);
 $('fXls').addEventListener('change',function(ev){var f=ev.target.files&&ev.target.files[0];ev.target.value='';if(f)bacaExcel(f)});
 
@@ -1024,9 +1048,38 @@ function mphHtml(f){
   return (f.files.length||f.pend?'<div class="thumbs">'+f.files.map(function(x,i){return '<div class="thumb"><button type="button" data-act="mzoom" data-i="'+i+'"><img alt="" src="'+x+'"></button><button type="button" class="x" data-act="mdel" data-i="'+i+'" aria-label="Buang foto">&times;</button></div>'}).join('')+(function(){var t='';for(var i=0;i<(f.pend||0);i++)t+='<div class="thumb up"><div class="ov2"><span class="sp"></span><small>Menyiapkan</small></div></div>';return t})()+'</div>':'<div class="none">Belum ada foto</div>');
 }
 function mphRefresh(){var el=$('mph');if(el&&S.modal&&S.modal.f)el.innerHTML=mphHtml(S.modal.f)}
+/** Tanggal pengambilan foto (EXIF DateTimeOriginal) sebagai 'yyyy-mm-dd', atau '' bila tidak ada. Dibaca dari berkas asli sebelum dikecilkan. */
+async function exifTgl(file){
+  try{
+    var b=new DataView(await file.slice(0,262144).arrayBuffer());
+    if(b.getUint16(0)!==0xFFD8)return '';
+    var o=2;
+    while(o<b.byteLength-10){
+      var mk=b.getUint16(o);if(mk===0xFFDA||(mk&0xFF00)!==0xFF00)return '';
+      var len=b.getUint16(o+2);
+      if(mk===0xFFE1&&b.getUint32(o+4)===0x45786966){
+        var t=o+10,le=b.getUint16(t)===0x4949,g16=function(p){return b.getUint16(p,le)},g32=function(p){return b.getUint32(p,le)};
+        var ifd0=t+g32(t+4),n=g16(ifd0),exif=0,dt='';
+        var teks=function(e){var off=t+g32(e+8),r='';for(var k=0;k<19;k++)r+=String.fromCharCode(b.getUint8(off+k));return r};
+        for(var i=0;i<n;i++){var e=ifd0+2+i*12,tg=g16(e);if(tg===0x8769)exif=t+g32(e+8);else if(tg===0x0132)dt=teks(e)}
+        if(exif){var c=g16(exif);for(var j=0;j<c;j++){var e2=exif+2+j*12;if(g16(e2)===0x9003){dt=teks(e2);break}}}
+        var m=/^(\d{4}):(\d{2}):(\d{2})/.exec(dt);
+        if(m&&+m[1]>=2000&&+m[2]>=1&&+m[2]<=12&&+m[3]>=1&&+m[3]<=31)return m[1]+'-'+m[2]+'-'+m[3];
+        return '';
+      }
+      o+=2+len;
+    }
+  }catch(e){}
+  return '';
+}
+function wTglNote(f){
+  var tx=new Date(f.tgl+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+  return f.tglExif?'Tanggal temuan diambil dari tanggal foto ('+esc(tx)+'). Foto otomatis dikecilkan sebelum diunggah.':'Tanggal temuan: '+esc(tx)+'. Foto otomatis dikecilkan sebelum diunggah.';
+}
 async function modalFotos(f,files){
   f.pend=(f.pend||0)+files.length;mphRefresh();
   for(var i=0;i<files.length;i++){
+    if(desk()&&!f.tglExif){var ex=await exifTgl(files[i]);if(ex){f.tgl=ex;f.tglExif=true;var md=$('mD');if(md)md.value=ex;var nt=$('mtx');if(nt)nt.innerHTML=wTglNote(f)}}
     try{var x=await prep(files[i]);if(S.modal&&S.modal.f===f)f.files.push(x)}catch(e){toast('Foto tidak bisa dibaca. Coba foto lain.')}
     f.pend--;if(S.modal&&S.modal.f===f)mphRefresh();
   }
@@ -1275,7 +1328,27 @@ function wHead(f,judul,balik){
   return '<div class="wh">'+(balik?'<button type="button" class="btn-ic" data-act="wback" aria-label="Kembali">'+ic('x')+'</button>':'')+'<h2>'+esc(judul)+'</h2></div>';
 }
 function fWizHtml(m){
+  if(!desk()||!m.f||m.f.id)return fWizHtml0(m);
+  var P='<div class="ov" data-act="modalbg"><div class="sheet wz" role="dialog" aria-label="Tambah temuan">',f=m.f,inner;
+  if(f.step==='lokasi'||f.step==='detail'||f.step==='foto'){
+    // satu layar: Lokasi (atas) dan Detail (bawah), tombol simpan di bawah
+    f.step='lokasi';var a=fWizHtml0(m);f.step='detail';var b=fWizHtml0(m);
+    var ia=a.slice(P.length,a.length-12).replace(/<button type="button" class="btn" data-act="wgo" data-v="foto">[^<]*<\/button>$/,'');
+    var ib=b.slice(P.length,b.length-12).replace(/^<div class="wh">.*?<\/div><div class="wl2">.*?<\/span><\/div><\/div>/,'').replace(/<button type="button" class="btn" data-act="msimpan">.*$/,'');
+    inner=ia+'<div class="wsep"></div>'+ib+'<div class="wfoot"><button type="button" class="btn sec" data-act="wtutup">Batal</button><button type="button" class="btn soft" data-act="msimpanlagi">Simpan &amp; tambah lagi</button><button type="button" class="btn" data-act="msimpan">Simpan temuan</button></div>';
+  }else{
+    var h0=fWizHtml0(m);
+    if(h0.indexOf(P)!==0)return h0;
+    inner=h0.slice(P.length,h0.length-12);
+  }
+  var kiri='<aside class="wzl"><div class="cap">Foto temuan</div><div id="mph" class="phs">'+mphHtml(f)+'</div>'+
+    '<div class="dropz" id="dropz">Seret foto ke sini<br><small>atau</small><br><button type="button" class="btn sec sm" data-act="mfoto">'+ic('img')+'Pilih dari komputer</button></div>'+
+    '<label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label><div class="note" id="mtx">'+wTglNote(f)+'</div></aside>';
+  return P+'<div class="wzcols">'+kiri+'<div class="wzr">'+inner+'</div></div></div></div>';
+}
+function fWizHtml0(m){
   var f=m.f,h='<div class="ov" data-act="modalbg"><div class="sheet wz" role="dialog" aria-label="Tambah temuan">';
+  if(desk()&&f.step==='foto')f.step='detail';
   if(f.step==='lokasi'){
     h+='<div class="wh"><h2>Tambah temuan</h2><button type="button" class="btn-ic wx" data-act="wtutup" aria-label="Tutup">'+ic('x')+'</button></div><div class="chips wb" role="group" aria-label="Bidang">'+BIDANG.map(function(b){return '<button type="button" class="chip'+(b===f.bidang?' on':'')+'" data-act="wbid" data-v="'+esc(b)+'">'+esc(KODE_BID[b]||b)+'</button>'}).join('')+'</div>';
     var o=wTerakhir();
@@ -1286,7 +1359,7 @@ function fWizHtml(m){
       '<div class="note">Ketuk untuk memilih. Ketik untuk menambah yang baru; nama yang mirip akan ditandai.</div>';
     else h+='<div class="row fix"><span class="lbl">Lokasi</span><div>Umum - '+esc(f.bidang)+'</div><span class="oto">otomatis</span></div>'+
       '<div class="note">'+esc(f.bidang)+' tidak memakai ruangan, jadi lokasinya otomatis.'+(BID_RUANG[f.bidang]?'':' Posisi tepatnya diisi lewat Titik di langkah detail.')+'</div>';
-    h+='<button type="button" class="btn" data-act="wgo" data-v="foto">Lanjut: foto</button>';
+    h+='<button type="button" class="btn" data-act="wgo" data-v="foto">'+(desk()?'Lanjut: detail':'Lanjut: foto')+'</button>';
   }else if(f.step==='foto'){
     h+=wHead(f,'Foto Before',true)+'<div class="note wl">'+esc(KODE_BID[f.bidang]||f.bidang)+' &middot; '+esc(wLokTeks(f))+'</div>'+
       '<div class="note">Ambil satu atau beberapa foto kondisi sebelum perbaikan. Foto dipotong otomatis ke rasio 4:3 (landscape).</div>'+
@@ -1311,7 +1384,7 @@ function fWizHtml(m){
     var all=regDaftar('elemen',f.bidang),arr=Object.keys(all).map(function(k){return all[k]}).sort(function(x,y){return (y.n-x.n)||(y.t-x.t)||L.bandingNama(x.nama,y.nama)}),top=arr.slice(0,4).map(function(e){return e.nama});
     if(f.elemen&&top.every(function(n){return L.kunci(n)!==L.kunci(f.elemen)}))top.unshift(f.elemen);
     h+=wHead(f,'Detail temuan',true)+'<div class="wl2">'+(f.files[0]?'<img alt="" src="'+f.files[0]+'">':'<span class="ph"></span>')+'<div><b>'+esc(wLokTeks(f))+'</b><span class="tag">'+esc(KODE_BID[f.bidang]||f.bidang)+'</span></div></div>'+
-      '<div class="row dikte" id="mUr"><textarea id="mU" aria-label="Temuan" placeholder="Apa temuannya? (ketuk, bicara, atau ketik)">'+esc(f.uraian)+'</textarea></div>'+
+      '<div class="row dikte" id="mUr"><textarea id="mU" aria-label="Temuan" placeholder="Apa temuannya?">'+esc(f.uraian)+'</textarea></div>'+
       '<div class="cap">Seberapa parah?</div><div class="sev" role="group" aria-label="Tingkat">'+TINGKAT.map(function(x,i){return '<button type="button" class="s'+i+(x===f.tingkat?' on':'')+'" data-act="wsev" data-v="'+esc(x)+'">'+esc(x)+'</button>'}).join('')+'</div>'+
       '<div class="cap">Elemen <small>(opsional)</small></div><div class="epil">'+top.map(function(n){return '<button type="button" class="chip'+(L.kunci(n)===L.kunci(f.elemen)?' on blue':'')+'" data-act="welpick" data-v="'+esc(n)+'">'+esc(n)+'</button>'}).join('')+'<button type="button" class="chip dash" data-act="welbuka">'+(arr.length>=8?'Semua / cari':'+ Elemen lain')+' &rsaquo;</button></div>';
     if(!BID_RUANG[f.bidang])h+='<button type="button" class="row titikrow" data-act="wtitik"><span class="lbl">Titik ('+esc(f.mode)+')</span><div>'+(tg.ok&&tg.teks?esc(tg.teks):'<span class="mute">Belum diisi (opsional)</span>')+'</div><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
@@ -1334,7 +1407,7 @@ function wElemenList(f){
   return h+'<div class="note">Daftar per bidang. Urut dari yang paling sering dipakai. Memilih elemen akan mengingat bentuk titiknya.</div>';
 }
 function wStep(s){
-  var f=S.modal&&S.modal.f;if(!f)return;fBaca();cbTutup();f.step=s;renderOverlay();fSegar();
+  var f=S.modal&&S.modal.f;if(!f)return;fBaca();cbTutup();if(desk()&&(s==='foto'||s==='lokasi'))s='detail';f.step=s;renderOverlay();fSegar();
   var sh=overlay.querySelector('.sheet');if(sh)sh.scrollTop=0;
 }
 function wLanjutLokasi(f){
@@ -1577,6 +1650,7 @@ async function onClick(ev){
     case 'menuaksi': return openModal({t:'aksi'});
     case 'fclr2': {var s0=ensureSel(tree());S.flt={rid:S.flt.rid,q:S.flt.q,st:S.flt.st,bd:'',tk:'',el:''};if(S.modal&&S.modal.t==='filter')renderOverlay();refreshList();render();return}
     case 'kmenu': return openModal({t:'kmenu',d:findDefect(id)});
+    case 'ttx': {if(!desk())return;var dt=findDefect(id);if(dt)openModal({t:'ttx',d:dt});return}
     case 'unggah': return openModal({t:'unggah',d:findDefect(id),j:el.getAttribute('data-j')||'after'});
     case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){modalFotos(S.modal.f,items)});
     case 'upretry': {var jr=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];if(jr){jr.st='wait';upUi(jr.did);runQueue()}return}
@@ -1620,8 +1694,8 @@ async function onClick(ev){
     case 'wgo': {var wf=S.modal.f,wv=el.getAttribute('data-v');
       if(wf.step==='lokasi'&&!wLanjutLokasi(wf))return;
       return wStep(wv)}
-    case 'wback': {var wb=S.modal.f,mp={foto:'lokasi',detail:'foto',elemen:'detail',titik:'detail'};
-      if(wb.step==='lokasi')return closeModal();
+    case 'wback': {var wb=S.modal.f,mp={foto:'lokasi',detail:desk()?'lokasi':'foto',elemen:'detail',titik:'detail'};
+      if(wb.step==='lokasi'||(desk()&&wb.step==='detail'))return closeModal();
       if(wb.step==='titik'){fBaca();var tt=fTitik(wb,false);if(!tt.ok){toast(tt.err);return}}
       return wStep(mp[wb.step]||'lokasi')}
     case 'wbid': {fBaca();var wd=S.modal.f,nb=el.getAttribute('data-v');if(nb===wd.bidang)return;
@@ -1732,6 +1806,7 @@ async function onClick(ev){
 document.addEventListener('click',onClick);
 ['gesturestart','gesturechange'].forEach(function(t){document.addEventListener(t,function(e){if(!(e.target.closest&&e.target.closest('.ov.zoom')))e.preventDefault()},{passive:false})});
 document.addEventListener('change',function(e){
+  if((e.target.id==='pbG'||e.target.id==='pbB')&&$('pbinfo')){var ti=pbInfo($('pbG').value,$('pbB').value);if(ti)$('pbinfo').textContent=ti;return}
   if(e.target.id==='rkG'){S.rkG=e.target.value;render();return}
   if(e.target.getAttribute&&e.target.getAttribute('data-rg')==='area'){S.rg.area=e.target.value;S.rg.pakai=null;render();return}
   if((e.target.id==='fG'||e.target.id==='fL')&&S.modal&&S.modal.t==='temuan'){
@@ -2008,7 +2083,7 @@ function loadLib(src,g){
 function showFile(name,data,mime){
   var blob=new Blob([data],{type:mime}),url=URL.createObjectURL(blob),fo=null,can=false;
   try{fo=new File([blob],name,{type:mime});can=!!(navigator.canShare&&navigator.canShare({files:[fo]}))}catch(e){}
-  S.file={name:name,url:url,fileObj:fo,canShare:can};hpush('file');renderOverlay();
+  S.file={name:name,url:url,fileObj:fo,canShare:can,size:(data&&data.byteLength)||0,mime:mime};hpush('file');renderOverlay();
 }
 
 async function exportXlsx(){
@@ -2296,8 +2371,19 @@ async function buatBerkasBidang(gedung,bidang,list,onStep){
   }
   return out;
 }
+function pbInfo(g,b){
+  if(!S.all)return '';
+  var l=S.all.filter(function(d){return d.gedung===g&&d.bidang===b}),f=0;l.forEach(function(d){f+=(d.fotoBefore||[]).length+(d.fotoAfter||[]).length});
+  var c=cnt(l);return l.length+' temuan \u00b7 '+c.close+' Close \u00b7 '+f+' foto. Laporan besar dipecah otomatis menjadi beberapa bagian (maks '+MAKS_TEMUAN_PDF+' temuan atau '+MAKS_FOTO_PDF+' foto) dan dikemas dalam satu ZIP.';
+}
 function pbHtml(m){
   var T=tree();
+  if(desk())return '<div class="ov mid" data-act="modalbg"><div class="sheet gap pbd" role="dialog" aria-label="Cetak laporan PDF"><h2>Cetak laporan PDF</h2><div class="cap">Jenis laporan</div>'+
+    '<div class="seg" role="group" aria-label="Jenis laporan"><button type="button" class="on">'+esc(LBL.area)+' &times; Bidang</button></div>'+
+    '<div class="pbsel"><label class="row"><span class="lbl">'+esc(LBL.area)+'</span><select id="pbG">'+T.map(function(g){return '<option'+(g.nama===m.g?' selected':'')+'>'+esc(g.nama)+'</option>'}).join('')+'</select></label>'+
+    '<label class="row"><span class="lbl">Bidang</span><select id="pbB">'+BIDANG.map(function(b){return '<option'+(b===m.b?' selected':'')+'>'+esc(b)+'</option>'}).join('')+'</select></label></div>'+
+    '<div class="note" id="pbinfo" style="padding:0">'+(pbInfo(m.g,m.b)||'Semua temuan satu bidang di satu '+esc(LBL.area.toLowerCase())+', dikelompokkan per '+esc(LBL.level.toLowerCase())+'. PDF yang besar dipecah otomatis dan dikemas dalam ZIP.')+'</div>'+
+    '<div class="btnrow end"><button type="button" class="btn sec sm" data-act="mtutup">Batal</button><button type="button" class="btn sm" data-act="pdfbidangya">Buat PDF</button></div></div></div>';
   return '<div class="ov mid"><div class="sheet gap" role="dialog" aria-label="PDF per bidang"><h2>PDF per bidang</h2><div class="note" style="padding:0">Semua temuan satu bidang di satu '+esc(LBL.area.toLowerCase())+', dikelompokkan per '+esc(LBL.level.toLowerCase())+'. PDF yang besar dipecah otomatis dan dikemas dalam ZIP.</div>'+
     '<section class="group"><div class="list"><label class="row"><span class="lbl">'+esc(LBL.area)+'</span><select id="pbG">'+T.map(function(g){return '<option'+(g.nama===m.g?' selected':'')+'>'+esc(g.nama)+'</option>'}).join('')+'</select></label>'+
     '<label class="row"><span class="lbl">Bidang</span><select id="pbB">'+BIDANG.map(function(b){return '<option'+(b===m.b?' selected':'')+'>'+esc(b)+'</option>'}).join('')+'</select></label></div></section>'+

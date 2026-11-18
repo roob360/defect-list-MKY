@@ -186,6 +186,7 @@
   .ph{ padding:12px var(--margin) 0; }
   .ph .cap{ margin-bottom:6px; }
   .thumbs{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; }
+  .thumbs .more{ display:none; }
   .thumb{ position:relative; aspect-ratio:1; border-radius:var(--r-pop); overflow:hidden; background:var(--fill3); }
   .thumb > button{ display:block; width:100%; height:100%; padding:0; border:0; background:transparent; cursor:pointer; }
   .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -466,6 +467,47 @@
     .bch{ display:flex; justify-content:space-between; align-items:center; } .lnk{ border:0; background:none; color:var(--blue-teks); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
     .rkt td:first-child, .rkt th:first-child{ text-align:left; } .rkt td.o{ color:var(--red-text); } .rkt td.p{ color:var(--orange-text); } .rkt td.c{ color:var(--green-text); } .rkt td.b{ color:var(--blue-teks); font-weight:600; }
     .dl{ display:flex; justify-content:space-between; width:100%; border:0; border-radius:12px; background:var(--fill3); padding:12px 14px; margin-bottom:10px; font:inherit; font-size:14px; color:var(--label1); cursor:pointer; } .dl span{ color:var(--label2); font-size:12px; }
+    /* O3: Lokasi dan Detail satu layar */
+    .wsep{ height:1px; background:var(--sep); margin:16px 0 4px; }
+    .wfoot{ position:sticky; bottom:0; display:flex; justify-content:flex-end; gap:10px; padding:14px 0 4px; background:var(--gbg1); }
+    .wfoot .btn{ width:auto; height:44px; padding:0 22px; font-size:15px; }
+    .btn.soft{ background:var(--blue-fill); color:var(--blue-teks); }
+    /* O10 dan O11: dialog desktop */
+    .sheet.pbd, .sheet.fileok{ max-width:560px; border-radius:28px; padding:28px; }
+    .pbsel{ display:grid; grid-template-columns:1fr 1fr; gap:12px; } .pbsel .row{ background:var(--fill3); border-radius:14px; padding:8px 14px; }
+    .btnrow.end{ justify-content:flex-end; } .btnrow.end .btn{ flex:none; width:auto; padding:0 24px; }
+    .fileok{ text-align:center; } .fileok h2{ margin:10px 0 0; } .note.c{ text-align:center; padding:0; }
+    .okc{ display:grid; place-items:center; width:64px; height:64px; margin:0 auto; border-radius:50%; background:var(--green-fill); color:var(--green-text); } .okc svg{ width:30px; height:30px; fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+    .fcard{ display:flex; align-items:center; gap:14px; text-align:left; background:var(--fill3); border-radius:16px; padding:14px; } .fcard b{ display:block; overflow-wrap:anywhere; } .fcard span:not(.ftype){ font-size:13px; color:var(--label2); }
+    .ftype{ flex:none; display:grid; place-items:center; width:48px; height:48px; border-radius:12px; background:var(--red-fill); color:var(--red-text); font-weight:700; font-size:13px; } .ftype.zip{ background:var(--orange-fill); color:var(--orange-text); } .ftype.xlsx{ background:var(--green-fill); color:var(--green-text); }
+    .fileok .btnrow .btn{ flex:1; } .lnk.c{ display:block; margin:6px auto 0; font-size:15px; }
+    /* Temuan, Verifikasi, Perbaikan: kartu 3 kolom (O7 sampai O9) */
+    body.wide .wrap, body.wide .pwrap{ max-width:1440px; }
+    body.wide #elist, body.wide .entgrid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; align-items:start; }
+    body.wide #elist > .entry, body.wide .entgrid .entry{ margin:0; }
+    body.wide .entgrid .cap.path{ margin:0 4px 6px; }
+    body.wide #app{ display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); column-gap:16px; align-items:center; }
+    body.wide #app > *{ grid-column:1 / -1; }
+    body.wide #app > .locbar, body.wide #app > .sbar{ grid-column:span 4; }
+    body.wide #app > .summary, body.wide #app > .chips{ grid-column:span 8; }
+    body.wide #app > .chips{ margin:0 0 12px; padding:6px 0; flex-wrap:wrap; }
+    body.wide #elist, body.wide .entgrid{ align-items:stretch; }
+    body.wide .entry{ display:flex; flex-direction:column; }
+    body.wide .entry .acts{ margin-top:auto; }
+    body.wide .entry .phs .thumb{ aspect-ratio:4/3; }
+    body.wide #elist, body.wide .entgrid{ grid-auto-rows:1fr; }   /* semua kartu sama tinggi, juga antar baris */
+    body.wide .entry .eh .tx{ display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; cursor:pointer; }
+    body.wide .entry .phs .thumbs{ grid-template-columns:1fr; position:relative; }   /* kartu desktop: satu foto saja */
+    body.wide .entry .phs .thumbs .thumb:nth-of-type(n+2){ display:none; }
+    body.wide .entry .phs .thumbs .more{ display:block; position:absolute; z-index:2; right:6px; bottom:6px; padding:4px 10px; border:0; border-radius:var(--r-cap); background:#000000b3; color:#fff; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+    body.wide .ent{ display:flex; flex-direction:column; } body.wide .ent > .entry{ flex:1; }
+    .sheet.wz > .wzcols{ max-width:1040px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:32px; align-items:start; }
+    .wzl{ position:sticky; top:0; display:flex; flex-direction:column; gap:12px; }
+    .wzr > * + *{ margin-top:12px; }
+    .wzl .phs .thumbs{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .dropz{ border:2px dashed var(--blue); border-radius:18px; background:var(--blue-fill); color:var(--blue-teks); text-align:center; padding:22px 16px; font-weight:600; line-height:26px; }
+    .dropz small{ font-weight:400; color:var(--label2); } .dropz.on{ background:var(--blue); color:#fff; } .dropz.on small{ color:#ffffffcc; }
+    .dropz .btn{ margin-top:4px; display:inline-flex; }
     .kcard{ min-width:0; display:flex; flex-direction:column; gap:16px; }
     .kcard > .group{ margin:0; border-radius:28px; padding:24px 0 12px; flex:1; }
     .kcard > .group .sh{ padding-left:24px; padding-right:24px; }
