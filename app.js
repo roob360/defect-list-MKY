@@ -887,8 +887,13 @@ function upUi(did){
 function upBar(){
   var el=$('upbar');if(!el){el=document.createElement('div');el.id='upbar';el.className='upbar';el.setAttribute('role','status');document.body.appendChild(el)}
   var n=S.up.filter(function(x){return x.st!=='err'}).length,e=S.up.length-n;
-  if(!S.user||(!n&&!e)){el.hidden=true;return}
-  el.innerHTML=n?'<span class="sp"></span>Mengunggah '+n+' foto'+(e?', '+e+' gagal':''):e+' foto gagal diunggah';
+  var dw=DRAF.filter(function(x){return x.st==='wait'}).length,dc=DRAF.length-dw;
+  if(!S.user||(!n&&!e&&!dw&&!dc)){el.hidden=true;return}
+  var h=[];
+  if(n)h.push('<span class="sp"></span>Mengunggah '+n+' foto'+(e?', '+e+' gagal':''));else if(e)h.push(e+' foto gagal diunggah');
+  if(dw)h.push(dw+' draf menunggu sinyal <button type="button" data-act="drafkirim">Kirim</button>');
+  if(dc)h.push(dc+' draf perlu dicek <button type="button" data-act="drafbuka">Buka</button>');
+  el.innerHTML=h.join(' &middot; ');
   el.hidden=false;
 }
 window.addEventListener('beforeunload',function(ev){if(S.up&&S.up.some(function(x){return x.st!=='err'})){ev.preventDefault();ev.returnValue=''}});
@@ -1045,7 +1050,7 @@ function expansiKode(d,s){
 
 /* ---------- aksi ---------- */
 function mphHtml(f){
-  return (f.files.length||f.pend?'<div class="thumbs">'+f.files.map(function(x,i){return '<div class="thumb"><button type="button" data-act="mzoom" data-i="'+i+'"><img alt="" src="'+x+'"></button><button type="button" class="x" data-act="mdel" data-i="'+i+'" aria-label="Buang foto">&times;</button></div>'}).join('')+(function(){var t='';for(var i=0;i<(f.pend||0);i++)t+='<div class="thumb up"><div class="ov2"><span class="sp"></span><small>Menyiapkan</small></div></div>';return t})()+'</div>':'<div class="none">Belum ada foto</div>');
+  return (f.files.length||f.pend?'<div class="thumbs">'+f.files.map(function(x,i){return '<div class="thumb"><button type="button" data-act="mzoom" data-i="'+i+'"><img alt="" src="'+x+'"></button><button type="button" class="ed" data-act="medit" data-i="'+i+'" aria-label="Coret foto">&#9998;</button><button type="button" class="x" data-act="mdel" data-i="'+i+'" aria-label="Buang foto">&times;</button></div>'}).join('')+(function(){var t='';for(var i=0;i<(f.pend||0);i++)t+='<div class="thumb up"><div class="ov2"><span class="sp"></span><small>Menyiapkan</small></div></div>';return t})()+'</div>':'<div class="none">Belum ada foto</div>');
 }
 function mphRefresh(){var el=$('mph');if(el&&S.modal&&S.modal.f)el.innerHTML=mphHtml(S.modal.f)}
 /** Tanggal pengambilan foto (EXIF DateTimeOriginal) sebagai 'yyyy-mm-dd', atau '' bila tidak ada. Dibaca dari berkas asli sebelum dikecilkan. */
@@ -1075,6 +1080,67 @@ async function exifTgl(file){
 function wTglNote(f){
   var tx=new Date(f.tgl+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
   return f.tglExif?'Tanggal temuan diambil dari tanggal foto ('+esc(tx)+'). Foto otomatis dikecilkan sebelum diunggah.':'Tanggal temuan: '+esc(tx)+'. Foto otomatis dikecilkan sebelum diunggah.';
+}
+/* ---------- editor coretan foto (panah, lingkaran, kotak, pena) ----------
+ * editFoto(dataUrl) membuka layar penuh dan mengembalikan data URL JPEG baru, atau null bila dibatalkan.
+ * Coretan disimpan sebagai daftar bentuk dan digambar ulang di atas foto asli, jadi Urungkan selalu bersih. */
+var EDIT_WARNA=['#ff2d2d','#ffd60a','#ffffff','#111111'];
+function editFoto(src){
+  return new Promise(function(done){
+    var im=new Image();
+    im.onerror=function(){toast('Foto tidak bisa dibuka.');done(null)};
+    im.onload=function(){
+      var W=im.naturalWidth,H=im.naturalHeight,lw=Math.max(4,Math.round(Math.max(W,H)/150));
+      var tool='panah',warna=EDIT_WARNA[0],shapes=[],cur=null;
+      var ov=document.createElement('div');ov.className='edfoto';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','Coret foto');
+      ov.innerHTML='<div class="edbar"><button type="button" data-e="batal">Batal</button><b>Coret foto</b><button type="button" data-e="ok" class="pri">Selesai</button></div>'+
+        '<div class="edstage"><canvas></canvas></div>'+
+        '<div class="edtools"><div class="edrow" id="edT">'+
+        [['panah','Panah'],['oval','Lingkaran'],['kotak','Kotak'],['pena','Pena']].map(function(t){return '<button type="button" data-t="'+t[0]+'"'+(t[0]===tool?' class="on"':'')+'>'+t[1]+'</button>'}).join('')+'</div>'+
+        '<div class="edrow"><span id="edC">'+EDIT_WARNA.map(function(c,i){return '<button type="button" class="sw'+(i?'':' on')+'" data-c="'+c+'" style="background:'+c+'" aria-label="Warna '+c+'"></button>'}).join('')+'</span>'+
+        '<button type="button" data-e="undo">Urungkan</button><button type="button" data-e="clear">Hapus semua</button></div></div>';
+      document.body.appendChild(ov);
+      var cv=ov.querySelector('canvas'),x=cv.getContext('2d');cv.width=W;cv.height=H;
+      function gbr(sh,c2){
+        c2.strokeStyle=c2.fillStyle=sh.c;c2.lineWidth=lw;c2.lineCap=c2.lineJoin='round';
+        var a=sh.p[0],b=sh.p[sh.p.length-1];
+        if(sh.t==='pena'){c2.beginPath();c2.moveTo(a[0],a[1]);for(var i=1;i<sh.p.length;i++)c2.lineTo(sh.p[i][0],sh.p[i][1]);if(sh.p.length===1)c2.lineTo(a[0]+.1,a[1]);c2.stroke()}
+        else if(sh.t==='kotak'){c2.strokeRect(Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.abs(b[0]-a[0]),Math.abs(b[1]-a[1]))}
+        else if(sh.t==='oval'){var rx=Math.abs(b[0]-a[0])/2,ry=Math.abs(b[1]-a[1])/2;if(rx<1||ry<1)return;c2.beginPath();c2.ellipse((a[0]+b[0])/2,(a[1]+b[1])/2,rx,ry,0,0,Math.PI*2);c2.stroke()}
+        else{ // panah: garis dan kepala
+          var dx=b[0]-a[0],dy=b[1]-a[1],L2=Math.sqrt(dx*dx+dy*dy);if(L2<3)return;
+          var hl=Math.min(L2*.6,lw*5),an=Math.atan2(dy,dx),sp=Math.PI/7;
+          c2.beginPath();c2.moveTo(a[0],a[1]);c2.lineTo(b[0],b[1]);c2.stroke();
+          c2.beginPath();c2.moveTo(b[0],b[1]);c2.lineTo(b[0]-hl*Math.cos(an-sp),b[1]-hl*Math.sin(an-sp));c2.lineTo(b[0]-hl*Math.cos(an+sp),b[1]-hl*Math.sin(an+sp));c2.closePath();c2.fill();
+        }
+      }
+      function gambar(){x.drawImage(im,0,0,W,H);shapes.forEach(function(sh){gbr(sh,x)});if(cur)gbr(cur,x)}
+      gambar();
+      function titik(e){var r=cv.getBoundingClientRect();return [Math.max(0,Math.min(W,(e.clientX-r.left)*W/r.width)),Math.max(0,Math.min(H,(e.clientY-r.top)*H/r.height))]}
+      cv.addEventListener('pointerdown',function(e){e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}var p=titik(e);cur={t:tool,c:warna,p:[p,p]};gambar()});
+      cv.addEventListener('pointermove',function(e){if(!cur)return;var p=titik(e);if(cur.t==='pena')cur.p.push(p);else cur.p[1]=p;gambar()});
+      function lepas(){if(!cur)return;shapes.push(cur);cur=null;gambar()}
+      cv.addEventListener('pointerup',lepas);cv.addEventListener('pointercancel',lepas);
+      function tutup(h){document.removeEventListener('keydown',kb,true);ov.remove();done(h)}
+      function kb(e){if(e.key==='Escape'){e.stopPropagation();tutup(null)}}
+      document.addEventListener('keydown',kb,true);
+      ov.addEventListener('click',function(e){
+        var b=e.target.closest('button');if(!b)return;
+        var a=b.getAttribute('data-e'),t=b.getAttribute('data-t'),c=b.getAttribute('data-c');
+        if(t){tool=t;[].forEach.call(ov.querySelectorAll('#edT button'),function(z){z.classList.toggle('on',z===b)})}
+        else if(c){warna=c;[].forEach.call(ov.querySelectorAll('#edC button'),function(z){z.classList.toggle('on',z===b)})}
+        else if(a==='undo'){shapes.pop();gambar()}
+        else if(a==='clear'){shapes=[];gambar()}
+        else if(a==='batal')tutup(null);
+        else if(a==='ok'){
+          if(!shapes.length)return tutup(null);   // tanpa coretan: foto tidak diubah
+          var q=[.8,.7,.6],out='';for(var i=0;i<q.length;i++){out=cv.toDataURL('image/jpeg',q[i]);if(out.length*.75<=FOTO_TARGET*1.5)break}
+          tutup(out);
+        }
+      });
+    };
+    im.src=src;
+  });
 }
 async function modalFotos(f,files){
   f.pend=(f.pend||0)+files.length;mphRefresh();
@@ -1558,6 +1624,78 @@ function wToastSimpan(lagi,f,res,pesan){
     nf.step='foto';openModal({t:'temuan',f:nf});
   });
 }
+/** Menerapkan hasil defect_simpan yang berhasil ke tampilan dan penyimpanan lokal, lalu mengantrekan foto. Dipakai simpan langsung dan kirim draf. */
+function terapkanHasil(res,f,files,isNew){
+  lsSet('dl-bidang',f.bidang);
+  if(isNew)lsSet('dl-lok',JSON.stringify({bidang:f.bidang,gedung:f.gedung,lantai:f.lantai,lok:f.lok,ruang:(f.lok==='ruang'?(res.ruangan||f.ruang):'')}));
+  if(res.lokasi&&res.lokasi.baru){ // ruangan atau lokasi umum baru dibuat di server
+    var lk=res.lokasi;S.rooms.push({id:lk.id,gedung:lk.gedung,lantai:lk.lantai,nama:lk.nama,jenis:lk.jenis,nomor:lk.nomor,bidang:lk.bidang,urut:S.rooms.length,open:0,proses:0,close:0,total:0});
+    lsSet('dl-rooms-'+S.paket.id,JSON.stringify(S.rooms));
+  }
+  if(isNew&&res.lokasi&&res.lokasi.baru&&S.defects[res.ruanganId]===undefined){S.defects[res.ruanganId]=[]}   // ruangan yang baru dibuat memang kosong
+  putDefect(res);regTerapkan(res,f);
+  if(isNew&&(S.sel.r!==res.ruanganId)){S.sel={g:res.gedung,l:res.lantai,r:res.ruanganId};lsSet('dl-sel',JSON.stringify(S.sel))}
+  if(isNew&&files.length)files.forEach(function(x){var jb2={k:nk(),did:res.id,jenis:'before',data:x,st:'wait'};S.up.push(jb2);qSave(jb2)});
+}
+
+/* ---------- draf offline ----------
+ * Temuan baru yang gagal disimpan karena jaringan putus disimpan di IndexedDB (kv, kunci draf:<paket>:<k>) berikut fotonya,
+ * lalu dikirim otomatis saat sinyal kembali. Waktu habis (server mungkin sudah menyimpan) TIDAK dijadikan draf, supaya tidak ganda.
+ * Draf yang ditolak server atau namanya mirip diberi status 'cek' dan dibuka manual lewat tombol Buka. */
+var DRAF=[],drafRun=false;
+function drafKunci(k){return 'draf:'+S.paket.id+':'+k}
+async function drafTulis(d){try{await IDB.run('kv','readwrite',function(o){return o.put(d,drafKunci(d.k))});return true}catch(e){return false}}
+async function drafSimpan(p,f,files){
+  var snap=JSON.parse(JSON.stringify(Object.assign({},f,{files:[],pend:0,lagiTmp:null})));
+  var d={k:nk(),pid:S.paket.id,p:p,f:snap,files:files,t:Date.now(),st:'wait',pesan:''};
+  if(!(await drafTulis(d))){toast('Penyimpanan di HP penuh atau diblokir. Draf tidak bisa dibuat; coba simpan lagi saat ada sinyal.');return false}
+  if(f.drafK)drafHapus(f.drafK);
+  DRAF.push(d);upBar();
+  toast('Tidak ada sinyal. Temuan disimpan sebagai draf dan dikirim otomatis saat sinyal kembali.');
+  return true;
+}
+function drafHapus(k){DRAF=DRAF.filter(function(x){return x.k!==k});if(S.paket)IDB.del('kv',drafKunci(k));upBar()}
+function drafLanjut(f){   // "Simpan dan tambah lagi" saat offline: lanjut ke temuan berikutnya di lokasi yang sama
+  var nf=fBuat(null,{bidang:f.bidang,gedung:f.gedung,lantai:f.lantai,lok:f.lok,ruang:(f.lok==='ruang'?f.ruang:''),elemen:'',mode:f.mode,a:{k1:f.a.k1},b:{k1:f.b.k1},kd:{k:f.kd.k}});
+  nf.step='foto';openModal({t:'temuan',f:nf});
+}
+async function drafMuat(){
+  if(!S.paket)return;
+  var pre='draf:'+S.paket.id+':',ks=await IDB.keys('kv'),out=[];
+  for(var i=0;i<ks.length;i++)if(String(ks[i]).indexOf(pre)===0){var d=await IDB.get('kv',ks[i]);if(d&&d.p)out.push(d)}
+  out.sort(function(a,b){return a.t-b.t});DRAF=out;upBar();drafKirim();
+}
+async function drafKirim(){
+  if(drafRun||!S.user||!S.paket)return;
+  var ada=DRAF.filter(function(x){return x.st==='wait'});if(!ada.length)return;
+  drafRun=true;var terkirim=0;
+  try{
+    for(var i=0;i<ada.length;i++){
+      var d=ada[i];
+      try{
+        var res=await api('defect_simpan',d.p);
+        if(res&&res.perluKonfirmasi){d.st='cek';d.pesan='Nama '+(res.mirip&&res.mirip.jenis==='lantai'?'lantai':'gedung')+' mirip "'+(res.mirip&&res.mirip.entri)+'". Buka draf lalu pilih.';await drafTulis(d);continue}
+        terapkanHasil(res,d.f,d.files,true);drafHapus(d.k);terkirim++;
+      }catch(e){
+        if(e&&e.server){
+          if(/Kode tidak dikenal|nonaktif/i.test(e.message||'')){gagal(e);break}
+          d.st='cek';d.pesan=e.message||'Ditolak server.';await drafTulis(d);
+        }else if(e&&e.name==='AbortError'){d.st='cek';d.pesan='Pengiriman terputus. Cek daftar temuan dulu: mungkin sudah tersimpan.';await drafTulis(d)}
+        else break;   // masih offline: berhenti, coba lagi nanti
+      }
+    }
+  }finally{drafRun=false;upBar()}
+  if(terkirim){toast(terkirim+' draf terkirim.');render();runQueue()}
+}
+function drafBuka(){
+  var d=DRAF.filter(function(x){return x.st==='cek'})[0];if(!d)return;
+  var f=d.f;f.files=d.files.slice();f.pend=0;f.step='detail';f.drafK=d.k;f.konfirmasiBaru=false;
+  if(d.pesan)toast(d.pesan);
+  openModal({t:'temuan',f:f});
+}
+window.addEventListener('online',function(){drafKirim()});
+setInterval(function(){if(DRAF.length&&navigator.onLine!==false)drafKirim()},60000);
+
 async function saveForm(lagi){
   fBaca();var f=S.modal.f;
   if(!f.id&&!f.lama&&f.step!=='detail')return;
@@ -1583,23 +1721,18 @@ async function saveForm(lagi){
   }
   var files=f.files.slice(),isNew=!f.id,t0=Date.now();
   closeModal();
-  var res=await work('Menyimpan temuan...',function(){return api('defect_simpan',p)});
-  if(!res){f.files=files;openModal({t:'temuan',f:f});return}
-  if(res.perluKonfirmasi){f.files=files;f.lagiTmp=lagi;openModal({t:'mirip',f:f,mirip:res.mirip});return}   // nama mirip yang sudah ada: tanya pengguna
-  lsSet('dl-bidang',f.bidang);
-  if(isNew)lsSet('dl-lok',JSON.stringify({bidang:f.bidang,gedung:f.gedung,lantai:f.lantai,lok:f.lok,ruang:(f.lok==='ruang'?(res.ruangan||f.ruang):'')}));
-  if(UKUR)console.log('[ukur] simpan temuan, klien total '+(Date.now()-t0)+'ms, server',res.ms);
-  if(res.lokasi&&res.lokasi.baru){ // ruangan atau lokasi umum baru dibuat di server
-    var lk=res.lokasi;S.rooms.push({id:lk.id,gedung:lk.gedung,lantai:lk.lantai,nama:lk.nama,jenis:lk.jenis,nomor:lk.nomor,bidang:lk.bidang,urut:S.rooms.length,open:0,proses:0,close:0,total:0});
-    lsSet('dl-rooms-'+S.paket.id,JSON.stringify(S.rooms));
+  var gagalNet=false;   // jaringan putus seketika (bukan waktu habis): aman disimpan sebagai draf, tidak mungkin sudah tersimpan di server
+  var res=await work('Menyimpan temuan...',function(){return api('defect_simpan',p).catch(function(e){if(isNew&&e&&!e.server&&e.name!=='AbortError')gagalNet=true;throw e})});
+  if(!res){
+    if(gagalNet&&await drafSimpan(p,f,files)){if(lagi)drafLanjut(f);return}
+    f.files=files;openModal({t:'temuan',f:f});return;
   }
-  if(isNew&&res.lokasi&&res.lokasi.baru&&S.defects[res.ruanganId]===undefined){S.defects[res.ruanganId]=[]}   // ruangan yang baru dibuat memang kosong
-  putDefect(res);regTerapkan(res,f);
-  if(isNew&&(S.sel.r!==res.ruanganId)){S.sel={g:res.gedung,l:res.lantai,r:res.ruanganId};lsSet('dl-sel',JSON.stringify(S.sel))}
-  if(isNew&&files.length){
-    files.forEach(function(x){var jb2={k:nk(),did:res.id,jenis:'before',data:x,st:'wait'};S.up.push(jb2);qSave(jb2)});
-    wToastSimpan(lagi,f,res,'Tersimpan. Foto diunggah di latar.');
-  }else wToastSimpan(lagi,f,res,'Tersimpan.');
+  if(res.perluKonfirmasi){f.files=files;f.lagiTmp=lagi;openModal({t:'mirip',f:f,mirip:res.mirip});return}   // nama mirip yang sudah ada: tanya pengguna
+  if(UKUR)console.log('[ukur] simpan temuan, klien total '+(Date.now()-t0)+'ms, server',res.ms);
+  terapkanHasil(res,f,files,isNew);
+  if(f.drafK)drafHapus(f.drafK);
+  if(isNew&&files.length)wToastSimpan(lagi,f,res,'Tersimpan. Foto diunggah di latar.');
+  else wToastSimpan(lagi,f,res,'Tersimpan.');
   render();upBar();runQueue();
   if(lagi&&isNew){var nf=fBuat(null,{bidang:f.bidang,gedung:f.gedung,lantai:f.lantai,lok:f.lok,ruang:(f.lok==='ruang'?res.ruangan:''),elemen:res.elemen||'',mode:f.mode,a:{k1:f.a.k1},b:{k1:f.b.k1},kd:{k:f.kd.k}});nf.step='foto';openModal({t:'temuan',f:nf})}
 }
@@ -1655,6 +1788,9 @@ async function onClick(ev){
     case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){modalFotos(S.modal.f,items)});
     case 'upretry': {var jr=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];if(jr){jr.st='wait';upUi(jr.did);runQueue()}return}
     case 'upbuang': {var jb=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];S.up=S.up.filter(function(x){return x!==jb});if(jb){qDel(jb.k);upUi(jb.did)}return}
+    case 'drafkirim': {if(navigator.onLine===false)toast('Belum ada sinyal.');drafKirim();return}
+    case 'drafbuka': return drafBuka();
+    case 'medit': {readForm();var fe=S.modal.f,ie=+el.getAttribute('data-i'),re=await editFoto(fe.files[ie]);if(re&&S.modal&&S.modal.f===fe&&fe.files[ie]){fe.files[ie]=re;mphRefresh()}return}
     case 'mdel': readForm();S.modal.f.files.splice(+el.getAttribute('data-i'),1);return mphRefresh();
     case 'msimpan': return saveForm(false);
     case 'msimpanlagi': return saveForm(true);
@@ -1916,7 +2052,7 @@ function pilihPaket(id,push){
 function keluar(){
   resetHist(true);
   if(S.paket){lsDel('dl-kode-'+S.paket.id);bersihLokal(S.paket.id)}
-  S.up=[];upBar();S.stale={};S.pv={};S.loading={};S.errs={};S.reg=null;S.regOk=false;S.rg={area:'',pakai:null};S.user=null;S.kode='';S.defects={};S.all=null;S.siap=null;S.perlu=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
+  S.up=[];DRAF=[];upBar();S.stale={};S.pv={};S.loading={};S.errs={};S.reg=null;S.regOk=false;S.rg={area:'',pakai:null};S.user=null;S.kode='';S.defects={};S.all=null;S.siap=null;S.perlu=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
 }
 async function masuk(){
   var el=$('kode');S.kode=(el?el.value:S.kode).trim().toUpperCase();
@@ -1958,7 +2094,7 @@ async function cobaMasuk(auto){
     render();
     if(r.ruangan){var s=ensureSel(tree());if(s&&S.view==='form')loadDefects(s.r.id,false)}
     else loadRooms();
-    qPulihkan();
+    qPulihkan();drafMuat();
   }catch(e){
     if(e&&e.server){
       if(/Kode tidak dikenal|nonaktif/i.test(e.message||'')){   // hanya kode yang benar-benar ditolak yang dihapus
@@ -1968,7 +2104,7 @@ async function cobaMasuk(auto){
       if(cepat){toast(e.message);return}                      // error server lain: tetap pakai tampilan tersimpan
       S.user=null;S.loginNet=false;S.loginErr=e.message;render();return;
     }
-    if(cepat){S.net='Tidak terhubung. Menampilkan data terakhir yang tersimpan.';render();return}
+    if(cepat){S.net='Tidak terhubung. Menampilkan data terakhir yang tersimpan.';render();drafMuat();return}
     S.user=null;S.loginNet=true;S.loginErr='Tidak terhubung ke server. Periksa sinyal lalu coba lagi.';render();
   }
 }
