@@ -282,6 +282,31 @@
   .pick .row.big .t span{ margin-top:8px; font-size:14px; }
   .centered{ max-width:520px; margin:0 auto; padding-top:40px; }
 
+  /* desain A (Pilih paket, Masuk) dan E (Ubah temuan) */
+  .pick .pkcap{ margin:0 2px 10px; }
+  .pklist{ display:grid; gap:12px; }
+  .pkcard{ display:flex; align-items:center; gap:12px; width:100%; padding:16px 18px; border:1px solid var(--sep); border-radius:16px; background:var(--gbg2); color:inherit; font:inherit; text-align:left; cursor:pointer; }
+  .pkcard .t{ flex:1; min-width:0; }
+  .pkcard .t b{ display:block; font-size:17px; line-height:22px; font-weight:600; color:var(--label1); }
+  .pkcard .t span{ display:block; margin-top:3px; font-size:14px; line-height:19px; color:var(--label2); }
+  .pkcard .chev{ flex:none; width:10px; height:15px; fill:none; stroke:var(--label2); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .pkcard:active{ background:var(--fill4); }
+  .codewrap .boxes{ gap:9px; }
+  .codewrap .cb{ height:60px; border-radius:14px; border:1px solid var(--sep); font-size:24px; }
+  .codewrap:focus-within .cb.on{ border:2px solid var(--blue-teks); }
+  .btn.rect{ border-radius:14px; min-height:52px; }
+  .sheet.ubah .group{ background:transparent; border-radius:0; padding:0; margin:0 0 10px; overflow:visible; }
+  .sheet.ubah .list{ display:grid; gap:8px; padding:0; }
+  .sheet.ubah .group > .sh{ padding:6px 2px 8px; }
+  .sheet.ubah .row, .sheet.ubah .list > .row{ background:var(--fill3); border-radius:12px; padding:8px 12px; min-height:0; margin:0; width:auto; }
+  .sheet.ubah .row.ro{ background:var(--gbg2); box-shadow:inset 0 0 0 1px var(--sep); }
+  .sheet.ubah .list > .row + .row::before, .sheet.ubah .two > .row + .row::before{ display:none; }
+  .sheet.ubah .two{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .sheet.ubah .group > .row{ margin-bottom:8px; background:transparent; padding:0; }
+  .sheet.ubah .seg.in{ background:var(--fill3); }
+  .sheet.ubah .group .note{ padding:4px 2px 8px; }
+  .sheet.ubah .gap{ display:grid; gap:8px; margin-top:6px; }
+  .sheet.ubah .gap .btn.sec{ background:var(--fill3); color:var(--label2); border-radius:14px; min-height:48px; }
   .brand{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:24px 0 36px; }
   .brand img{ width:76px; height:76px; border-radius:17px; display:block; }
   .brand h1{ margin:18px 0 0; font-size:30px; line-height:36px; font-weight:700; letter-spacing:-.4px; }

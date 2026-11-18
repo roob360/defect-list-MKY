@@ -276,9 +276,9 @@ function render(){
   if(S.drawn!==key){S.drawn=key;app.classList.remove('enter');void app.offsetWidth;app.classList.add('enter')}
 }
 function renderPick(){
-  var h='<div class="centered"><div class="brand"><img src="icon-192.png" alt="" width="76" height="76"><h1>Defect List</h1><div class="note" style="padding:6px 0 0;text-align:center">Catatan temuan pekerjaan konstruksi</div></div><section class="group pick"><div class="sh">Pilih paket</div><div class="list">';
+  var h='<div class="centered"><div class="brand"><img src="icon-192.png" alt="" width="76" height="76"><h1>Defect List</h1><div class="note" style="padding:6px 0 0;text-align:center">Catatan temuan pekerjaan konstruksi</div></div><section class="pick"><div class="cap pkcap">Pilih paket</div><div class="pklist">';
   PAKET_LIST.forEach(function(p){
-    h+='<button type="button" class="row actionrow big" data-act="paket" data-id="'+esc(p.id)+'"><span class="t"><b>'+esc(p.nama)+'</b><span>'+esc(p.ringkas||p.label)+'</span></span><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
+    h+='<button type="button" class="pkcard" data-act="paket" data-id="'+esc(p.id)+'"><span class="t"><b>'+esc(p.nama)+'</b><span>'+esc(p.ringkas||p.label)+'</span></span><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
   });
   app.innerHTML=h+'</div></section></div>';
 }
@@ -289,11 +289,11 @@ function renderLogin(){
   else{
     var kv=(S.kode||'').slice(0,6),bx='';
     for(var i=0;i<6;i++)bx+='<span class="cb'+(i<kv.length?' f':'')+(i===Math.min(kv.length,5)?' on':'')+'">'+esc(kv[i]||'')+'</span>';
-    h+='<div class="codewrap'+(S.loginErr?' bad':'')+'"><div class="cap">Kode akses</div><div class="boxes" id="boxes" aria-hidden="true">'+bx+'</div>'+
+    h+='<div class="codewrap'+(S.loginErr?' bad':'')+'"><div class="boxes" id="boxes" aria-hidden="true">'+bx+'</div>'+
       '<input type="text" id="kode" class="cin" maxlength="6" autocomplete="one-time-code" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Kode akses, 6 karakter" value="'+esc(kv)+'"></div>'+
       '<div style="height:18px"></div>';
     if(S.loginErr)h+=S.loginNet?'<div class="errbox" role="alert">'+esc(S.loginErr)+'</div>':'<div class="err" role="alert" style="padding:0 4px 14px">'+esc(S.loginErr)+'</div>';
-    h+='<button type="button" class="btn" id="bMasuk" data-act="masuk">'+(S.loginNet&&S.loginErr?'Coba lagi':'Masuk')+'</button>';
+    h+='<button type="button" class="btn rect" id="bMasuk" data-act="masuk">'+(S.loginNet&&S.loginErr?'Coba lagi':'Masuk')+'</button>';
   }
   app.innerHTML=h+'</div>';
   var ki=$('kode');if(ki&&S.paket.apiUrl)ki.focus({preventScroll:true});
@@ -1602,9 +1602,9 @@ function wTapKode(f,ax,v){
 function fHtml(m){
   if(!m.f.id&&!m.f.lama)return fWizHtml(m);
   var f=m.f,mm=fModeElemen(f),h;
-  h='<div class="ov" data-act="modalbg"><div class="sheet" role="dialog" aria-label="Temuan"><h2>'+(f.id?'Ubah temuan':'Tambah temuan')+'</h2>';
+  h='<div class="ov" data-act="modalbg"><div class="sheet ubah" role="dialog" aria-label="Temuan"><div class="grab"></div><h2>'+(f.id?'Ubah temuan':'Tambah temuan')+'</h2>';
   h+='<section class="group vis"><div class="list">';
-  if(f.id||f.lama)h+='<div class="row"><span class="lbl">'+(f.id?'Lokasi':labelBidang(f.bidang).area+' / '+labelBidang(f.bidang).level)+'</span><div>'+esc(f.id?(f.gedung+' / '+f.lantai+' / '+f.lokasiTeks):(f.gedung+' / '+f.lantai))+'</div></div>';
+  if(f.id||f.lama)h+='<div class="row ro"><span class="lbl">'+(f.id?'Lokasi':labelBidang(f.bidang).area+' / '+labelBidang(f.bidang).level)+'</span><div>'+esc(f.id?(f.gedung+' / '+f.lantai+' / '+f.lokasiTeks):(f.gedung+' / '+f.lantai))+'</div></div>';
   else h+=fLokasiHtml(f);
   h+='<div class="two"><label class="row"><span class="lbl">Bidang</span><select id="mB"'+(f.kunciBidang?' disabled':'')+'>'+BIDANG.map(function(b){return '<option'+(b===f.bidang?' selected':'')+'>'+esc(b)+'</option>'}).join('')+'</select></label>'+
     '<label class="row"><span class="lbl">Tingkat</span><select id="mT">'+TINGKAT.map(function(b){return '<option'+(b===f.tingkat?' selected':'')+'>'+esc(b)+'</option>'}).join('')+'</select></label></div>';
@@ -1631,7 +1631,7 @@ function fHtml(m){
       '<div id="mph">'+mphHtml(f)+'</div>'+
       '<div class="pbtn"><button type="button" class="pill" data-act="mfoto" data-cam="1">'+ic('cam')+'Kamera</button><button type="button" class="pill" data-act="mfoto">'+ic('img')+'Galeri</button></div></section>';
   }
-  h+='<div class="gap"><button type="button" class="btn" data-act="msimpan">Simpan</button>'+(!f.id&&!f.lama?'<button type="button" class="btn sec" data-act="msimpanlagi">Simpan &amp; tambah lagi di lokasi ini</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div></div>';
+  h+='<div class="gap"><button type="button" class="btn rect" data-act="msimpan">Simpan</button>'+(!f.id&&!f.lama?'<button type="button" class="btn sec" data-act="msimpanlagi">Simpan &amp; tambah lagi di lokasi ini</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div></div>';
   return h;
 }
 
