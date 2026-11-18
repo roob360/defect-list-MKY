@@ -329,6 +329,43 @@
   .edtools .ic svg{ width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
   .fitem .pill svg{ width:16px; height:16px; }
   .ftype svg{ width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  /* ===== animasi kode akses (diterapkan dari demo pengguna) ===== */
+  .ak{ --pegas:cubic-bezier(.34,1.56,.64,1); }
+  .codewrap .cb.f{ border-color:var(--blue-teks); background:color-mix(in srgb, var(--prominent) 12%, var(--gbg2)); }
+  .codewrap.bad .cb{ border-color:var(--red); background:color-mix(in srgb, var(--red) 14%, var(--gbg2)); }
+  .akbtn{ position:relative; overflow:hidden; display:flex; width:100%; margin-left:auto; margin-right:auto; }
+  .akbtn .ak-spin, .akbtn .ak-centang{ position:absolute; inset:0; margin:auto; opacity:0; }
+  .akbtn .ak-spin{ width:24px; height:24px; border:3px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; }
+  .akbtn .ak-centang{ width:28px; height:28px; }
+  .ak.sukses .cb{ border-color:var(--green); background:color-mix(in srgb, var(--green) 16%, var(--gbg2)); }
+  .ak.sukses .codewrap:focus-within .cb.on{ border:1px solid var(--green); }
+  .ak.sukses .akbtn{ background:var(--green); }
+  .ak.sukses .akbtn .ak-label{ opacity:0; }
+  .ak.sukses .akbtn .ak-centang{ opacity:1; }
+  html:not(.hemat) .ak-masuk{ animation:ak-naik .7s var(--pegas,cubic-bezier(.34,1.56,.64,1)) backwards; animation-delay:calc(var(--m,0) * 70ms + 80ms); }
+  @keyframes ak-naik{ from{ opacity:0; transform:translateY(22px) scale(.92); filter:blur(6px); } to{ opacity:1; transform:none; filter:blur(0); } }
+  html:not(.hemat) .codewrap .cb{ transition:border-color .25s, background-color .25s, box-shadow .35s, transform .25s var(--pegas); }
+  html:not(.hemat) .codewrap:focus-within .cb.on:not(.ak-masuk){ transform:translateY(-3px); animation:ak-denyut 1.8s ease-in-out infinite; }   /* denyut baru setelah animasi masuk selesai */
+  @keyframes ak-denyut{ 0%,100%{ box-shadow:0 0 0 0 color-mix(in srgb,var(--prominent) 55%,transparent), 0 8px 20px -10px color-mix(in srgb,var(--prominent) 55%,transparent); } 50%{ box-shadow:0 0 0 6px transparent, 0 8px 24px -8px color-mix(in srgb,var(--prominent) 55%,transparent); } }
+  html:not(.hemat) .ak .codewrap .cb.cb.cb.jatuh{ animation:ak-jatuh .45s var(--pegas); }
+  @keyframes ak-jatuh{ 0%{ transform:scale(.82) translateY(-10px); } 55%{ transform:scale(1.12) translateY(0); box-shadow:0 0 0 8px transparent; } 100%{ transform:scale(1); } }
+  html:not(.hemat) .ak .codewrap .cb.cb.cb.jejak{ animation:ak-jejak .6s ease-out; }
+  @keyframes ak-jejak{ 0%{ border-color:var(--blue-teks); box-shadow:0 0 22px color-mix(in srgb,var(--prominent) 55%,transparent); } 100%{ box-shadow:0 0 0 transparent; } }
+  html:not(.hemat) .ak .codewrap .cb.cb.cb.hapus{ animation:ak-hapus .28s ease-in; }
+  @keyframes ak-hapus{ 40%{ transform:scale(.86); opacity:.5; } 100%{ transform:scale(1); opacity:1; } }
+  html:not(.hemat) .codewrap.bad .boxes{ animation:ak-getar .5s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes ak-getar{ 10%,90%{ transform:translateX(-2px); } 20%,80%{ transform:translateX(5px); } 30%,50%,70%{ transform:translateX(-9px); } 40%,60%{ transform:translateX(9px); } }
+  html:not(.hemat) .akbtn{ transition:width .5s var(--pegas), height .4s, min-height .4s, border-radius .4s, background-color .35s, transform .2s; }
+  html:not(.hemat) .ak.memuat .akbtn, html:not(.hemat) .ak.sukses .akbtn{ width:56px; height:56px; min-height:56px; border-radius:28px; }
+  html:not(.hemat) .ak.memuat .akbtn .ak-label{ opacity:0; transform:scale(.6); }
+  html:not(.hemat) .ak.memuat .akbtn .ak-spin{ opacity:1; animation:ak-putar .8s linear infinite; }
+  @keyframes ak-putar{ to{ transform:rotate(360deg); } }
+  html:not(.hemat) .ak.memuat .cb{ animation:ak-gelombang 1s ease-in-out infinite; animation-delay:calc(var(--i) * 110ms); pointer-events:none; }
+  @keyframes ak-gelombang{ 0%,100%{ transform:translateY(0); border-color:var(--blue-teks); } 50%{ transform:translateY(-8px); border-color:var(--blue-teks); box-shadow:0 10px 18px -8px color-mix(in srgb,var(--prominent) 55%,transparent); } }
+  html:not(.hemat) .ak.sukses .cb{ animation:ak-hijau .7s var(--pegas) forwards; animation-delay:calc(var(--i) * 90ms); pointer-events:none; }
+  @keyframes ak-hijau{ 0%{ transform:scale(1); } 45%{ transform:scale(1.14) translateY(-6px); } 100%{ transform:scale(1); box-shadow:0 0 20px color-mix(in srgb,var(--green) 35%,transparent); } }
+  html:not(.hemat) .ak.sukses .akbtn .ak-centang path{ stroke-dasharray:30; stroke-dashoffset:30; animation:ak-gambar .45s .45s ease-out forwards; }
+  @keyframes ak-gambar{ to{ stroke-dashoffset:0; } }
   .brand{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:24px 0 36px; }
   .brand img{ width:76px; height:76px; border-radius:17px; display:block; }
   .brand h1{ margin:18px 0 0; font-size:30px; line-height:36px; font-weight:700; letter-spacing:-.4px; }
@@ -353,7 +390,6 @@
   @keyframes shimmer{ to{ transform:translateX(100%); } }
   @keyframes shake{ 0%,100%{ transform:none; } 20%,60%{ transform:translateX(-6px); } 40%,80%{ transform:translateX(6px); } }
   html:not(.hemat) .sk::after{ content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,var(--fill2),transparent); transform:translateX(-100%); animation:shimmer 1.4s ease-in-out infinite; }
-  html:not(.hemat) .codewrap.bad .boxes{ animation:shake .4s; }
   @keyframes enter{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
   @keyframes pop{ from{ opacity:0; transform:translateY(16px) scale(.98); } to{ opacity:1; transform:none; } }
   @keyframes ringFill{ from{ stroke-dashoffset:188.5; } }

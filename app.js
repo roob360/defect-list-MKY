@@ -284,16 +284,17 @@ function renderPick(){
 }
 function renderLogin(){
   var p=S.paket;
-  var h='<div class="centered"><div class="pagehead"><div class="cap">'+esc(p.nama)+' &middot; '+esc(p.label)+'</div><h1>Masuk</h1><div class="note" style="padding:4px 0 0">Masukkan kode akses 6 karakter dari admin.</div></div>';
+  var an=S.loginErr?'':' ak-masuk';   // animasi masuk hanya saat layar dibuka, bukan saat menampilkan galat
+  var h='<div class="centered"><div class="pagehead"><div class="cap'+an+'" style="--m:0">'+esc(p.nama)+' &middot; '+esc(p.label)+'</div><h1 class="'+an.trim()+'" style="--m:1">Masuk</h1><div class="note'+an+'" style="padding:4px 0 0;--m:2">Masukkan kode akses 6 karakter dari admin.</div></div>';
   if(!p.apiUrl)h+='<section class="group pad"><div class="err" style="padding:0">URL API paket ini belum diisi di config.js.</div></section>';
   else{
     var kv=(S.kode||'').slice(0,6),bx='';
-    for(var i=0;i<6;i++)bx+='<span class="cb'+(i<kv.length?' f':'')+(i===Math.min(kv.length,5)?' on':'')+'">'+esc(kv[i]||'')+'</span>';
-    h+='<div class="codewrap'+(S.loginErr?' bad':'')+'"><div class="boxes" id="boxes" aria-hidden="true">'+bx+'</div>'+
+    for(var i=0;i<6;i++)bx+='<span class="cb'+(i<kv.length?' f':'')+(i===Math.min(kv.length,5)?' on':'')+an+'" style="--i:'+i+';--m:'+(4+i)+'">'+esc(kv[i]||'')+'</span>';
+    h+='<div class="ak" id="ak"><div class="codewrap'+(S.loginErr?' bad':'')+'"><div class="boxes" id="boxes" aria-hidden="true">'+bx+'</div>'+
       '<input type="text" id="kode" class="cin" maxlength="6" autocomplete="one-time-code" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Kode akses, 6 karakter" value="'+esc(kv)+'"></div>'+
       '<div style="height:18px"></div>';
     if(S.loginErr)h+=S.loginNet?'<div class="errbox" role="alert">'+esc(S.loginErr)+'</div>':'<div class="err" role="alert" style="padding:0 4px 14px">'+esc(S.loginErr)+'</div>';
-    h+='<button type="button" class="btn rect" id="bMasuk" data-act="masuk">'+(S.loginNet&&S.loginErr?'Coba lagi':'Masuk')+'</button>';
+    h+='<button type="button" class="btn rect akbtn'+an+'" style="--m:11" id="bMasuk" data-act="masuk"><span class="ak-label">'+(S.loginNet&&S.loginErr?'Coba lagi':'Masuk')+'</span><span class="ak-spin"></span><svg class="ak-centang" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></div>';
   }
   app.innerHTML=h+'</div>';
   var ki=$('kode');if(ki&&S.paket.apiUrl)ki.focus({preventScroll:true});
@@ -2101,8 +2102,11 @@ document.addEventListener('input',function(e){
   if(e.target.id==='fq'){S.flt.q=e.target.value;refreshList();return}
   if(e.target.id==='kode'){
     var v=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);e.target.value=v;S.kode=v;
-    var cs=document.querySelectorAll('#boxes .cb'),i;
+    var cs=document.querySelectorAll('#boxes .cb'),i,prev=e.target._n||0;
     for(i=0;i<cs.length;i++){cs[i].textContent=v[i]||'';cs[i].classList.toggle('f',i<v.length);cs[i].classList.toggle('on',i===Math.min(v.length,5))}
+    if(v.length>prev){for(i=prev;i<v.length;i++)(function(k){setTimeout(function(){akUlang(cs[k],'jatuh',480);if(cs[k+1])akUlang(cs[k+1],'jejak',620)},(k-prev)*60)})(i)}
+    else if(v.length<prev){for(i=v.length;i<prev;i++)akUlang(cs[i],'hapus',300)}
+    e.target._n=v.length;
     var w=e.target.parentNode;if(w)w.classList.remove('bad');
     return;
   }
@@ -2185,6 +2189,23 @@ function keluar(){
   if(S.paket){lsDel('dl-kode-'+S.paket.id);bersihLokal(S.paket.id)}
   S.up=[];DRAF=[];upBar();S.stale={};S.pv={};S.loading={};S.errs={};S.reg=null;S.regOk=false;S.rg={area:'',pakai:null};S.user=null;S.kode='';S.defects={};S.all=null;S.siap=null;S.perlu=null;S.terhapus=null;S.modal=null;S.zoom=null;S.file=null;S.view='form';renderOverlay();
 }
+/* ----- animasi kode akses (kelas .ak: memuat, sukses; .codewrap.bad: salah). Mati otomatis di mode hemat animasi. ----- */
+function akHemat(){return document.documentElement.classList.contains('hemat')}
+function akUlang(el,kelas,ms){if(!el)return;el.classList.remove(kelas);void el.offsetWidth;el.classList.add(kelas);setTimeout(function(){el.classList.remove(kelas)},ms)}
+document.addEventListener('animationend',function(e){if(e.animationName==='ak-naik')e.target.classList.remove('ak-masuk')});
+function akSukses(){   // gelombang hijau dan centang, lalu lanjut ke aplikasi
+  var a=$('ak');if(!a)return Promise.resolve();
+  a.classList.remove('memuat','salah');a.classList.add('sukses');
+  return akHemat()?Promise.resolve():new Promise(function(r){setTimeout(r,650)});
+}
+function akKosongkan(){   // setelah kode salah: kosongkan kotak tanpa menggambar ulang layar (galat tetap tampil)
+  var i=$('kode');if(i){i.value='';i._n=0}
+  var cs=document.querySelectorAll('#boxes .cb');
+  for(var k=0;k<cs.length;k++){cs[k].textContent='';cs[k].classList.remove('f','on','jatuh','jejak')}
+  if(cs[0])cs[0].classList.add('on');
+  var w=document.querySelector('.codewrap');if(w)w.classList.remove('bad');
+  if(i)i.focus({preventScroll:true});
+}
 async function masuk(){
   var el=$('kode');S.kode=(el?el.value:S.kode).trim().toUpperCase();
   if(!S.kode){S.loginErr='Masukkan kode akses.';return render()}
@@ -2205,7 +2226,16 @@ function aturPengguna(u){
   try{var sv=JSON.parse(lsGet('dl-sel')||'null');if(sv&&sv.g)S.sel=sv}catch(e){}
 }
 async function cobaMasuk(auto){
-  var b=$('bMasuk');if(b){b.disabled=true;b.innerHTML='<span class="spin"></span>Memeriksa...'}
+  var b=$('bMasuk');if(b){
+    b.disabled=true;var lb=b.querySelector('.ak-label'),ak0=$('ak');
+    if(lb&&ak0){   // percobaan baru: galat sebelumnya dihapus dari layar
+      lb.textContent='Memeriksa...';S.loginErr='';
+      Array.prototype.forEach.call(ak0.querySelectorAll('.err,.errbox'),function(x){x.remove()});
+      var cw=ak0.querySelector('.codewrap');if(cw)cw.classList.remove('bad');
+      ak0.classList.remove('salah','sukses');ak0.classList.add('memuat');
+    }
+    else b.innerHTML='<span class="spin"></span>Memeriksa...';
+  }
   var pid=S.paket.id,cu=null;
   if(auto){try{cu=JSON.parse(lsGet('dl-user-'+pid)||'null')}catch(e){}}
   // Buka kembali: tampilkan dulu dari data tersimpan, periksa kode ke server di belakang layar.
@@ -2216,6 +2246,7 @@ async function cobaMasuk(auto){
   }else if(auto){app.innerHTML=skel('page')}
   try{
     var r=await ambilMulai();
+    if(!auto)await akSukses();
     aturPengguna(r);S.loginErr='';S.net='';
     lsSet('dl-kode-'+pid,S.kode);lsSet('dl-user-'+pid,JSON.stringify({nama:r.nama,peran:r.peran}));
     if(r.ruangan){S.rooms=r.ruangan;S.roomsReady=true;lsSet('dl-rooms-'+pid,JSON.stringify(S.rooms))}
@@ -2229,8 +2260,13 @@ async function cobaMasuk(auto){
   }catch(e){
     if(e&&e.server){
       if(/Kode tidak dikenal|nonaktif/i.test(e.message||'')){   // hanya kode yang benar-benar ditolak yang dihapus
-        S.user=null;S.loginNet=false;S.loginErr=cepat?'':'Kode tidak cocok. Periksa lalu coba lagi.';lsDel('dl-kode-'+pid);lsDel('dl-user-'+pid);S.kode='';render();
-        if(cepat)openModal({t:'sesi'});return;
+        var kodeSalah=S.kode;
+        S.user=null;S.loginNet=false;S.loginErr=cepat?'':'Kode tidak cocok. Periksa lalu coba lagi.';lsDel('dl-kode-'+pid);lsDel('dl-user-'+pid);
+        if(cepat){S.kode='';render();openModal({t:'sesi'});return}
+        render();   // kode yang salah tetap terlihat merah dan bergetar, lalu dikosongkan
+        try{if(navigator.vibrate)navigator.vibrate(120)}catch(e2){}
+        setTimeout(function(){if(S.kode===kodeSalah&&!S.user){S.kode='';akKosongkan()}},akHemat()?0:800);
+        return;
       }
       if(cepat){toast(e.message);return}                      // error server lain: tetap pakai tampilan tersimpan
       S.user=null;S.loginNet=false;S.loginErr=e.message;render();return;
