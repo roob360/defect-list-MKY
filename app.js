@@ -268,7 +268,7 @@ function skel(kind){
   return h+'</div>';
 }
 function render(){
-  document.body.classList.toggle('bento',!!(S.paket&&S.user&&S.view==='rekap'&&canEdit()&&desk()));
+  document.body.classList.toggle('bento',!!(S.paket&&S.user&&((S.view==='rekap'&&canEdit())||(S.view==='kelola'&&isAdmin()))&&desk()));
   setHead();setDock();
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
   var key=!S.paket?'pick':!S.user?'login':S.view+(S.view==='form'?':'+S.sel.r:'');
@@ -597,6 +597,7 @@ function kelolaHtml(){
   var T=tree();
   var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Kelola</h1></div>';
   if(!S.roomsReady&&!S.rooms.length)return h+skel('kelola');
+  var hd=h,P=[],cut=function(){P.push(h);h=''};h='';
   h+='<section class="group"><div class="sh">Tambah ruangan</div><div class="list kform">'+
     '<label class="row"><span class="lbl">Gedung</span><input type="text" id="klG" list="dlG" placeholder="Contoh: Gedung A" value="'+esc(S.kl.g)+'"></label>'+
     '<label class="row"><span class="lbl">Lantai</span><input type="text" id="klL" placeholder="Contoh: Lantai 1" value="'+esc(S.kl.l||'')+'"></label>'+
@@ -604,7 +605,8 @@ function kelolaHtml(){
     '<datalist id="dlG">'+T.map(function(g){return '<option value="'+esc(g.nama)+'">'}).join('')+'</datalist>'+
     
     '<div class="acts" style="padding-top:0;padding-bottom:14px"><button type="button" class="btn" data-act="addroom">Tambah</button></div></section>';
-  h+=impHtml();
+  cut();
+  h+=impHtml();cut();
   h+='<section class="group"><div class="sh">Daftar ruangan</div>';
   if(!T.length)h+='<div class="gf">Belum ada ruangan.</div>';
   T.forEach(function(g){
@@ -617,20 +619,25 @@ function kelolaHtml(){
       h+='</div>';
     });
   });
-  h+='</section>';
-  h+=regAdminHtml();
+  h+='</section>';cut();
+  h+=regAdminHtml();cut();
   if(T.length){
     h+='<section class="group"><div class="sh">Unduh PDF massal</div><div class="list">'+T.map(function(g){return '<label class="row zrow"><input type="checkbox" data-act="zipg" data-g="'+esc(g.nama)+'"'+(S.zipOff[g.nama]?'':' checked')+'><span>'+esc(g.nama)+'</span></label>'}).join('')+'</div>'+
       '<div class="acts" style="padding-top:12px;padding-bottom:14px"><button type="button" class="pill" data-act="zipgo">'+ic('pdf')+'Unduh ZIP</button></div></section>';
   }
+  cut();
   h+='<section class="group"><div class="sh">Temuan terhapus</div>';
   if(!S.terhapus)h+='<div class="acts" style="padding-top:0;padding-bottom:16px"><button type="button" class="pill" data-act="lihatsampah">Tampilkan</button></div>';
   else if(!S.terhapus.length)h+='<div class="gf">Tidak ada temuan terhapus.</div>';
   else S.terhapus.forEach(function(d){
     h+='<div class="row" style="border-top:1px solid var(--sep)"><div style="overflow-wrap:anywhere">'+esc(d.uraian)+'</div><div class="note" style="padding:4px 0 0">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'. Dihapus '+esc(String(d.dihapusPada||'').slice(0,10))+' oleh '+esc(d.dihapusOleh)+'</div><div class="pbtn"><button type="button" class="pill ok" data-act="pulih" data-d="'+esc(d.id)+'">Pulihkan</button><button type="button" class="pill bad" data-act="permanen" data-d="'+esc(d.id)+'">Hapus permanen</button></div></div>';
   });
-  h+='</section>';
-  return h;
+  h+='</section>';cut();
+  // P: 0 tambah, 1 impor, 2 daftar ruangan, 3 daftar isian, 4 PDF massal, 5 temuan terhapus
+  if(!desk())return hd+P[0]+P[1]+P[2]+P[3]+P[4]+P[5];
+  return '<div class="bhead"><div><h1>Kelola</h1><div class="bsub">Lokasi, daftar isian, impor, dan laporan massal &middot; '+esc(S.paket.nama)+'</div></div></div>'+
+    '<div class="bgrid kgrid"><div class="kcard s4">'+P[0]+'</div><div class="kcard s4">'+P[1]+'</div><div class="kcard s4">'+P[3]+'</div>'+
+    '<div class="kcard s8 kls">'+P[2]+'</div><div class="kcard s4 kcol">'+P[4]+P[5]+'</div></div>';
 }
 
 /* ---------- overlay ---------- */
