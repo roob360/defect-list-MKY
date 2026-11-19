@@ -101,6 +101,12 @@
   .dock.noadd .dockadd{ max-width:0; margin-left:-2px; opacity:0; transform:scale(.3); box-shadow:none; pointer-events:none; }
   html:not(.hemat) .dock .dockadd{ transition:max-width .42s cubic-bezier(.3,.9,.3,1), margin .42s cubic-bezier(.3,.9,.3,1), opacity .25s, transform .42s cubic-bezier(.34,1.4,.64,1); }
   .dock .dockadd svg{ width:24px; height:24px; stroke-width:2.8; }
+  /* Layar sempit (Android 360 px): lima tab Admin + tombol tambah harus muat; tab menyusut, teks mengecil. */
+  @media (max-width:400px){
+    .dock.wadd{ padding:4px; gap:0; width:calc(100vw - 16px); }
+    .dock.wadd button:not(.dockadd){ flex:1 1 0; min-width:0; padding:7px 1px 6px; font-size:clamp(9.5px,2.9vw,11px); letter-spacing:-.1px; }
+    .dock.wadd .dockadd{ margin-left:2px; }
+  }
   .dock .dockadd:active{ opacity:.85; }
   .btn svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
   .spin{ width:18px; height:18px; border-radius:50%; flex:none; border:2.5px solid #ffffff55; border-top-color:#fff; animation:spin .8s linear infinite; }
@@ -159,6 +165,9 @@
   .seg button{ flex:1; min-width:0; border:0; border-radius:var(--r-cap); background:transparent; font:inherit; font-size:14px; font-weight:500; color:var(--label1); cursor:pointer; padding:0 4px; }
   .seg button.on{ background:var(--seg-sel); box-shadow:var(--sh-seg); font-weight:600; }
   .seg.in{ height:44px; margin:0; }
+  .seg button.ico{ display:flex; align-items:center; justify-content:center; gap:6px; }
+  .seg button.ico svg{ width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .seg button.ico.on svg{ color:var(--blue-teks); }
 
   .summary{ display:flex; align-items:center; gap:16px; padding:16px; background:var(--gbg2); border-radius:var(--r-group); margin-bottom:var(--gap); }
   .ring{ position:relative; width:72px; height:72px; flex:none; }
@@ -407,6 +416,21 @@
   html:not(.hemat) .stp .bars i.fill.go::after{ background:var(--orange); }
   html:not(.hemat) .stp .bars i.fill.bad::after{ background:var(--red); }
   @keyframes stpIsi{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
+  /* animasi batch 2: pil draf offline, bar Rekap, rana kamera, tutup tong sampah */
+  .upbar .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; flex:none; background:var(--orange); }
+  html:not(.hemat) .upbar .dot{ animation:dotDenyut 1.4s ease-in-out infinite; }
+  @keyframes dotDenyut{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(.55); opacity:.45; } }
+  .upbar .tcek{ display:inline-block; width:18px; height:18px; flex:none; color:var(--green); }
+  .upbar .tcek svg{ width:100%; height:100%; display:block; }
+  html:not(.hemat) .upbar .tcek path{ stroke-dasharray:30; stroke-dashoffset:30; animation:ak-gambar .3s .05s ease-out forwards; }
+  html:not(.hemat) .rkbar i, html:not(.hemat) .stk i{ transform-origin:left center; animation:tumbuh .6s cubic-bezier(.3,.9,.3,1) backwards; }
+  html:not(.hemat) .stk i:nth-child(2){ animation-delay:.08s; } html:not(.hemat) .stk i:nth-child(3){ animation-delay:.16s; }
+  @keyframes tumbuh{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
+  .rana{ position:fixed; inset:0; z-index:90; background:#fff; pointer-events:none; opacity:0; }
+  html:not(.hemat) .rana{ animation:rana .3s ease-out; }
+  @keyframes rana{ 0%{ opacity:0; } 16%{ opacity:.85; } 100%{ opacity:0; } }
+  html:not(.hemat) .dlgic .lid{ transform-box:fill-box; transform-origin:0% 100%; animation:tutupBuka .3s .18s cubic-bezier(.34,1.4,.64,1) both; }
+  @keyframes tutupBuka{ from{ transform:none; } to{ transform:translate(-1px,-2.5px) rotate(-16deg); } }
   html:not(.hemat) .seg button{ transition:background-color .2s, box-shadow .2s; }
   @keyframes shimmer{ to{ transform:translateX(100%); } }
   @keyframes shake{ 0%,100%{ transform:none; } 20%,60%{ transform:translateX(-6px); } 40%,80%{ transform:translateX(6px); } }
@@ -683,6 +707,11 @@
   <symbol id="i-perbaikan" viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0-5 5L4.5 15.5a1.8 1.8 0 0 0 2.5 2.5l5-5a4 4 0 0 0 5-5l-2.4 2.4-2.1-.6-.6-2.1z"/></symbol>
   <symbol id="i-rekap" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"/></symbol>
   <symbol id="i-kelola" viewBox="0 0 24 24"><path d="M5 7h9M18 7h1M5 17h1M10 17h9"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+  <symbol id="i-sistem" viewBox="0 0 24 24"><rect x="3.8" y="5" width="16.4" height="11" rx="2.4"/><path d="M9 20h6M12 16.2V20"/></symbol>
+  <symbol id="i-terang" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3.4v1.8M12 18.8v1.8M3.4 12h1.8M18.8 12h1.8M5.9 5.9l1.3 1.3M16.8 16.8l1.3 1.3M18.1 5.9l-1.3 1.3M7.2 16.8l-1.3 1.3"/></symbol>
+  <symbol id="i-gelap" viewBox="0 0 24 24"><path d="M19.6 14.4A8 8 0 019.6 4.4a8.2 8.2 0 1010 10z"/></symbol>
+  <symbol id="i-penuh" viewBox="0 0 24 24"><path d="M11 4.6l1.8 4.8 4.8 1.8-4.8 1.8L11 17.8l-1.8-4.8-4.8-1.8 4.8-1.8z"/><path d="M18.4 3.8v3.2M16.8 5.4H20"/></symbol>
+  <symbol id="i-hemat" viewBox="0 0 24 24"><path d="M19.4 4.6C11.4 4.6 6 8 6 13.6c0 1.5.4 2.8 1.2 3.8C8.2 18.7 9.7 19.4 11.4 19.4c5.4 0 8-6.4 8-14.8z"/><path d="M5 20.4c1.9-4.4 5-7.6 9.2-9.8"/></symbol>
 </svg>
 
 <div class="pwrap">
