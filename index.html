@@ -386,6 +386,27 @@
   html:not(.hemat) #overlay.fx .ov.mid .sheet{ animation:popIn .36s cubic-bezier(.34,1.4,.64,1); }
   html:not(.hemat) #overlay.fx .ov.zoom img{ animation:popIn .32s cubic-bezier(.3,.9,.3,1); }
   html:not(.hemat) .toast.in{ animation:toastIn .4s cubic-bezier(.34,1.4,.64,1); }
+  /* animasi batch 1: simpan berhasil, unggah foto, stepper, hapus (hanya transform dan opacity; mati di mode hemat) */
+  .toast .tcek{ display:inline-block; width:20px; height:20px; margin:-3px 8px -3px 0; vertical-align:middle; color:var(--green); }
+  .toast .tcek svg{ width:100%; height:100%; display:block; }
+  html:not(.hemat) .toast.in .tcek path{ stroke-dasharray:30; stroke-dashoffset:30; animation:ak-gambar .3s .15s ease-out forwards; }
+  html:not(.hemat) .entry.land{ animation:land .3s cubic-bezier(.34,1.4,.64,1) both; }
+  @keyframes land{ from{ opacity:0; transform:translateY(24px) scale(.96); } to{ opacity:1; transform:none; } }
+  .thumb .ur{ width:30px; height:30px; display:block; }
+  .thumb .ur circle{ fill:none; stroke-width:3.5; }
+  .thumb .ur .tr{ stroke:var(--fill3); }
+  .thumb .ur .arc{ stroke:var(--prominent); stroke-linecap:round; stroke-dasharray:94.25; stroke-dashoffset:70; transform-origin:50% 50%; }
+  html:not(.hemat) .thumb .ur.run{ animation:spin .9s linear infinite; }
+  .thumb .ok{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; opacity:0; }
+  .thumb .ok svg{ width:40px; height:40px; padding:9px; border-radius:50%; background:var(--green); color:#fff; box-sizing:border-box; }
+  html:not(.hemat) .thumb .ok{ animation:okPop 1s ease-out both; }
+  html:not(.hemat) .thumb .ok path{ stroke-dasharray:30; stroke-dashoffset:30; animation:ak-gambar .28s .1s ease-out forwards; }
+  @keyframes okPop{ 0%{ opacity:0; transform:scale(.6); } 18%{ opacity:1; transform:scale(1); } 70%{ opacity:1; transform:scale(1); } 100%{ opacity:0; transform:scale(1); } }
+  html:not(.hemat) .stp .bars i.fill{ position:relative; overflow:hidden; background:var(--sep); }
+  html:not(.hemat) .stp .bars i.fill::after{ content:''; position:absolute; inset:0; border-radius:2px; background:var(--green); transform-origin:left center; animation:stpIsi .28s ease-out backwards; animation-delay:calc(var(--i,0) * 110ms); }
+  html:not(.hemat) .stp .bars i.fill.go::after{ background:var(--orange); }
+  html:not(.hemat) .stp .bars i.fill.bad::after{ background:var(--red); }
+  @keyframes stpIsi{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
   html:not(.hemat) .seg button{ transition:background-color .2s, box-shadow .2s; }
   @keyframes shimmer{ to{ transform:translateX(100%); } }
   @keyframes shake{ 0%,100%{ transform:none; } 20%,60%{ transform:translateX(-6px); } 40%,80%{ transform:translateX(6px); } }
