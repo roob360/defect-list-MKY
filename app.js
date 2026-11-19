@@ -34,7 +34,16 @@ function ic(n){return '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i
 /* Animasi batch 1: semua lewat animOn() (mati di mode hemat dan prefers-reduced-motion) dan hanya memakai transform dan opacity. */
 function animOn(){return !document.documentElement.classList.contains('hemat')}
 var SVG_CEK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-function cekToast(t,m){if(/^Tersimpan/.test(m)){var c=document.createElement('span');c.className='tcek';c.innerHTML=SVG_CEK;t.insertBefore(c,t.firstChild)}}
+/* Ikon toast ditentukan dari teks pesan: peringatan (gagal, belum, tidak, wajib diisi) atau centang (berhasil). Pesan netral tanpa ikon. */
+var RE_TOAST_GALAT=/(^Tidak |tidak bisa|tidak dikenal|tidak terhubung|^Belum |belum (dimuat|ada|diperbarui)|gagal|^Isi |^Pilih |wajib|^Format|^Seret|penuh|diblokir|terhenti|^Periksa|coba lagi|masih disiapkan|terputus|^Maksimal|^Server belum)/i;
+var RE_TOAST_OK=/^(Tersimpan|Temuan (dihapus|dipulihkan)|Dihapus|Digabung|Diterima|Ditolak\.|Verifikasi dibatalkan|Pemisah diubah|Ruangan (diperbarui|dinonaktifkan)|Perbaikan dicatat|Mulai perbaikan dibatalkan|Foto After terkirim|Foto asli dipindah|\d+ (draf terkirim|foto yang belum|ruangan ditambah|kode ditambahkan))/;
+function cekToast(t,m){
+  m=String(m);var c=document.createElement('span'),w=RE_TOAST_GALAT.test(m);
+  if(w){c.className='tcek w';c.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-peringatan"/></svg>'}
+  else if(RE_TOAST_OK.test(m)){c.className='tcek';c.innerHTML=SVG_CEK}
+  else return;
+  t.insertBefore(c,t.firstChild);
+}
 function toast(m){var t=$('toast');if(!t){t=document.createElement('div');t.id='toast';t.className='toast';t.setAttribute('role','status');document.body.appendChild(t)}t.textContent=m;cekToast(t,m);t.hidden=false;t.classList.remove('in');void t.offsetWidth;t.classList.add('in');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.hidden=true},4500)}
 /* Toast dengan satu tombol aksi (mis. Urungkan, hanya Admin) selama 5 detik. */
 function toastAksi(m,label,fn){
@@ -276,16 +285,39 @@ function setHead(){
   if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);pr.innerHTML=S.user?'<span>'+esc(String(S.user.nama||S.user.peran).trim().charAt(0).toUpperCase())+'</span>':ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'');pr.setAttribute('aria-label',S.user?'Pengaturan, '+S.user.nama+' ('+S.user.peran+')':'Pengaturan');pr.title=S.user?S.user.nama+' · '+S.user.peran:'Pengaturan';pr.parentNode.classList.toggle('in',!!S.user)}
   $('bBack').hidden=!(S.paket&&!S.user);
 }
-function skb(w,h,c){return '<div class="sk'+(c?' c':'')+'" style="width:'+w+';height:'+h+'px"></div>'}
-function skEntry(){return '<section class="group"><div class="skel-in">'+skb('92%',18)+skb('70%',18)+'<div class="r">'+skb('64px',24)+skb('78px',24)+skb('60px',24)+'</div>'+skb('90px',12)+'<div class="r">'+skb('100px',100)+skb('100px',100)+'</div></div></section>'}
+/* Skeleton: memakai kelas asli (pagehead, locbar, summary, sbar, chips, entry, phs, acts, kpis, bgrid) tanpa pembungkus,
+   sehingga grid 12 kolom desktop terbentuk sama dan tata letak tidak melompat saat data tiba. */
+function skb(w,h,c,x){return '<div class="sk'+(c?' c':'')+'" style="width:'+w+';height:'+h+'px'+(x?';'+x:'')+'"></div>'}
+function skr(h,r,x){return '<div class="sk" style="height:'+h+'px;border-radius:'+r+'px'+(x?';'+x:'')+'"></div>'}
+function skPagehead(){return '<div class="pagehead">'+skb('90px',12)+skb('200px',34,0,'margin-top:8px')+'</div>'}
+function skLocbar(){return '<div class="locbar">'+skb('44px',44,1,'flex:none')+skr(52,14,'flex:1')+skb('44px',44,1,'flex:none')+'</div>'}
+function skSummary(){return '<div class="summary">'+skb('72px',72,1,'flex:none')+'<div class="stats">'+[0,1,2,3].map(function(){return '<div>'+skb('26px',26,0,'margin:0 auto')+skb('36px',12,0,'margin:2px auto 0')+'</div>'}).join('')+'</div>'+skb('56px',56,0,'border-radius:14px;flex:none')+'</div>'}
+function skSbar(){return '<div class="sbar">'+skr(46,14,'flex:1')+skb('78px',46,0,'border-radius:14px;flex:none')+skb('46px',46,0,'border-radius:14px;flex:none')+'</div>'}
+function skChips(){return '<div class="chips">'+[88,84,104,92].map(function(w){return skb(w+'px',36,0,'border-radius:18px;flex:none')}).join('')+'</div>'}
+function skEntry(){
+  var ph=function(){return '<div class="ph">'+skb('40px',12,0,'margin:2px 0 8px')+'<div class="sk" style="width:100%;aspect-ratio:4/3;border-radius:12px"></div></div>'};
+  return '<article class="group entry" aria-hidden="true"><div class="eh">'+skb('26px',26,0,'border-radius:8px;flex:none')+'<div style="flex:1;min-width:0">'+skb('92%',20)+skb('70%',20,0,'margin-top:4px')+'</div></div>'+
+    '<div class="meta">'+skb('64px',22,0,'border-radius:11px')+skb('78px',22,0,'border-radius:11px')+skb('60px',22,0,'border-radius:11px')+'</div>'+
+    '<div class="stp"><div class="bars">'+[0,1,2,3].map(function(){return skr(4,2)}).join('')+'</div><div class="lbls">'+[0,1,2,3].map(function(){return '<div>'+skb('70%',10,0,'margin:3px 0')+'</div>'}).join('')+'</div></div>'+
+    '<div class="phs">'+ph()+ph()+'</div><div class="acts">'+skb('150px',44,0,'border-radius:22px')+skb('44px',44,1)+'</div></article>';
+}
+function skBanner(){return '<div class="banner" aria-hidden="true">'+skb('190px',14)+'</div>'}
+function skRow(){return '<div class="row">'+skb('48px',12)+skb('100%',22,0,'margin-top:6px')+'</div>'}
 function skel(kind){
-  var h='<div class="skel" role="status" aria-label="Memuat">';
-  if(kind==='page')h+='<div style="padding:4px 0 18px">'+skb('90px',12)+skb('220px',34)+'</div>';
-  if(kind==='page'||kind==='room')h+='<section class="group"><div>'+skb('60px',12)+skb('55%',20)+'<div class="r" style="margin-top:14px">'+skb('45%',40)+skb('45%',40)+'</div></div></section>';
-  if(kind==='room'||kind==='entries'||kind==='page')h+='<section class="group"><div class="r">'+skb('64px',64,1)+skb('60px',36)+skb('60px',36)+skb('60px',36)+skb('60px',36)+'</div></section>'+skEntry()+skEntry();
-  if(kind==='table')h+='<section class="group"><div>'+skb('100%',16)+skb('100%',22)+skb('100%',22)+skb('100%',22)+skb('100%',22)+skb('100%',22)+'</div></section>';
-  if(kind==='kelola')h+='<section class="group"><div>'+skb('40%',14)+skb('100%',44)+skb('100%',44)+skb('100%',44)+'</div></section><section class="group"><div>'+skb('40%',14)+skb('100%',44)+skb('100%',44)+'</div></section>';
-  return h+'</div>';
+  var h='<div class="vh" role="status">Memuat</div>',ent=function(n){var g='';for(var i=0;i<n;i++)g+=skEntry();return '<div class="entgrid">'+g+'</div>'};
+  if(kind==='page')h+=skPagehead()+skLocbar()+skSummary()+skSbar()+skChips()+ent(2);   // layar Temuan belum punya ruangan
+  else if(kind==='formlist')h+=skSummary()+skSbar()+skChips()+ent(2);                  // Temuan: header ada, daftar memuat
+  else if(kind==='entries')h+=skBanner()+skSbar()+'<section class="group" aria-hidden="true"><div class="list"><div class="two">'+skRow()+skRow()+'</div><div class="two">'+skRow()+skRow()+'</div></div></section>'+ent(2);   // Verifikasi dan Perbaikan
+  else if(kind==='table')h+='<div class="kpis" aria-hidden="true">'+[0,1,2].map(function(){return '<div class="kpi">'+skb('36px',28)+skb('52px',13,0,'margin-top:4px')+'</div>'}).join('')+'</div><section class="group" aria-hidden="true"><div style="padding:14px var(--margin)">'+skb('100%',16)+[0,1,2,3,4,5].map(function(){return skb('100%',22,0,'margin-top:12px')}).join('')+'</div></section>';
+  else if(kind==='bento'){   // Rekap desktop
+    var rows=function(n){var r='';for(var i=0;i<n;i++)r+=skb('100%',18,0,'margin:14px 0');return r};
+    h+='<div class="bhead" aria-hidden="true"><div>'+skb('120px',42)+skb('220px',14,0,'margin-top:8px')+'</div><div class="bact">'+skb('150px',40,0,'border-radius:12px')+skb('120px',40,0,'border-radius:12px')+skb('90px',40,0,'border-radius:12px')+'</div></div><div class="bgrid" aria-hidden="true">'+
+      '<section class="bc s6">'+skb('150px',12)+skb('140px',72,0,'margin:14px 0')+skr(12,6,'width:100%;margin-bottom:16px')+'<div class="tiles">'+[0,1,2].map(function(){return skr(80,18)}).join('')+'</div></section>'+
+      '<section class="bc s3">'+skb('100px',12)+rows(5)+'</section><section class="bc s3">'+skb('140px',12)+skb('80px',80,0,'margin-top:14px')+'</section>'+
+      [0,1,2].map(function(){return '<section class="bc s4">'+skb('140px',12)+rows(3)+'</section>'}).join('')+'</div>';
+  }
+  else if(kind==='kelola')h+=[3,2].map(function(n){var r='';for(var i=0;i<n;i++)r+=skRow();return '<section class="group" aria-hidden="true">'+skb('120px',14,0,'margin:14px var(--margin) 8px')+'<div class="list">'+r+'</div></section>'}).join('');
+  return h;
 }
 function render(){
   document.body.classList.toggle('wide',!!(S.paket&&S.user&&(S.view==='form'||S.view==='verif'||S.view==='perbaikan')&&desk()));
@@ -479,7 +511,7 @@ function formHtml(){
     '<button type="button" class="btn-ic" data-act="nav" data-d="1" aria-label="Ruangan berikutnya">'+ic('next')+'</button></div>';
   if(!list&&!S.errs[rid]){
     if(!S.loading[rid])setTimeout(function(){if(!S.defects[rid]&&!S.loading[rid]&&!S.errs[rid])loadDefects(rid,false)},0);   // jangan pernah terjebak tanpa pemuatan
-    return h+skel('entries');
+    return h+skel('formlist');
   }
   if(!list){
     h+='<div class="err">'+esc(S.errs[rid])+'</div><button type="button" class="btn sec" data-act="muat">Coba lagi</button>';
@@ -672,7 +704,7 @@ function rkTren(all){
 }
 function rekapBentoHtml(){
   var T=tree(),h;
-  if(!S.roomsReady&&!S.rooms.length)return '<div class="pagehead"><h1>Rekap</h1></div>'+skel('table');
+  if(!S.roomsReady&&!S.rooms.length)return skel('bento');
   if(!T.length)return '<div class="pagehead"><h1>Rekap</h1></div><div class="empty">Belum ada ruangan.</div>';
   if(S.rkG&&!T.some(function(g){return g.nama===S.rkG}))S.rkG='';
   if(!S.all&&!S.allBusy&&!S.allErr){S.allBusy=true;loadAll().then(function(){S.allBusy=false;if(S.view==='rekap')render()}).catch(function(){S.allBusy=false;S.allErr=true;if(S.view==='rekap')render()})}
@@ -2289,8 +2321,8 @@ document.addEventListener('keydown',function(e){
   }
 });
 /* Pengganti onload/onerror inline pada thumbnail (tahap capture, karena load/error tidak menggelembung). */
-document.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.thumb')){t.style.opacity='';t.classList.add('in')}},true);   // opacity dibersihkan: foto cadangan yang berhasil dimuat tidak boleh tetap redup
-document.addEventListener('error',function(e){var t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.thumb')){t.classList.add('in');t.style.opacity=.25}},true);
+document.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.thumb')){t.style.opacity='';t.classList.add('in');t.closest('.thumb').classList.add('ok')}},true);   // opacity dibersihkan: foto cadangan yang berhasil dimuat tidak boleh tetap redup
+document.addEventListener('error',function(e){var t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.thumb')){t.classList.add('in');t.style.opacity=.25;var th=t.closest('.thumb');setTimeout(function(){th.classList.add('ok')},6000)}},true);   // kilau berhenti setelah cadangan foto sempat mencoba
 
 async function tambahRuangan(){
   var g=$('klG').value,l=$('klL').value,n=$('klN').value;

@@ -271,6 +271,7 @@
   .toast .tb{ margin-left:14px; padding:6px 4px; border:0; background:transparent; color:inherit; font:inherit; font-weight:700; text-decoration:underline; cursor:pointer; }
   .empty{ text-align:center; padding:30px 20px; color:var(--label2); }
   .loading{ display:flex; justify-content:center; padding:26px; }
+  .vh{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
   .sk{ position:relative; overflow:hidden; background:var(--fill3); border-radius:10px; }
   .sk.c{ border-radius:50%; }
   .skel .group{ padding:16px var(--margin); margin-bottom:var(--gap); }
@@ -398,6 +399,10 @@
   /* animasi batch 1: simpan berhasil, unggah foto, stepper, hapus (hanya transform dan opacity; mati di mode hemat) */
   .toast .tcek{ display:inline-block; width:20px; height:20px; margin:-3px 8px -3px 0; vertical-align:middle; color:var(--green); }
   .toast .tcek svg{ width:100%; height:100%; display:block; }
+  .toast .tcek.w{ color:var(--orange); }
+  .toast .tcek.w svg{ fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  html:not(.hemat) .toast.in .tcek.w{ animation:tcekGoyang .4s .1s ease-out; }
+  @keyframes tcekGoyang{ 0%,100%{ transform:none; } 25%{ transform:rotate(-14deg); } 60%{ transform:rotate(10deg); } }
   html:not(.hemat) .toast.in .tcek path{ stroke-dasharray:30; stroke-dashoffset:30; animation:ak-gambar .3s .15s ease-out forwards; }
   html:not(.hemat) .entry.land{ animation:land .3s cubic-bezier(.34,1.4,.64,1) both; }
   @keyframes land{ from{ opacity:0; transform:translateY(24px) scale(.96); } to{ opacity:1; transform:none; } }
@@ -434,6 +439,8 @@
   html:not(.hemat) .seg button{ transition:background-color .2s, box-shadow .2s; }
   @keyframes shimmer{ to{ transform:translateX(100%); } }
   @keyframes shake{ 0%,100%{ transform:none; } 20%,60%{ transform:translateX(-6px); } 40%,80%{ transform:translateX(6px); } }
+  /* thumbnail yang menunggu Drive: kilau sampai gambar termuat (kelas .ok ditambah oleh handler load/error) */
+  html:not(.hemat) .thumb:not(.ok):not(.up):not(.bad)::before{ content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg,transparent,var(--fill2),transparent); transform:translateX(-100%); animation:shimmer 1.4s ease-in-out infinite; }
   html:not(.hemat) .sk::after{ content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,var(--fill2),transparent); transform:translateX(-100%); animation:shimmer 1.4s ease-in-out infinite; }
   @keyframes enter{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
   @keyframes pop{ from{ opacity:0; transform:translateY(16px) scale(.98); } to{ opacity:1; transform:none; } }
