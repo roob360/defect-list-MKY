@@ -45,7 +45,7 @@ async function urungkanHapus(d){
 }
 function clean(s){return String(s).replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'')}
 function pct(c){return c.total?Math.round(c.close/c.total*100)+'%':'-'}
-function thumb(id,w){return 'https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w'+(w||400)}
+function thumb(id,w){return 'https://lh3.googleusercontent.com/d/'+encodeURIComponent(id)+'=w'+(w||400)}
 function applyTema(){
   var r=document.documentElement;
   if(S.tema==='terang'||S.tema==='gelap')r.setAttribute('data-tema',S.tema);else r.removeAttribute('data-tema');
@@ -90,6 +90,22 @@ function api(aksi,p){
   }
   return jalan(0);
 }
+
+/* Cadangan foto: bila gambar gagal dimuat langsung dari Google (jaringan, akun, atau peramban perangkat tertentu),
+   coba URL Drive lama, lalu ambil lewat server (foto_data) sebagai data URL. Diproses satu per satu. */
+var FOTO_COBA={},FOTO_ANTRE=Promise.resolve();
+document.addEventListener('error',function(ev){
+  var im=ev.target;if(!im||im.tagName!=='IMG'||!im.src||im.src.indexOf('data:')===0)return;
+  var m=/googleusercontent\.com\/d\/([^=\/?]+)=|thumbnail\?id=([^&]+)/.exec(im.src);if(!m)return;
+  var id=decodeURIComponent(m[1]||m[2]),w=im.closest&&im.closest('.zoom')?1024:400,n=FOTO_COBA[id]||0;
+  FOTO_COBA[id]=n+1;
+  if(n===0){im.src='https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w'+w;return}
+  if(n===1&&S.paket&&S.kode){
+    FOTO_ANTRE=FOTO_ANTRE.then(function(){return api('foto_data',{ids:[id],w:w})}).then(function(r){
+      var d=r&&r[0]&&r[0].data;if(d){S.pv[id]=d;im.src=d}
+    }).catch(function(){});
+  }
+},true);
 
 /* Penyimpanan lokal (IndexedDB): antrean foto dan cache daftar temuan. Bila tidak tersedia, semuanya diam-diam dilewati. */
 var IDB={
@@ -291,8 +307,8 @@ function renderLogin(){
     var kv=(S.kode||'').slice(0,6),bx='';
     for(var i=0;i<6;i++)bx+='<span class="cb'+(i<kv.length?' f':'')+(i===Math.min(kv.length,5)?' on':'')+an+'" style="--i:'+i+';--m:'+(4+i)+'">'+esc(kv[i]||'')+'</span>';
     h+='<div class="ak" id="ak"><div class="codewrap'+(S.loginErr?' bad':'')+'"><div class="boxes" id="boxes" aria-hidden="true">'+bx+'</div>'+
-      '<input type="text" id="kode" class="cin" maxlength="6" autocomplete="one-time-code" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Kode akses, 6 karakter" value="'+esc(kv)+'"></div>'+
-      '<div style="height:18px"></div>';
+      '<input type="text" id="kode" class="cin" autocomplete="one-time-code" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Kode akses, 6 karakter" value="'+esc(kv)+'"></div>'+
+      '<div style="height:10px"></div><div style="text-align:center"><button type="button" class="chip" data-act="tempel">Tempel kode</button></div><div style="height:14px"></div>';
     if(S.loginErr)h+=S.loginNet?'<div class="errbox" role="alert">'+esc(S.loginErr)+'</div>':'<div class="err" role="alert" style="padding:0 4px 14px">'+esc(S.loginErr)+'</div>';
     h+='<button type="button" class="btn rect akbtn'+an+'" style="--m:11" id="bMasuk" data-act="masuk"><span class="ak-label">'+(S.loginNet&&S.loginErr?'Coba lagi':'Masuk')+'</span><span class="ak-spin"></span><svg class="ak-centang" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></div>';
   }
@@ -430,7 +446,7 @@ function thumbsHtml(items,jenis,d,removable){
   var jobs=S.up.filter(function(j){return j.did===d.id&&j.jenis===jenis});
   if(!items.length&&!jobs.length)return '<div class="none">Belum ada foto '+jenis+'</div>';
   return '<div class="thumbs">'+(items.length>1?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+items.map(function(f){
-    return '<div class="thumb"><button type="button" data-act="zoom" data-f="'+esc(f.id)+'" data-d="'+esc(d.id)+'" data-j="'+jenis+'" aria-label="Lihat foto"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[f.id]||thumb(f.id,400))+'"></button>'+
+    return '<div class="thumb"><button type="button" data-act="zoom" data-f="'+esc(f.id)+'" data-d="'+esc(d.id)+'" data-j="'+jenis+'" aria-label="Lihat foto"><img loading="lazy" referrerpolicy="no-referrer" alt="Foto '+jenis+'" src="'+(S.pv[f.id]||thumb(f.id,400))+'"></button>'+
       (f.t?'<span class="dt">'+esc(fmt(f.t))+'</span>':'')+
       (removable?'<button type="button" class="x" data-act="delfoto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-f="'+esc(f.id)+'" aria-label="Hapus foto">&times;</button>':'')+'</div>';
   }).join('')+jobs.map(upHtml).join('')+'</div>';
@@ -650,7 +666,7 @@ function kelolaHtml(){
 function renderOverlay(){
   var h='';
   if(S.busy)h='<div class="ov mid" style="z-index:90"><div class="sheet"><div class="busy"><div class="spin d"></div><span>'+esc(S.busy)+'</span></div>'+(S.zipRun?'<button type="button" class="btn sec" data-act="zipbatal" style="margin-top:10px">Batal</button>':'')+'</div></div>';
-  else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button>'+'</div>';
+  else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" referrerpolicy="no-referrer" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button>'+'</div>';
   else if(S.file&&desk()){
     var ext=(String(S.file.name).split('.').pop()||'').toUpperCase(),kb=S.file.size/1024,uk=kb>=1024?(kb/1024).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(kb))+' KB',pdf=ext==='PDF';
     h='<div class="ov mid"><div class="sheet gap fileok" role="dialog" aria-label="File siap"><span class="okc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><h2>File siap</h2><div class="note c">Dibuat di komputer ini, tanpa unggah ke server</div>'+
@@ -1620,7 +1636,7 @@ function fotoEditHtml(f){
     if(!items.length&&!jobs.length)return lbl+'<div class="none">Belum ada foto '+jenis+'</div>'+tombol;
     return lbl+'<div class="thumbs">'+items.map(function(x){
       var tanya=adm&&f.hapusFoto===x.id;
-      return '<div class="fitem"><div class="thumb"><img loading="lazy" alt="Foto '+jenis+'" src="'+(S.pv[x.id]||thumb(x.id,400))+'">'+
+      return '<div class="fitem"><div class="thumb"><img loading="lazy" referrerpolicy="no-referrer" alt="Foto '+jenis+'" src="'+(S.pv[x.id]||thumb(x.id,400))+'">'+
         (tanya?'<div class="ov2 ask"><b>Hapus foto?</b><span><button type="button" class="pill bad" data-act="fdelya" data-f="'+esc(x.id)+'" data-j="'+jenis+'">Hapus</button><button type="button" class="pill" data-act="fdelbatal">Batal</button></span></div>'
           :(adm?'<button type="button" class="x" data-act="fdel" data-f="'+esc(x.id)+'" aria-label="Hapus foto">&times;</button>':''))+'</div>'+
         (adm&&jenis==='before'?'<button type="button" class="pill" data-act="fcoret" data-f="'+esc(x.id)+'">'+ic('pena')+'Coret</button>':'')+'</div>';
@@ -1866,6 +1882,14 @@ async function onClick(ev){
   var id=el.getAttribute('data-d');
   if(S.modal&&S.modal.t==='aksi'&&a!=='mtutup'&&a!=='modalbg')closeModal();
   switch(a){
+    case 'tempel': {
+      var ki=$('kode');if(!ki)return;ki.focus({preventScroll:true});
+      if(navigator.clipboard&&navigator.clipboard.readText){
+        navigator.clipboard.readText().then(function(t){ki.value=t||'';ki.dispatchEvent(new Event('input',{bubbles:true}))})
+          .catch(function(){toast('Tidak bisa membaca papan klip. Tekan lama kotak kode lalu pilih Tempel.')});
+      }else toast('Tekan lama kotak kode lalu pilih Tempel.');
+      return;
+    }
     case 'paket': return pilihPaket(el.getAttribute('data-id'),true);
     case 'ganti': resetHist(false);S.paket=null;S.user=null;S.kode='';S.loginErr='';S.modal=null;S.zoom=null;S.file=null;lsDel(STORE);renderOverlay();return render();
     case 'keluar': keluar();return render();
