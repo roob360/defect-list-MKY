@@ -10,24 +10,25 @@
   var BLN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   var NAMA_SLOT = { MK1: 'QC MK, Tahap I', PJ1: 'QC PJ, tanda terima', MK2: 'QC MK, Tahap II', PJ2: 'QC PJ, Tahap II' };
   var HINT = { MK1: 'Sahkan memo', PJ1: 'Sahkan tanda terima', MK2: 'Sahkan Tahap II (MK)', PJ2: 'Sahkan Tahap II (PJ)', tindak: 'Isi tindak lanjut' };
-  var STAT = { 'MENUNGGU TTD MK': 'Menunggu TTD MK', TERBIT: 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', CLOSE: 'Close', BATAL: 'Batal' };
-  var MODAL = { memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1, memoprev: 1, memolainnya: 1, qcdaftar: 1 };
+  var STAT = { 'MENUNGGU TTD MK': 'Menunggu TTD MK', TERBIT: 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', CLOSE: 'Close', BATAL: 'Batal', PERALIHAN: 'Peralihan' };
+  var MODAL = { memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1, memoprev: 1, memolainnya: 1, qcdaftar: 1, tutupperalihan: 1 };
   var JENIS_MEMO = ['Kualitas', 'Material', 'Dimensi & Posisi (X,Y,Z)', 'Lainnya'];   // sama dengan Kode.gs
   var REF_MEMO = ['KPPK', 'RKS', 'Material yang disetujui', 'BQ', 'Drawing', 'Metoda Kerja/ WI/SOP', 'Spesifikasi'];
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return C.esc(s); }
   function tglId(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? Number(m[3]) + ' ' + BLN[Number(m[2]) - 1] + ' ' + m[1] : String(iso || ''); }
+  function taruh(df) { if (df) C.putDefect(df); }   // memo peralihan tidak punya temuan
   function pendek(no) { var m = /^(\d+)\/SM-([A-Z]+)/.exec(String(no || '')); return m ? m[2] + ' ' + m[1] : ''; }
   /* Warna per status memo (sama di kartu temuan, tab Memo, Rekap, dan rincian): Belum memo kuning, Draf jingga, Terbit biru, Tindak lanjut ungu, Pemeriksaan II toska, Close hijau, Batal abu-abu. */
-  var KLS = { 'MENUNGGU TTD MK': 'm-draf', TERBIT: 'm-terbit', 'TINDAK LANJUT': 'm-tindak', 'PEMERIKSAAN II': 'm-periksa', CLOSE: 'm-close', BATAL: 'm-batal' };
+  var KLS = { 'MENUNGGU TTD MK': 'm-draf', TERBIT: 'm-terbit', 'TINDAK LANJUT': 'm-tindak', 'PEMERIKSAAN II': 'm-periksa', CLOSE: 'm-close', BATAL: 'm-batal', PERALIHAN: 'm-peralihan' };
   function stCls(st) { return KLS[st] || ''; }
   function perluMemo(d) { return !!d && C.canEdit() && !d.memoId && (d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }
   function stKartu(st) { return st === 'MENUNGGU TTD MK' ? 'm-draf' : st === 'BATAL' ? 'm-batal' : 'm-terbit'; }   // kartu temuan: Draf atau Terbit saja
   function kelas(d) { return d && d.memoId ? ' mm ' + stKartu(d.memoStatus) : perluMemo(d) ? ' mm m-belum' : ''; }
   function legenda(list) {
     if (list && !list.some(function (d) { return d.memoId || perluMemo(d); })) return '';
-    var item = list ? [['m-belum', 'Belum memo'], ['m-draf', 'Draf'], ['m-terbit', 'Terbit']] : [['m-belum', 'Belum memo'], ['m-draf', 'Draf'], ['m-terbit', 'Terbit'], ['m-tindak', 'Tindak lanjut'], ['m-periksa', 'Pemeriksaan II'], ['m-close', 'Close']];   // dengan daftar temuan: tiga keadaan; tanpa: semua tahap
+    var item = list ? [['m-belum', 'Belum memo'], ['m-draf', 'Draf'], ['m-terbit', 'Terbit']] : [['m-belum', 'Belum memo'], ['m-draf', 'Draf'], ['m-terbit', 'Terbit'], ['m-tindak', 'Tindak lanjut'], ['m-periksa', 'Pemeriksaan II'], ['m-peralihan', 'Peralihan'], ['m-close', 'Close']];   // dengan daftar temuan: tiga keadaan; tanpa: semua tahap
     return '<div class="mlg" aria-label="Arti warna memo">' + item.map(function (x) { return '<span><i class="' + x[0] + '"></i>' + x[1] + '</span>'; }).join('') + '</div>';
   }
   function punya(t) { return !!MODAL[t]; }
@@ -54,7 +55,7 @@
     return '<button type="button" class="tag memo ' + stKartu(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '" aria-label="Site memo ' + esc(lbl) + '">' + C.ic('memo') + esc(lbl) + '</button>';
   }
   /* Bagian "Site memo" pada dialog Temuan lengkap: nomor, tahap, penerbit, tanggal. */
-  var NAMA_TAHAP = { 'MENUNGGU TTD MK': 'Menunggu tanda tangan QC MK', 'TERBIT': 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', 'CLOSE': 'Close', 'BATAL': 'Dibatalkan' };
+  var NAMA_TAHAP = { 'MENUNGGU TTD MK': 'Menunggu tanda tangan QC MK', 'TERBIT': 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', 'CLOSE': 'Close', 'BATAL': 'Dibatalkan', 'PERALIHAN': 'Peralihan dari sistem lama' };
   function ringkasMemo(d) {
     function baris(k, v) { return v ? '<div class="kv"><span>' + k + '</span><b>' + v + '</b></div>' : ''; }
     if (!d.memoId) return perluMemo(d) ? baris('Status', 'Belum dimemokan') : '';
@@ -132,7 +133,7 @@
       kondisiAktual: v.aktual, kondisiSeharusnya: v.seharusnya, fotoBefore: v.foto, sahkan: !!(v.sahkan && m.s.qc.sayaBisaMengesahkan), konfirmasi: true };
     var r = await C.work('Membuat memo...', function () { return C.api('memo_draf', p); });
     if (!r) { C.openModal({ t: 'memoform', d: m.d, s: m.s, v: v }); return; }
-    C.putDefect(r.defect);
+    taruh(r.defect);
     C.toast(r.hasil && r.hasil.nomor ? 'Memo disahkan. Nomor ' + pendek(r.hasil.nomor) + '.' : 'Draf memo dibuat. Menunggu QC mengesahkan.');
     C.openModal({ t: 'memo', r: r });
     C.render();
@@ -144,24 +145,45 @@
 
   async function bukaDetail(p) {
     var r = await C.work('Memuat memo...', function () { return C.api('memo_detail', p); });
-    if (r) { C.putDefect(r.defect); C.openModal({ t: 'memo', r: r }); }
+    if (r) { taruh(r.defect); C.openModal({ t: 'memo', r: r }); }
   }
   async function buka(id) {
     var d = C.findDefect(id); if (!d) return;
     if (d.memoId) return bukaDetail({ memoId: d.memoId });
     var s = await C.work('Memuat memo...', function () { return C.api('memo_siap', { id: id }); });
     if (!s) return;
-    if (s.ada) { C.putDefect(s.detail.defect); return C.openModal({ t: 'memo', r: s.detail }); }
+    if (s.ada) { taruh(s.detail.defect); return C.openModal({ t: 'memo', r: s.detail }); }
     C.openModal({ t: 'memoform', d: d, s: s, v: awalForm(s) });
   }
   function baris(l, v) { return v ? '<div class="mrow"><span>' + l + '</span><b>' + esc(v) + '</b></div>' : ''; }
   function perluArsip(r) {
     var d = r.memo, a = [];
+    if (d.sumber) return a;
     if (r.ttd.MK1 && !d.pdfBefore) a.push('before');
     if (d.status === 'CLOSE' && !d.pdfAfter) a.push('after');
     return a;
   }
+  /* Memo peralihan (dari Monitoring): hanya data ringkas dan tautan ke surat dan penutup di Drive; tanpa tanda tangan, tindak lanjut, atau pratinjau. */
+  function driveUrl(id) { return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view'; }
+  function detailPeralihanHtml(m) {
+    var r = m.r, d = r.memo, admin = C.isAdmin();
+    var sel2 = function (l, v, penuh) { return v ? '<div class="mc' + (penuh ? ' full' : '') + '"><span>' + l + '</span><b>' + esc(v) + '</b></div>' : ''; };
+    var h = '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Site memo"><div class="grab" aria-hidden="true"></div><div class="mhead"><h2>SM ' + esc(pendek(d.noMemo) || d.kodeBidang) + '</h2><button type="button" class="btn-ic" data-act="mtutup" aria-label="Tutup">' + C.ic('x') + '</button></div>' +
+      '<div class="meta"><span class="tag ' + stCls(d.status) + '">' + esc(STAT[d.status] || d.status) + '</span><span class="tag">' + esc(d.bidang) + '</span><span class="tag">Dari sistem lama</span></div>' +
+      '<div class="note mono" style="padding:0">' + esc(d.noMemo) + '</div>' +
+      '<section class="group"><div class="mgrid">' + sel2('Perihal', d.kegiatan, true) + sel2('Lokasi', d.lokasi) + sel2('Pembuat memo', d.diajukanNama) + sel2('PIC penyedia jasa', d.kontraktor) +
+      sel2('Tanggal kirim', tglId(d.tglPengajuan)) + sel2(d.status === 'CLOSE' ? 'Tanggal respon dan penutupan' : 'Tahap', d.status === 'CLOSE' ? (d.tglClose ? tglId(d.tglClose) : 'Close (tanggal tidak tercatat)') : 'Menunggu scan penutup') + '</div></section>';
+    h += '<div class="note" style="padding:0">' + (d.status === 'CLOSE' ? 'Memo ini sudah Close.' : 'Memo ini dibuat di sistem lama. Admin menutupnya dengan mengunggah scan penutup.') + '</div>';
+    var links = '';
+    if (d.pdfBefore) links += '<a class="btn sec" href="' + driveUrl(d.pdfBefore) + '" target="_blank" rel="noopener">' + C.ic('pdf') + 'Buka surat memo</a>';
+    if (d.pdfAfter) links += '<a class="btn sec" href="' + driveUrl(d.pdfAfter) + '" target="_blank" rel="noopener">' + C.ic('pdf') + 'Buka penutup</a>';
+    if (links) h += '<div class="gap">' + links + '</div>';
+    var utama = '';
+    if (admin && d.status === 'PERALIHAN') utama += '<button type="button" class="btn" data-act="memotutupform">' + C.ic('centang') + 'Tutup memo peralihan</button>';
+    return h + '<div class="mact2">' + utama + (admin ? '<button type="button" class="btn sec sq" data-act="memolainnya" aria-label="Aksi lain">&#8943;</button>' : '<button type="button" class="btn sec" data-act="mtutup">Tutup</button>') + '</div></div></div>';
+  }
   function detailHtml(m) {
+    if (m.r.memo.sumber) return detailPeralihanHtml(m);
     var r = m.r, d = r.memo, df = r.defect, u = C.S.user, h = '', bukanQc = !!(u && u.qc !== 'YA' && !C.isAdmin());
     h += '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Site memo"><div class="grab" aria-hidden="true"></div><div class="mhead"><h2>' + (d.noMemo ? 'SM ' + esc(pendek(d.noMemo)) : 'Draf site memo') + '</h2><button type="button" class="btn-ic" data-act="mtutup" aria-label="Tutup">' + C.ic('x') + '</button></div>' +
       '<div class="meta"><span class="tag ' + stCls(d.status) + '">' + esc(STAT[d.status] || d.status) + '</span><span class="tag">' + esc(d.bidang) + '</span></div>' +
@@ -194,7 +216,7 @@
   }
   function lainnyaHtml(m) {
     var r = m.r, d = r.memo, u = C.S.user, it = [];
-    it.push(['memopdf', C.ic('pdf'), 'Unduh PDF', false]);
+    if (!d.sumber) it.push(['memopdf', C.ic('pdf'), 'Unduh PDF', false]);
     if (perluArsip(r).length && d.status !== 'BATAL' && (C.isAdmin() || (u && u.qc === 'YA'))) it.push(['memoarsip', C.ic('refresh'), 'Arsipkan PDF ke Drive', false]);
     if (r.bisaUbah && d.status !== 'BATAL') it.push(['memoubah', C.ic('ubah'), 'Ubah isian', false]);
     if (C.isAdmin() && d.status !== 'BATAL') it.push(['memobatal', '', 'Batalkan memo', true]);
@@ -209,7 +231,7 @@
     if (sel && sel.value) p.qid = sel.value;
     var h = await C.work('Mengesahkan...', function () { return C.api('memo_sahkan', p); });
     if (!h) return;
-    C.putDefect(h.defect);
+    taruh(h.defect);
     C.toast(h.hasil && h.hasil.nomor ? 'Memo disahkan. Nomor ' + pendek(h.hasil.nomor) + '.' : h.hasil && h.hasil.close ? 'Memo Close. Temuan ikut Close.' : 'Tanda tangan tersimpan.');
     if (C.S.modal && C.S.modal.t === 'memo') { C.S.modal.r = h; C.renderOverlay(); }
     C.render();
@@ -232,7 +254,7 @@
     if (!tl) { C.toast('Usulan tindak lanjut wajib diisi.'); return; }
     var r = await C.work('Menyimpan...', function () { return C.api('memo_tindak', { memoId: m.r.memo.id, tindakLanjut: tl, namaPenerima: nm }); });
     if (!r) return;
-    C.putDefect(r.defect); C.toast('Tindak lanjut tersimpan.'); C.openModal({ t: 'memo', r: r }); C.render(); muatDaftar();
+    taruh(r.defect); C.toast('Tindak lanjut tersimpan.'); C.openModal({ t: 'memo', r: r }); C.render(); muatDaftar();
   }
 
   /* ---------- daftar memo ---------- */
@@ -340,6 +362,53 @@
     }).join('');
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tanda tangan QC"><h2>Tanda tangan QC</h2><div class="note" style="padding:0">Setel tanda tangan dan nama cetak akun QC. Akun QC ditandai di sheet PENGGUNA (kolom QC dan QCBidang).</div>' +
       (baris ? '<div class="mlis">' + baris + '</div>' : '<div class="empty">Belum ada akun QC.</div>') + '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+  }
+  /* ---------- tutup memo peralihan dengan scan ---------- */
+  function tutupHtml(m) {
+    var d = m.r.memo;
+    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tutup memo peralihan"><h2>Tutup memo peralihan</h2>' +
+      '<div class="note" style="padding:0;overflow-wrap:anywhere">' + esc(pendek(d.noMemo) || d.noMemo) + '. ' + esc(d.kegiatan) + '</div>' +
+      '<section class="group"><div class="list"><label class="row"><span class="lbl">Scan penutup (PDF, JPG, atau PNG, maks 12 MB)</span><input type="file" id="mTutupFile" accept="application/pdf,image/jpeg,image/png"></label>' +
+      '<label class="row"><span class="lbl">Tanggal penutupan</span><input type="date" id="mTutupTgl" value="' + esc(m.tgl || '') + '" max="' + esc(m.tgl || '') + '"></label></div></section>' +
+      '<div class="note" style="padding:0">Berkas disimpan di folder Memo di Drive dan status memo menjadi Close. Aksi ini tercatat atas nama Anda.</div>' +
+      '<div class="gap"><button type="button" class="btn" data-act="memotutupkirim">Simpan dan tutup memo</button><button type="button" class="btn sec" data-act="memotutupbatal">Kembali</button></div></div></div>';
+  }
+  function bacaBerkas(f) {
+    return new Promise(function (ok, gagal) {
+      var fr = new FileReader();
+      fr.onload = function () { ok(String(fr.result)); };
+      fr.onerror = function () { gagal(new Error('Berkas tidak bisa dibaca.')); };
+      fr.readAsDataURL(f);
+    });
+  }
+  /* foto scan besar diperkecil (sisi terpanjang 2200 px, JPEG) supaya cepat terkirim */
+  function kecilkan(f) {
+    return new Promise(function (ok, gagal) {
+      var url = URL.createObjectURL(f), im = new Image();
+      im.onload = function () {
+        var k = Math.min(1, 2200 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', 0.85));
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); gagal(new Error('Gambar tidak bisa dibaca.')); };
+      im.src = url;
+    });
+  }
+  async function kirimTutup() {
+    var m = C.S.modal; if (!m || m.t !== 'tutupperalihan') return;
+    var f = $('mTutupFile') && $('mTutupFile').files[0], tgl = ($('mTutupTgl') || {}).value || '';
+    if (!f) { C.toast('Pilih berkas scan penutup.'); return; }
+    if (!/^(application\/pdf|image\/(jpeg|png))$/.test(f.type)) { C.toast('Berkas harus PDF, JPG, atau PNG.'); return; }
+    if (f.size > 12 * 1024 * 1024) { C.toast('Berkas lebih dari 12 MB.'); return; }
+    var data, mime = f.type;
+    try {
+      if (mime !== 'application/pdf' && f.size > 1.5 * 1024 * 1024) { data = await kecilkan(f); mime = 'image/jpeg'; } else data = await bacaBerkas(f);
+    } catch (e) { C.toast(e.message || 'Berkas tidak bisa dibaca.'); return; }
+    var r = await C.work('Mengunggah penutup...', function () { return C.api('memo_tutup_peralihan', { memoId: m.r.memo.id, mime: mime, data: data, tglClose: tgl }); });
+    if (!r) return;
+    C.toast('Memo ditutup.');
+    D.daftar = null; C.openModal({ t: 'memo', r: r }); C.render(); muatDaftar();
   }
   /* ---------- PDF ---------- */
 
@@ -451,7 +520,7 @@
       catch (e) { if (e && e.server && /Unggah tanda tangan/.test(e.message)) { perluTtd = true; return null; } throw e; }
     });
     if (!h) { if (perluTtd) { C.toast('Unggah tanda tangan Anda dulu.'); bukaTtd(); } return; }
-    C.putDefect(h.defect);
+    taruh(h.defect);
     C.toast(h.hasil && h.hasil.nomor ? 'Memo disahkan. Nomor ' + pendek(h.hasil.nomor) + '.' : h.hasil && h.hasil.close ? 'Memo Close. Temuan ikut Close.' : 'Tanda tangan tersimpan.');
     muatDaftar();
     if (h.hasil && h.hasil.arsip) await arsipkan(h, h.hasil.arsip);
@@ -461,7 +530,7 @@
 
   var RK = { bd: '', st: '', mw: '', lama: 0 };
   var BID_KODE = [['ARS', 'Arsitektur'], ['STR', 'Struktur'], ['MEEP', 'MEEP'], ['INF', 'Infrastruktur'], ['LSC', 'Lansekap']];
-  var ST_URUT = ['MENUNGGU TTD MK', 'TERBIT', 'TINDAK LANJUT', 'PEMERIKSAAN II', 'CLOSE'];
+  var ST_URUT = ['MENUNGGU TTD MK', 'TERBIT', 'TINDAK LANJUT', 'PEMERIKSAAN II', 'PERALIHAN', 'CLOSE'];
   function simpanMode(v) { try { localStorage.setItem('dl-rekap', v); } catch (e) { } }
   function rekapToggle() {
     if (!C.canEdit()) return '';
@@ -481,7 +550,7 @@
     var tot = aktif.length, close = n('CLOSE'), draf = n('MENUNGGU TTD MK'), jalan = aktif.filter(function (x) { return x.status !== 'CLOSE'; }), pc = function (v) { return tot ? v / tot * 100 : 0; };
     h += '<section class="group mprog"><div class="mpt"><b>' + Math.round(pc(close)) + '%</b><span><strong>selesai (Close)</strong>' + close + ' dari ' + tot + ' memo</span></div>' +
       '<div class="mstk"><i style="width:' + pc(close) + '%;background:var(--green)"></i><i style="width:' + pc(tot - close - draf) + '%;background:var(--orange)"></i><i style="width:' + pc(draf) + '%;background:var(--red)"></i></div></section>';
-    h += '<div class="mkpis">' + [['Total', tot, ''], ['Menunggu TTD MK', draf, 'o'], ['Terbit', n('TERBIT'), ''], ['Tindak lanjut', n('TINDAK LANJUT'), 'p'], ['Pemeriksaan II', n('PEMERIKSAAN II'), 'p'], ['Close', close, 'c']].map(function (k) { return '<div class="mk ' + k[2] + '"><b>' + k[1] + '</b><span>' + k[0] + '</span></div>'; }).join('') + '</div>';
+    h += '<div class="mkpis">' + [['Total', tot, ''], ['Menunggu TTD MK', draf, 'o'], ['Terbit', n('TERBIT'), ''], ['Tindak lanjut', n('TINDAK LANJUT'), 'p'], ['Pemeriksaan II', n('PEMERIKSAAN II'), 'p'], ['Peralihan', n('PERALIHAN'), 'p'], ['Close', close, 'c']].map(function (k) { return '<div class="mk ' + k[2] + '"><b>' + k[1] + '</b><span>' + k[0] + '</span></div>'; }).join('') + '</div>';
     var lama7 = jalan.filter(function (x) { return x.hari > 7; }).length, mpr = function (n2, t, cls, k, v) { return n2 ? '<button type="button" class="matt ' + cls + '" data-act="memorkfilter" data-k="' + k + '" data-v="' + v + '"><span>' + n2 + ' ' + t + '</span><span class="cv">&rsaquo;</span></button>' : ''; };
     var att = mpr(lama7, 'memo lebih dari 7 hari belum bergerak', 'r', 'lama', '1') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'QC MK'; }).length, 'menunggu tanda tangan QC MK', 'o', 'mw', 'QC MK') +
       mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'PJ'; }).length, 'menunggu tindak lanjut PJ', 'o', 'mw', 'PJ') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'MK'; }).length, 'menunggu verifikasi MK', 'n', 'mw', 'MK') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'QC PJ'; }).length, 'menunggu tanda tangan QC PJ', 'n', 'mw', 'QC PJ');
@@ -579,7 +648,7 @@
     var p = { memoId: m.r.memo.id, bidang: v.bidang, kegiatan: v.kegiatan, lokasi: v.lokasi, info: v.info, jenis: v.jenis, jenisLain: v.jenisLain, referensi: v.ref, kondisiAktual: v.aktual, kondisiSeharusnya: v.seharusnya, fotoBefore: v.foto };
     var r = await C.work('Menyimpan perubahan...', function () { return C.api('memo_ubah', p); });
     if (!r) return;
-    C.putDefect(r.defect);
+    taruh(r.defect);
     C.toast('Memo diperbarui.');
     C.openModal({ t: 'memo', r: r });
     C.render();
@@ -604,7 +673,7 @@
     if (m.kind === 'cabut') {
       var h = await C.work('Membatalkan tanda tangan...', function () { return C.api('memo_cabut_ttd', { memoId: id, slot: m.slot, konfirmasi: true }); });
       if (!h) return;
-      C.putDefect(h.defect); C.toast('Tanda tangan dibatalkan.' + ((h.arsipBasi || []).length ? ' PDF After lama belum sesuai; arsipkan ulang setelah disahkan lagi.' : ''));
+      taruh(h.defect); C.toast('Tanda tangan dibatalkan.' + ((h.arsipBasi || []).length ? ' PDF After lama belum sesuai; arsipkan ulang setelah disahkan lagi.' : ''));
       C.openModal({ t: 'memo', r: h }); C.render(); muatDaftar(); return;
     }
     var aksi = m.kind === 'batal' ? 'memo_batal' : 'memo_hapus';
@@ -700,7 +769,7 @@
       catch (e) { if (e && e.server && /Unggah tanda tangan/.test(e.message)) { perluTtd = true; return null; } throw e; }
     });
     if (!h) { if (perluTtd) { C.toast('Unggah tanda tangan Anda dulu.'); bukaTtd(); } return; }
-    C.putDefect(h.defect);
+    taruh(h.defect);
     C.toast(h.hasil && h.hasil.nomor ? 'Memo disahkan. Nomor ' + pendek(h.hasil.nomor) + '.' : h.hasil && h.hasil.close ? 'Memo Close. Temuan ikut Close.' : 'Tanda tangan tersimpan.');
     C.openModal({ t: 'memo', r: h }); C.render(); muatDaftar();
     if (h.hasil && h.hasil.arsip) await arsipkan(h, h.hasil.arsip);
@@ -719,6 +788,7 @@
     if (m.t === 'memoprev') return pvHtml(m);
     if (m.t === 'memolainnya') return lainnyaHtml(m);
     if (m.t === 'qcdaftar') return qcdaftarHtml(m);
+    if (m.t === 'tutupperalihan') return tutupHtml(m);
     return '';
   }
   function sesudahOverlay() {
@@ -754,7 +824,7 @@
       case 'memopratinjau': return m && m.t === 'memo' && bukaPratinjau({ mode: 'detail', r: m.r });
       case 'memopratinjaukartu': {
         var rp = await C.work('Memuat memo...', function () { return C.api('memo_detail', { memoId: el.getAttribute('data-m') }); });
-        if (rp) { C.putDefect(rp.defect); return bukaPratinjau({ mode: 'detail', r: rp }); }
+        if (rp) { taruh(rp.defect); return bukaPratinjau({ mode: 'detail', r: rp }); }
         return;
       }
       case 'memokembali': return m && C.openModal({ t: 'memoform', d: m.d, s: m.s, v: m.v });
@@ -791,7 +861,7 @@
       case 'memosahcepat': return sahkanCepat(el.getAttribute('data-m'), el.getAttribute('data-s'));
       case 'memotindakcepat': {
         var r1 = await C.work('Memuat memo...', function () { return C.api('memo_detail', { memoId: el.getAttribute('data-m') }); });
-        if (r1) { C.putDefect(r1.defect); C.openModal({ t: 'memotindak', r: r1 }); }
+        if (r1) { taruh(r1.defect); C.openModal({ t: 'memotindak', r: r1 }); }
         return;
       }
       case 'memorekapmode': C.S.rekapMode = el.getAttribute('data-v') === 'memo' ? 'memo' : 'temuan'; simpanMode(C.S.rekapMode); C.render(); if (C.S.rekapMode === 'memo') return muatDaftar(); return;
@@ -799,6 +869,12 @@
       case 'memoubah': return m && m.t === 'memo' && bukaUbah(m.r);
       case 'memoubahsimpan': return simpanUbah();
       case 'memokembaliubah': return m && m.r && C.openModal({ t: 'memo', r: m.r });
+      case 'memotutupform': {
+        var t0 = new Date(), tg = t0.getFullYear() + '-' + ('0' + (t0.getMonth() + 1)).slice(-2) + '-' + ('0' + t0.getDate()).slice(-2);
+        return m && m.t === 'memo' && C.openModal({ t: 'tutupperalihan', r: m.r, tgl: tg });
+      }
+      case 'memotutupkirim': return kirimTutup();
+      case 'memotutupbatal': return m && m.t === 'tutupperalihan' && C.openModal({ t: 'memo', r: m.r });
       case 'memobatal': return m && m.t === 'memo' && C.openModal({ t: 'memoyakin', kind: 'batal', r: m.r });
       case 'memohapus': return m && m.t === 'memo' && C.openModal({ t: 'memoyakin', kind: 'hapus', r: m.r });
       case 'memocabut': return m && m.t === 'memo' && C.openModal({ t: 'memoyakin', kind: 'cabut', slot: el.getAttribute('data-s'), r: m.r });
