@@ -169,17 +169,17 @@
     var r = m.r, d = r.memo, admin = C.isAdmin();
     var sel2 = function (l, v, penuh) { return v ? '<div class="mc' + (penuh ? ' full' : '') + '"><span>' + l + '</span><b>' + esc(v) + '</b></div>' : ''; };
     var h = '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Site memo"><div class="grab" aria-hidden="true"></div><div class="mhead"><h2>SM ' + esc(pendek(d.noMemo) || d.kodeBidang) + '</h2><button type="button" class="btn-ic" data-act="mtutup" aria-label="Tutup">' + C.ic('x') + '</button></div>' +
-      '<div class="meta"><span class="tag ' + stCls(d.status) + '">' + esc(STAT[d.status] || d.status) + '</span><span class="tag">' + esc(d.bidang) + '</span><span class="tag">Dari sistem lama</span></div>' +
+      '<div class="meta"><span class="tag ' + stCls(d.status) + '">' + esc(STAT[d.status] || d.status) + '</span><span class="tag">' + esc(d.bidang) + '</span><span class="tag">' + (d.sumber === 'MANUAL' ? 'Catatan manual' : 'Dari sistem lama') + '</span></div>' +
       '<div class="note mono" style="padding:0">' + esc(d.noMemo) + '</div>' +
       '<section class="group"><div class="mgrid">' + sel2('Perihal', d.kegiatan, true) + sel2('Lokasi', d.lokasi) + sel2('Pembuat memo', d.diajukanNama) + sel2('PIC penyedia jasa', d.kontraktor) +
-      sel2('Tanggal kirim', tglId(d.tglPengajuan)) + sel2(d.status === 'CLOSE' ? 'Tanggal respon dan penutupan' : 'Tahap', d.status === 'CLOSE' ? (d.tglClose ? tglId(d.tglClose) : 'Close (tanggal tidak tercatat)') : 'Menunggu scan penutup') + '</div></section>';
-    h += '<div class="note" style="padding:0">' + (d.status === 'CLOSE' ? 'Memo ini sudah Close.' : 'Memo ini dibuat di sistem lama. Admin menutupnya dengan mengunggah scan penutup.') + '</div>';
+      sel2('Tanggal kirim', tglId(d.tglPengajuan)) + sel2(d.status === 'CLOSE' ? 'Tanggal respon dan penutupan' : 'Tahap', d.status === 'CLOSE' ? (d.tglClose ? tglId(d.tglClose) : 'Close (tanggal tidak tercatat)') : 'Menunggu ditutup Admin') + '</div></section>';
+    h += '<div class="note" style="padding:0">' + (d.status === 'CLOSE' ? 'Memo ini sudah Close.' : 'Memo ini dari sistem lama atau dicatat manual di sheet. Admin menutupnya dengan tombol Tutup memo.') + '</div>';
     var links = '';
     if (d.pdfBefore) links += '<a class="btn sec" href="' + driveUrl(d.pdfBefore) + '" target="_blank" rel="noopener">' + C.ic('pdf') + 'Buka surat memo</a>';
     if (d.pdfAfter) links += '<a class="btn sec" href="' + driveUrl(d.pdfAfter) + '" target="_blank" rel="noopener">' + C.ic('pdf') + 'Buka penutup</a>';
     if (links) h += '<div class="gap">' + links + '</div>';
     var utama = '';
-    if (admin && d.status === 'PERALIHAN') utama += '<button type="button" class="btn" data-act="memotutupform">' + C.ic('centang') + 'Tutup memo peralihan</button>';
+    if (admin && d.status === 'PERALIHAN') utama += '<button type="button" class="btn" data-act="memotutupform">' + C.ic('centang') + 'Tutup memo (Close)</button>';
     return h + '<div class="mact2">' + utama + (admin ? '<button type="button" class="btn sec sq" data-act="memolainnya" aria-label="Aksi lain">&#8943;</button>' : '<button type="button" class="btn sec" data-act="mtutup">Tutup</button>') + '</div></div></div>';
   }
   function detailHtml(m) {
@@ -363,49 +363,19 @@
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tanda tangan QC"><h2>Tanda tangan QC</h2><div class="note" style="padding:0">Setel tanda tangan dan nama cetak akun QC. Akun QC ditandai di sheet PENGGUNA (kolom QC dan QCBidang).</div>' +
       (baris ? '<div class="mlis">' + baris + '</div>' : '<div class="empty">Belum ada akun QC.</div>') + '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   }
-  /* ---------- tutup memo peralihan dengan scan ---------- */
+  /* ---------- tutup memo peralihan: cukup tanggal dan konfirmasi ---------- */
   function tutupHtml(m) {
     var d = m.r.memo;
-    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tutup memo peralihan"><h2>Tutup memo peralihan</h2>' +
+    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tutup memo"><h2>Tutup memo?</h2>' +
       '<div class="note" style="padding:0;overflow-wrap:anywhere">' + esc(pendek(d.noMemo) || d.noMemo) + '. ' + esc(d.kegiatan) + '</div>' +
-      '<section class="group"><div class="list"><label class="row"><span class="lbl">Scan penutup (PDF, JPG, atau PNG, maks 12 MB)</span><input type="file" id="mTutupFile" accept="application/pdf,image/jpeg,image/png"></label>' +
-      '<label class="row"><span class="lbl">Tanggal penutupan</span><input type="date" id="mTutupTgl" value="' + esc(m.tgl || '') + '" max="' + esc(m.tgl || '') + '"></label></div></section>' +
-      '<div class="note" style="padding:0">Berkas disimpan di folder Memo di Drive dan status memo menjadi Close. Aksi ini tercatat atas nama Anda.</div>' +
-      '<div class="gap"><button type="button" class="btn" data-act="memotutupkirim">Simpan dan tutup memo</button><button type="button" class="btn sec" data-act="memotutupbatal">Kembali</button></div></div></div>';
-  }
-  function bacaBerkas(f) {
-    return new Promise(function (ok, gagal) {
-      var fr = new FileReader();
-      fr.onload = function () { ok(String(fr.result)); };
-      fr.onerror = function () { gagal(new Error('Berkas tidak bisa dibaca.')); };
-      fr.readAsDataURL(f);
-    });
-  }
-  /* foto scan besar diperkecil (sisi terpanjang 2200 px, JPEG) supaya cepat terkirim */
-  function kecilkan(f) {
-    return new Promise(function (ok, gagal) {
-      var url = URL.createObjectURL(f), im = new Image();
-      im.onload = function () {
-        var k = Math.min(1, 2200 / Math.max(im.width, im.height)), c = document.createElement('canvas');
-        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
-        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', 0.85));
-      };
-      im.onerror = function () { URL.revokeObjectURL(url); gagal(new Error('Gambar tidak bisa dibaca.')); };
-      im.src = url;
-    });
+      '<section class="group"><div class="list"><label class="row"><span class="lbl">Tanggal penutupan</span><input type="date" id="mTutupTgl" value="' + esc(m.tgl || '') + '" max="' + esc(m.tgl || '') + '"></label></div></section>' +
+      '<div class="note" style="padding:0">Status memo menjadi Close. Aksi ini tercatat atas nama Anda.</div>' +
+      '<div class="gap"><button type="button" class="btn" data-act="memotutupkirim">Ya, tutup memo</button><button type="button" class="btn sec" data-act="memotutupbatal">Kembali</button></div></div></div>';
   }
   async function kirimTutup() {
     var m = C.S.modal; if (!m || m.t !== 'tutupperalihan') return;
-    var f = $('mTutupFile') && $('mTutupFile').files[0], tgl = ($('mTutupTgl') || {}).value || '';
-    if (!f) { C.toast('Pilih berkas scan penutup.'); return; }
-    if (!/^(application\/pdf|image\/(jpeg|png))$/.test(f.type)) { C.toast('Berkas harus PDF, JPG, atau PNG.'); return; }
-    if (f.size > 12 * 1024 * 1024) { C.toast('Berkas lebih dari 12 MB.'); return; }
-    var data, mime = f.type;
-    try {
-      if (mime !== 'application/pdf' && f.size > 1.5 * 1024 * 1024) { data = await kecilkan(f); mime = 'image/jpeg'; } else data = await bacaBerkas(f);
-    } catch (e) { C.toast(e.message || 'Berkas tidak bisa dibaca.'); return; }
-    var r = await C.work('Mengunggah penutup...', function () { return C.api('memo_tutup_peralihan', { memoId: m.r.memo.id, mime: mime, data: data, tglClose: tgl }); });
+    var tgl = ($('mTutupTgl') || {}).value || '';
+    var r = await C.work('Menutup memo...', function () { return C.api('memo_tutup_peralihan', { memoId: m.r.memo.id, tglClose: tgl, konfirmasi: true }); });
     if (!r) return;
     C.toast('Memo ditutup.');
     D.daftar = null; C.openModal({ t: 'memo', r: r }); C.render(); muatDaftar();
