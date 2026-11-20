@@ -104,31 +104,26 @@
       doc.addImage(im.url, fmt, x + (w - gw) / 2, yy + (h - gh) / 2, gw, gh);
     }
 
-    /* Tiga logo berjajar di blok kiri: Owner, KSO MK, KSO PJ. Tinggi sama, lebar menurut rasio; diperkecil bila tidak muat. */
+    /* Tiga logo di blok kiri: Owner, KSO MK, KSO PJ. Tiga kotak berukuran sama; tiap logo diperbesar sampai menyentuh sisi kotak
+     * (rasio tetap) dan diletakkan di tengah kotaknya, jadi tidak ada logo yang tampak lebih besar dari yang lain. */
     function logoBlok(c0, c1, yy, hpx) {
       var ada = [logo.owner, logo.mk, logo.pj].filter(function (l) { return l && l.url; });
       if (!ada.length) return;
-      var tinggi = H(hpx) - 4, jarak = 2.5, lebarBlok = X(c1) - X(c0) - 4;
-      var lebar = ada.map(function (l) { return l.w * tinggi / l.h; });
-      var total = lebar.reduce(function (a, b) { return a + b; }, 0) + jarak * (ada.length - 1);
-      var sk = total > lebarBlok ? lebarBlok / total : 1;
-      var x = X(c0) + 2 + (lebarBlok - total * sk) / 2, ty = yy + 2 + tinggi * (1 - sk) / 2;
+      var tinggi = H(hpx) - 5, jarak = 2, lebarBlok = X(c1) - X(c0) - 4;
+      var kotakW = (lebarBlok - jarak * (ada.length - 1)) / ada.length;
       ada.forEach(function (l, i) {
-        var w = lebar[i] * sk, h = tinggi * sk, fmt = /^data:image\/png/i.test(l.url) ? 'PNG' : 'JPEG';
-        doc.addImage(l.url, fmt, x, ty, w, h); x += w + jarak * sk;
+        var sk = Math.min(kotakW / l.w, tinggi / l.h), w = l.w * sk, h = l.h * sk, fmt = /^data:image\/png/i.test(l.url) ? 'PNG' : 'JPEG';
+        var kx = X(c0) + 2 + i * (kotakW + jarak);
+        doc.addImage(l.url, fmt, kx + (kotakW - w) / 2, yy + 2.5 + (tinggi - h) / 2, w, h);
       });
     }
 
-    /* Tanda tangan: gambar di tengah kotak, keterangan elektronik di bawah. */
+    /* Tanda tangan: gambar di tengah kotak. Keterangan waktu dan pelaksana (termasuk Admin pengganti) tidak dicetak; tercatat di LOG. */
     function tandaTangan(slot, c0, c1, yy, hpx) {
       var t = ttd[slot];
-      if (!t) return;
+      if (!t || !t.img) return;
       var x = X(c0), w = X(c1) - X(c0), h = H(hpx);
-      if (t.img) gambar(t.img, x + w * 0.12, yy + 1, w * 0.76, h - 7);
-      font(UK_KECIL, false); doc.setTextColor(95, 95, 95);
-      var ket = 'Disahkan secara elektronik' + (t.waktu ? ', ' + t.waktu : '') + (t.pengganti ? ' (oleh ' + t.pengganti + ')' : '');
-      doc.text(doc.splitTextToSize(ket, w - 4), x + w / 2, yy + h - 3.2, { align: 'center' });
-      ink();
+      gambar(t.img, x + w * 0.12, yy + 2, w * 0.76, h - 4);
     }
 
     function kepalaLanjutan() {
@@ -157,7 +152,7 @@
     /* ===================== LEMBAR 1 ===================== */
     bar(y, 40, NAVY, [[0, 6, 'SITE MEMO']], UK_JUDUL); y += H(40);
 
-    var hNo = Math.max(36, butuh(d.noMemo, 4, 6, 1.6)), h1 = Math.max(78, hNo + 36);
+    var hNo = Math.max(36, butuh(d.noMemo, 4, 6, 1.6)), h1 = Math.max(96, hNo + 36);
     bingkai(0, 6, y, h1); vgaris(2, y, h1);
     logoBlok(0, 2, y, h1);
     sel(3, 4, y, hNo, { teks: 'No.', tebal: true }); sel(4, 6, y, hNo, { teks: d.noMemo });
