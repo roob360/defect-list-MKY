@@ -576,6 +576,7 @@ function hambatTerima(d){
 /* Hak mengubah, menghapus, dan mengelola foto Before: Admin, pelapor, QC MK yang berwenang (Koordinator semua bidang). Cermin aturan server (_bolehKelolaTemuan). */
 var QC_GRUP_BIDANG={Arsitektur:'ARS',Struktur:'STR',MEEP:'MEEP'};
 function bisaKelola(d){
+  if(typeof d.kelola==='boolean')return d.kelola;   // server menentukan (sidik akun); yang di bawah hanya cadangan untuk data tanpa penanda
   var u=S.user;if(!u)return false;
   if(u.peran==='ADMIN')return true;
   if(u.peran!=='MK')return false;
@@ -594,7 +595,7 @@ function ttxHtml(d){
     '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span>'+(M_?M_.tag(d):'')+'</div>'+
     '<div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(d.uraian)+'</div>'+
     bagian('Temuan',baris('Lokasi',esc(lok))+baris('Tanggal temuan',d.tglTemuan?esc(fmt(d.tglTemuan)):''))+
-    bagian('Pelapor',baris('Dilaporkan oleh',d.by?esc(d.by):'(tidak tercatat)')+baris('Terakhir diubah',d.ubah?esc(fmt(d.ubah)):''))+
+    bagian('Pelapor',baris('Dilaporkan oleh',d.by?esc(d.by)+(d.saya?' (Anda)':''):'(tidak tercatat)')+baris('Terakhir diubah',d.ubah?esc(fmt(d.ubah)):''))+
     bagian('Site memo',memo)+
     bagian('Perbaikan',perbaikan)+
     '<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',true,'detail')+'</div><div class="ph" data-j="after">'+phHtml(d,'after',true,'detail')+'</div></div>'+
@@ -640,11 +641,11 @@ function entryHtml(d,n,ix,ro){
 }
 
 /* ----- filter antrean (tab Verifikasi dan Perbaikan, masing-masing punya state sendiri) ----- */
-var AQ={verif:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},perbaikan:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},form:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,n:60}};   // form = tab Temuan mode Semua ruangan
-function aqOn(a){return !!(a.q.trim()||a.gd||a.lt||a.bd||a.tk||a.tl||a.mm)}
+var AQ={verif:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},perbaikan:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},form:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,sy:0,n:60}};   // form = tab Temuan mode Semua ruangan
+function aqOn(a){return !!(a.q.trim()||a.gd||a.lt||a.bd||a.tk||a.tl||a.mm||a.sy)}
 function aqList(list,a){
   var q=a.q.trim().toLowerCase();
-  return list.filter(function(d){return (!a.gd||d.gedung===a.gd)&&(!a.lt||d.lantai===a.lt)&&(!a.bd||d.bidang===a.bd)&&(!a.tk||d.tingkat===a.tk)&&(!a.tl||d.verifikasi==='Ditolak')&&(!a.mm||!!d.memoId)&&
+  return list.filter(function(d){return (!a.gd||d.gedung===a.gd)&&(!a.lt||d.lantai===a.lt)&&(!a.bd||d.bidang===a.bd)&&(!a.tk||d.tingkat===a.tk)&&(!a.tl||d.verifikasi==='Ditolak')&&(!a.mm||!!d.memoId)&&(!a.sy||d.saya===true)&&
     (!q||String(d.uraian+' '+(d.titik||'')+' '+(d.elemen||'')+' '+(d.ruangan||'')).toLowerCase().indexOf(q)>=0)});
 }
 function aqIsi(list,a,verif){
@@ -669,6 +670,7 @@ function aqBar(list,a,perb,semua){
   var n=(a.gd?1:0)+(a.lt?1:0)+(a.bd?1:0)+(a.tk?1:0);
   return '<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari uraian, elemen, titik, ruangan" autocomplete="off" value="'+esc(a.q)+'"></label>'+
     (aqOn(a)?'<button type="button" class="btn-sq" data-act="aqclr">Atur ulang</button>':'')+'</div>'+
+    (semua&&canEdit()?'<div class="chips" role="group" aria-label="Pelapor"><button type="button" class="chip'+(a.sy?'':' on')+'" data-act="aqsy" data-v="0">Semua pelapor</button><button type="button" class="chip'+(a.sy?' on':'')+'" data-act="aqsy" data-v="1">Temuan saya</button></div>':'')+
     (semua?'<div class="chips" role="group" aria-label="Memo"><button type="button" class="chip'+(a.mm?'':' on')+'" data-act="aqmm" data-v="0">Semua</button><button type="button" class="chip'+(a.mm?' on':'')+'" data-act="aqmm" data-v="1">Bermemo</button></div>':'')+
     (perb?'<div class="chips" role="group" aria-label="Status verifikasi"><button type="button" class="chip'+(a.tl?'':' on')+'" data-act="aqtl" data-v="0">Semua</button><button type="button" class="chip'+(a.tl?' on':'')+'" data-act="aqtl" data-v="1">Ditolak MK</button></div>':'')+
     '<section class="group"><div class="list"><div class="two">'+sel('gd','Gedung',gd)+sel('lt','Lantai',lt)+'</div><div class="two">'+sel('bd','Bidang',BIDANG)+sel('tk','Tingkat',TINGKAT)+'</div></div><div class="gf" id="aqcount">'+esc(aqCount(list,a))+'</div></section>';
@@ -2256,7 +2258,8 @@ async function onClick(ev){
     case 'rekapall': {var ok=await work('Memuat semua temuan...',loadAll);if(ok)render();return}
     case 'addroom': return tambahRuangan();
     case 'fst': S.flt.st=el.getAttribute('data-v')||'';return refreshList();
-    case 'aqclr': if(AQ[S.view])AQ[S.view]={q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,n:60};return render();
+    case 'aqclr': if(AQ[S.view])AQ[S.view]={q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,sy:0,n:60};return render();
+    case 'aqsy': AQ.form.sy=el.getAttribute('data-v')==='1'?1:0;AQ.form.n=60;return render();
     case 'aqmm': AQ.form.mm=el.getAttribute('data-v')==='1'?1:0;AQ.form.n=60;return render();
     case 'aqlebih': AQ.form.n=(AQ.form.n||60)+60;return render();
     case 'muatsemua': S.all=null;S.allErr=false;S.allBusy=false;return render();
