@@ -51,9 +51,11 @@
     var lbl = d.noMemo ? 'SM ' + pendek(d.noMemo) : 'Draf memo';
     return '<button type="button" class="tag memo ' + stCls(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '" aria-label="Site memo ' + esc(lbl) + '">' + C.ic('memo') + esc(lbl) + '</button>';
   }
-  function bisaNaik(d) { return C.canEdit() && !d.memoId && (C.isAdmin() || d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }
+  function bisaNaik(d) { return C.canEdit() && !d.memoId && (d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }   // juga untuk Admin: tingkat Minor diubah dulu
+  /* Tombol Memo berwarna menurut keadaan: kuning bergaris putus = belum dinaikkan; selebihnya sama dengan warna status memo. */
   function kartuTombol(d) {
-    if (d.memoId || bisaNaik(d)) return '<button type="button" class="pill memo" data-act="memobuka" data-d="' + esc(d.id) + '">' + C.ic('memo') + 'Memo</button>';
+    if (d.memoId) return '<button type="button" class="pill memo ' + stCls(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '">' + C.ic('memo') + 'Memo</button>';
+    if (bisaNaik(d)) return '<button type="button" class="pill memo m-belum" data-act="memobuka" data-d="' + esc(d.id) + '">' + C.ic('memo') + 'Memo</button>';
     return '';
   }
   function setelanHtml() {
@@ -152,25 +154,26 @@
     h += '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Site memo"><div class="grab" aria-hidden="true"></div><div class="mhead"><h2>' + (d.noMemo ? 'SM ' + esc(pendek(d.noMemo)) : 'Draf site memo') + '</h2><button type="button" class="btn-ic" data-act="mtutup" aria-label="Tutup">' + C.ic('x') + '</button></div>' +
       '<div class="meta"><span class="tag ' + stCls(d.status) + '">' + esc(STAT[d.status] || d.status) + '</span><span class="tag">' + esc(d.bidang) + '</span></div>' +
       (d.noMemo ? '<div class="note mono" style="padding:0">' + esc(d.noMemo) + '</div>' : '');
-    h += '<section class="group"><div class="list mlist">' + baris('Kegiatan', d.kegiatan) + baris('Lokasi', d.lokasi) + baris('Info', d.info && d.info !== '-' ? d.info : '') +
-      baris('Jenis', d.jenis.concat(d.jenisLain ? ['(' + d.jenisLain + ')'] : []).join(', ')) + baris('Referensi', d.referensi.join(', ')) +
-      baris('Kondisi aktual', d.kondisiAktual) + baris('Kondisi seharusnya', d.kondisiSeharusnya) +
-      (d.tindakLanjut ? baris('Tindak lanjut PJ', d.tindakLanjut + (d.namaPenerima ? ' (penerima: ' + d.namaPenerima + ')' : '')) : '') +
-      (df.verifikasi ? baris('Verifikasi MK', df.verifikasi + (df.tglVerif ? ' ' + tglId(df.tglVerif) : '') + (df.verifOleh ? ' oleh ' + df.verifOleh : '') + (df.catatan ? '. ' + df.catatan : '')) : '') + '</div></section>';
+    var sel2 = function (l, v, penuh) { return v ? '<div class="mc' + (penuh ? ' full' : '') + '"><span>' + l + '</span><b>' + esc(v) + '</b></div>' : ''; };
+    h += '<section class="group"><div class="mgrid">' + sel2('Kegiatan', d.kegiatan) + sel2('Lokasi', d.lokasi) + sel2('Jenis', d.jenis.concat(d.jenisLain ? ['(' + d.jenisLain + ')'] : []).join(', ')) + sel2('Referensi', d.referensi.join(', ')) +
+      sel2('Info', d.info && d.info !== '-' ? d.info : '', true) + sel2('Kondisi aktual', d.kondisiAktual) + sel2('Kondisi seharusnya', d.kondisiSeharusnya) +
+      sel2('Tindak lanjut PJ', d.tindakLanjut ? d.tindakLanjut + (d.namaPenerima ? ' (penerima: ' + d.namaPenerima + ')' : '') : '', true) +
+      sel2('Verifikasi MK', df.verifikasi ? df.verifikasi + (df.tglVerif ? ' ' + tglId(df.tglVerif) : '') + (df.verifOleh ? ' oleh ' + df.verifOleh : '') + (df.catatan ? '. ' + df.catatan : '') : '', true) + '</div></section>';
     if (bukanQc) h += '<div class="note" style="padding:0">Pengesahan memo dilakukan oleh QC.</div>';
-    h += '<section class="group"><div class="list mttd">';
+    h += '<div class="mttd2">';
     var terakhir = ''; ['MK1', 'PJ1', 'MK2', 'PJ2'].forEach(function (s) { if (r.ttd[s]) terakhir = s; });
     ['MK1', 'PJ1', 'MK2', 'PJ2'].forEach(function (s) {
       var t = r.ttd[s], b = r.bisa[s], x;
-      if (t) x = '<span class="ok">' + C.ic('centang') + '</span><div><b>' + esc(t.nama) + '</b><span>' + esc(t.jabatan) + ' &middot; ' + esc(tglId(t.waktu)) + (t.pelaksana ? ' &middot; disahkan oleh ' + esc(t.pelaksana) : '') + '</span></div>' + (C.isAdmin() && s === terakhir && d.status !== 'BATAL' ? '<button type="button" class="pill bad cb" data-act="memocabut" data-s="' + s + '">Cabut</button>' : '');
+      if (t) x = '<div class="who"><span class="ck">' + C.ic('centang') + '</span><b>' + esc(t.nama) + '</b></div><span class="sub">' + esc(t.jabatan) + ' &middot; ' + esc(tglId(t.waktu)) + (t.pelaksana ? ' &middot; oleh ' + esc(t.pelaksana) : '') + '</span>' +
+        (C.isAdmin() && s === terakhir && d.status !== 'BATAL' ? '<button type="button" class="pill bad cb" data-act="memocabut" data-s="' + s + '">Cabut</button>' : '');
       else if (b && b.ok) {
         var sel = (b.kandidat && b.kandidat.length > 1) ? '<select id="mQid_' + s + '" class="mqid">' + b.kandidat.map(function (k) { return '<option value="' + esc(k.qid) + '">' + esc(k.nama) + '</option>'; }).join('') + '</select>' : '';
         var perluTtd = u && u.qc === 'YA' && !r.ttdSaya && !C.isAdmin();
-        x = '<div class="mact">' + sel + (perluTtd ? '<button type="button" class="pill" data-act="ttd">' + C.ic('ubah') + 'Unggah tanda tangan dulu</button>' : '<button type="button" class="pill go" data-act="memosah" data-s="' + s + '">' + C.ic('centang') + 'Sahkan</button>') + '</div>';
+        x = sel + (perluTtd ? '<button type="button" class="pill" data-act="ttd">' + C.ic('ubah') + 'Unggah tanda tangan</button>' : '<button type="button" class="pill go" data-act="memosah" data-s="' + s + '">' + C.ic('centang') + 'Sahkan</button>');
       } else x = '<span class="wait">' + esc(bukanQc ? 'Menunggu' : ((b && b.alasan) || 'Menunggu')) + '</span>';
-      h += '<div class="mtr"><span class="sl">' + NAMA_SLOT[s] + '</span>' + x + '</div>';
+      h += '<div class="mt2' + (t ? ' ok' : '') + '"><span class="sl">' + NAMA_SLOT[s] + '</span>' + x + '</div>';
     });
-    h += '</div></section>';
+    h += '</div>';
     var aktif = d.status !== 'CLOSE' && d.status !== 'BATAL', utama = '';
     if (r.bisaTindak && r.bisaTindak.ok && aktif) utama += '<button type="button" class="btn" data-act="memotindak">' + C.ic('ubah') + (d.tindakLanjut ? 'Ubah tindak lanjut' : 'Isi tindak lanjut') + '</button>';
     utama += '<button type="button" class="btn' + (utama ? ' sec' : '') + '" data-act="memopratinjau">' + C.ic('memo') + 'Pratinjau</button>';
@@ -444,7 +447,14 @@
     if (D.daftar === null) return h + (D.off ? '<div class="err">Server belum mendukung site memo.</div>' : C.skel('table'));
     var all = D.daftar.filter(function (x) { return C.isAdmin() || x.status !== 'BATAL'; }), aktif = all.filter(function (x) { return x.status !== 'BATAL'; });
     var n = function (st) { return aktif.filter(function (x) { return x.status === st; }).length; };
-    h += '<div class="mkpis">' + [['Total', aktif.length, ''], ['Menunggu TTD MK', n('MENUNGGU TTD MK'), 'o'], ['Terbit', n('TERBIT'), ''], ['Tindak lanjut', n('TINDAK LANJUT'), 'p'], ['Pemeriksaan II', n('PEMERIKSAAN II'), 'p'], ['Close', n('CLOSE'), 'c']].map(function (k) { return '<div class="mk ' + k[2] + '"><b>' + k[1] + '</b><span>' + k[0] + '</span></div>'; }).join('') + '</div>';
+    var tot = aktif.length, close = n('CLOSE'), draf = n('MENUNGGU TTD MK'), jalan = aktif.filter(function (x) { return x.status !== 'CLOSE'; }), pc = function (v) { return tot ? v / tot * 100 : 0; };
+    h += '<section class="group mprog"><div class="mpt"><b>' + Math.round(pc(close)) + '%</b><span><strong>selesai (Close)</strong>' + close + ' dari ' + tot + ' memo</span></div>' +
+      '<div class="mstk"><i style="width:' + pc(close) + '%;background:var(--green)"></i><i style="width:' + pc(tot - close - draf) + '%;background:var(--orange)"></i><i style="width:' + pc(draf) + '%;background:var(--red)"></i></div></section>';
+    h += '<div class="mkpis">' + [['Total', tot, ''], ['Menunggu TTD MK', draf, 'o'], ['Terbit', n('TERBIT'), ''], ['Tindak lanjut', n('TINDAK LANJUT'), 'p'], ['Pemeriksaan II', n('PEMERIKSAAN II'), 'p'], ['Close', close, 'c']].map(function (k) { return '<div class="mk ' + k[2] + '"><b>' + k[1] + '</b><span>' + k[0] + '</span></div>'; }).join('') + '</div>';
+    var lama7 = jalan.filter(function (x) { return x.hari > 7; }).length, mpr = function (n2, t, cls, k, v) { return n2 ? '<button type="button" class="matt ' + cls + '" data-act="memorkfilter" data-k="' + k + '" data-v="' + v + '"><span>' + n2 + ' ' + t + '</span><span class="cv">&rsaquo;</span></button>' : ''; };
+    var att = mpr(lama7, 'memo lebih dari 7 hari belum bergerak', 'r', 'lama', '1') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'QC MK'; }).length, 'menunggu tanda tangan QC MK', 'o', 'mw', 'QC MK') +
+      mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'PJ'; }).length, 'menunggu tindak lanjut PJ', 'o', 'mw', 'PJ') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'MK'; }).length, 'menunggu verifikasi MK', 'n', 'mw', 'MK') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'QC PJ'; }).length, 'menunggu tanda tangan QC PJ', 'n', 'mw', 'QC PJ');
+    h += '<section class="group"><div class="sh">Perlu perhatian</div><div style="padding:0 16px 14px">' + (att || '<div class="rknote">Tidak ada memo yang perlu perhatian.</div>') + '</div></section>';
     h += '<section class="group"><div class="sh">Per bidang</div><div class="tw"><table class="t"><thead><tr><th>Bidang</th><th>Total</th><th>Berjalan</th><th>Close</th></tr></thead><tbody>' +
       BID_KODE.map(function (b) { var l = aktif.filter(function (x) { return x.kodeBidang === b[0]; }), cl = l.filter(function (x) { return x.status === 'CLOSE'; }).length; return '<tr><td>' + esc(b[1]) + '</td><td>' + l.length + '</td><td>' + (l.length - cl) + '</td><td>' + cl + '</td></tr>'; }).join('') + '</tbody></table></div></section>';
     var opt = function (arr, cur, semua) { return '<option value="">' + semua + '</option>' + arr.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join(''); };

@@ -544,7 +544,7 @@ function thumbsHtml(items,jenis,d,removable,mode){
   var jobs=S.up.filter(function(j){return j.did===d.id&&j.jenis===jenis});
   var lim=mode==='kartu'?1:mode==='detail'?4:0,tampil=lim?items.slice(0,lim):items;
   if(!items.length&&!jobs.length)return '<div class="none">Belum ada foto '+jenis+'</div>';
-  return '<div class="thumbs">'+(items.length>1?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+tampil.map(function(f,ix){
+  return '<div class="thumbs">'+(items.length>1&&!mode?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+tampil.map(function(f,ix){
     return '<div class="thumb"><button type="button" data-act="zoom" data-f="'+esc(f.id)+'" data-d="'+esc(d.id)+'" data-j="'+jenis+'" aria-label="Lihat foto"><img loading="lazy" referrerpolicy="no-referrer" alt="Foto '+jenis+'" src="'+(S.pv[f.id]||thumb(f.id,400))+'"></button>'+
       (f.t?'<span class="dt">'+esc(fmt(f.t))+'</span>':'')+
       (S.fotoOk[f.id]?(delete S.fotoOk[f.id],'<span class="ok" aria-hidden="true">'+SVG_CEK+'</span>'):'')+
