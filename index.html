@@ -856,6 +856,9 @@
   .kv b{ font-weight:500; color:var(--label1); overflow-wrap:anywhere; }
   /* tabel Rekap Memo: kegiatan, lokasi, dan penunggu dipotong satu baris; rincian lengkap ada saat baris diketuk */
   table.t.mt{ table-layout:fixed; width:100%; }
+  table.t.mt th.srt{ cursor:pointer; user-select:none; }
+  table.t.mt th.srt:hover, table.t.mt th.srt.on{ color:var(--label1); }
+  table.t.mt th.srt .ar{ margin-left:4px; font-size:9px; opacity:.45; } table.t.mt th.srt.on .ar{ opacity:1; color:var(--blue); }
   table.t.mt th:nth-child(1){ width:52px; } table.t.mt th:nth-child(2){ width:58px; } table.t.mt th:nth-child(3){ width:27%; } table.t.mt th:nth-child(4){ width:13%; }
   table.t.mt th:nth-child(5){ width:104px; } table.t.mt th:nth-child(6){ width:15%; } table.t.mt th:nth-child(n+7):nth-child(-n+10){ width:62px; } table.t.mt th:nth-child(11){ width:56px; }
   table.t.mt th:nth-child(-n+6), table.t.mt td:nth-child(-n+6){ text-align:left; }

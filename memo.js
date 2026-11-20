@@ -502,7 +502,7 @@
 
   /* ---------- Rekap > Memo (Admin dan MK) ---------- */
 
-  var RK = { bd: '', st: '', mw: '', lama: 0 };
+  var RK = { bd: '', st: '', mw: '', lama: 0, ur: '', ud: 1 };   // ur: kolom urutan (kosong = urutan bawaan: yang berjalan dulu, terlama di atas), ud: 1 naik atau -1 turun
   var BID_KODE = [['ARS', 'Arsitektur'], ['STR', 'Struktur'], ['MEEP', 'MEEP'], ['INF', 'Infrastruktur'], ['LSC', 'Lansekap']];
   var ST_URUT = ['MENUNGGU TTD MK', 'TERBIT', 'TINDAK LANJUT', 'PEMERIKSAAN II', 'PERALIHAN', 'CLOSE'];
   function simpanMode(v) { try { localStorage.setItem('dl-rekap', v); } catch (e) { } }
@@ -511,10 +511,39 @@
     var m = C.S.rekapMode === 'memo', n = D.daftar ? D.daftar.filter(function (x) { return x.status !== 'BATAL'; }).length : 0;
     return '<div class="chips rkmode" role="group" aria-label="Rekap"><button type="button" class="chip' + (m ? '' : ' on') + '" data-act="memorekapmode" data-v="temuan">Temuan</button><button type="button" class="chip' + (m ? ' on' : '') + '" data-act="memorekapmode" data-v="memo">Memo' + (n ? ' ' + n : '') + '</button></div>';
   }
+  /* Urutan tabel Rekap Memo lewat klik judul kolom. Kolom Menunggu tidak diurutkan (teks bebas, tidak bermakna). Sel kosong selalu di bawah. */
+  var KUNCI_URUT = {
+    no: function (x) { var s = /^\s*(\d+)\s*\//.exec(String(x.noMemo || '')); return s ? parseInt(s[1], 10) : null; },
+    bd: function (x) { return x.kodeBidang || null; },
+    kg: function (x) { return (x.kegiatan || x.lokasi || '').toLowerCase() || null; },
+    lk: function (x) { return (lokasiTeks(x) || '').toLowerCase() || null; },
+    st: function (x) { var i = ST_URUT.indexOf(x.status); return i < 0 ? 99 : i; },
+    mk1: function (x) { return (x.tgl && x.tgl.MK1) || null; }, pj1: function (x) { return (x.tgl && x.tgl.PJ1) || null; },
+    mk2: function (x) { return (x.tgl && x.tgl.MK2) || null; }, pj2: function (x) { return (x.tgl && x.tgl.PJ2) || null; },
+    hr: function (x) { return x.status === 'CLOSE' || x.status === 'BATAL' ? null : (x.hari || 0); }
+  };
+  var ARAH_AWAL = { mk1: -1, pj1: -1, mk2: -1, pj2: -1, hr: -1 };   // tanggal dan lama menunggu: yang terbaru atau terlama dulu pada klik pertama
+  function urutkan(list) {
+    var f = KUNCI_URUT[RK.ur]; if (!f) return list;
+    return list.slice().sort(function (a, b) {
+      var x = f(a), y = f(b);
+      if (x === null && y === null) return 0;
+      if (x === null) return 1;
+      if (y === null) return -1;
+      var c = typeof x === 'string' ? x.localeCompare(y, 'id', { numeric: true }) : x - y;
+      if (!c && RK.ur === 'no') c = String(a.kodeBidang).localeCompare(String(b.kodeBidang));
+      return c * RK.ud;
+    });
+  }
+  function th(k, label) {
+    var on = RK.ur === k;
+    return '<th class="srt' + (on ? ' on' : '') + '" data-act="memorkurut" data-k="' + k + '" aria-sort="' + (on ? (RK.ud === 1 ? 'ascending' : 'descending') : 'none') + '" title="Urutkan menurut ' + esc(label) + '">' + label + '<span class="ar" aria-hidden="true">' + (on ? (RK.ud === 1 ? '&#9650;' : '&#9660;') : '&#8693;') + '</span></th>';
+  }
   function rekapFilter() {
     var all = (D.daftar || []).filter(function (x) { return C.isAdmin() || x.status !== 'BATAL'; });
-    return all.filter(function (x) { return (!RK.bd || x.kodeBidang === RK.bd) && (!RK.st || x.status === RK.st) && (!RK.mw || (x.menunggu && x.menunggu.orang === RK.mw)) && (!RK.lama || x.hari > 7); })
+    var hasil = all.filter(function (x) { return (!RK.bd || x.kodeBidang === RK.bd) && (!RK.st || x.status === RK.st) && (!RK.mw || (x.menunggu && x.menunggu.orang === RK.mw)) && (!RK.lama || x.hari > 7); })
       .sort(function (a, b) { var sa = (a.status === 'CLOSE' || a.status === 'BATAL') ? 1 : 0, sb = (b.status === 'CLOSE' || b.status === 'BATAL') ? 1 : 0; return sa - sb || (b.hari || 0) - (a.hari || 0); });
+    return urutkan(hasil);
   }
   function rekapHtml() {
     var h = '<div class="pagehead"><div class="cap">' + esc(C.S.paket.nama) + '</div><h1>Rekap memo</h1></div>';
@@ -581,7 +610,7 @@
         '<td><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></td><td>' + potong(x.status === 'CLOSE' || x.status === 'BATAL' ? '' : (x.menunggu ? x.menunggu.teks : ''), 'mn') + '</td>' + td(x, 'MK1') + td(x, 'PJ1') + td(x, 'MK2') + td(x, 'PJ2') +
         '<td class="hr' + (x.hari > 7 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? ' lama' : '') + '">' + (x.status === 'CLOSE' || x.status === 'BATAL' ? '' : x.hari) + '</td></tr>';
     }).join('');
-    h += '<section class="bc s12"><div class="bch"><div class="cap">Daftar memo (' + v.length + ' dari ' + all.length + ')</div>' + fil + '</div><div class="tw"><table class="t rkt mt"><thead><tr><th>No</th><th>Bid</th><th>Kegiatan</th><th>Lokasi</th><th>Status</th><th>Menunggu</th><th>MK I</th><th>PJ I</th><th>MK II</th><th>PJ II</th><th>Hari</th></tr></thead><tbody>' +
+    h += '<section class="bc s12"><div class="bch"><div class="cap">Daftar memo (' + v.length + ' dari ' + all.length + ')</div>' + fil + '</div><div class="tw"><table class="t rkt mt"><thead><tr>' + th('no', 'No') + th('bd', 'Bid') + th('kg', 'Kegiatan') + th('lk', 'Lokasi') + th('st', 'Status') + '<th>Menunggu</th>' + th('mk1', 'MK I') + th('pj1', 'PJ I') + th('mk2', 'MK II') + th('pj2', 'PJ II') + th('hr', 'Hari') + '</tr></thead><tbody>' +
       (baris || '<tr><td colspan="11">Tidak ada memo yang cocok.</td></tr>') + '</tbody></table></div></section></div>';
     return kepala(h);
   }
@@ -853,6 +882,13 @@
       case 'memohapus': return m && m.t === 'memo' && C.openModal({ t: 'memoyakin', kind: 'hapus', r: m.r });
       case 'memocabut': return m && m.t === 'memo' && C.openModal({ t: 'memoyakin', kind: 'cabut', slot: el.getAttribute('data-s'), r: m.r });
       case 'memolainnya': return m && m.t === 'memo' && C.openModal({ t: 'memolainnya', r: m.r });
+      case 'memorkurut': {   // klik pertama: urutan awal kolom; kedua: kebalikan; ketiga: kembali ke urutan bawaan
+        var kk2 = el.getAttribute('data-k');
+        if (RK.ur !== kk2) { RK.ur = kk2; RK.ud = ARAH_AWAL[kk2] || 1; }
+        else if (RK.ud === (ARAH_AWAL[kk2] || 1)) RK.ud = -RK.ud;
+        else { RK.ur = ''; RK.ud = 1; }
+        return C.render();
+      }
       case 'memorkfilter': { var kk = el.getAttribute('data-k'); RK[kk] = kk === 'lama' ? 1 : el.getAttribute('data-v'); return C.render(); }
       case 'memoyakinya': return jalankanYakin();
       case 'memoyakinbatal': return m && m.r && C.openModal({ t: 'memo', r: m.r });
