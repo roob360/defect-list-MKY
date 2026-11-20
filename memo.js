@@ -19,6 +19,8 @@
   function esc(s) { return C.esc(s); }
   function tglId(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? Number(m[3]) + ' ' + BLN[Number(m[2]) - 1] + ' ' + m[1] : String(iso || ''); }
   function taruh(df) { if (df) C.putDefect(df); }   // memo peralihan tidak punya temuan
+  /* Daftar memo menampilkan nomor urut saja (mis. 11); bidangnya tampil di baris keterangan atau kolom Bidang. */
+  function nomorSaja(no) { var m = /^\s*(\d+)\s*\//.exec(String(no || '')); return m ? String(parseInt(m[1], 10)) : pendek(no); }
   function pendek(no) { var m = /^(\d+)\/SM-([A-Z]+)/.exec(String(no || '')); return m ? m[2] + ' ' + m[1] : ''; }
   /* Warna per status memo (sama di kartu temuan, tab Memo, Rekap, dan rincian): Belum memo kuning, Draf jingga, Terbit biru, Tindak lanjut ungu, Pemeriksaan II toska, Close hijau, Batal abu-abu. */
   var KLS = { 'MENUNGGU TTD MK': 'm-draf', TERBIT: 'm-terbit', 'TINDAK LANJUT': 'm-tindak', 'PEMERIKSAAN II': 'm-periksa', CLOSE: 'm-close', BATAL: 'm-batal', PERALIHAN: 'm-peralihan' };
@@ -263,7 +265,7 @@
     var all = D.daftar || [], ps = perlu(), lain = all.filter(function (x) { return !(x.aksi && x.aksi.length) && x.status !== 'CLOSE'; }), tutup = all.filter(function (x) { return x.status === 'CLOSE'; });
     var item = function (x) {
       var hint = (x.aksi || []).map(function (a) { return HINT[a]; }).filter(function (v) { return v; });
-      return '<button type="button" class="mli" data-act="memolihat" data-m="' + esc(x.id) + '"><div><b>' + esc(x.noMemo ? 'SM ' + pendek(x.noMemo) : 'Draf memo') + '</b><span>' + esc(x.kegiatan || x.lokasi || x.bidang) + '</span>' + (hint.length && !C.isAdmin() ? '<em>' + esc(hint.join(', ')) + '</em>' : '') + '</div><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></button>';
+      return '<button type="button" class="mli" data-act="memolihat" data-m="' + esc(x.id) + '"><div><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b><span>' + esc((x.kodeBidang ? x.kodeBidang + ' · ' : '') + (x.kegiatan || x.lokasi || x.bidang)) + '</span>' + (hint.length && !C.isAdmin() ? '<em>' + esc(hint.join(', ')) + '</em>' : '') + '</div><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></button>';
     };
     var blok = function (jd, arr) { return arr.length ? '<div class="cap" style="margin:6px 4px 6px">' + jd + ' (' + arr.length + ')</div><div class="mlis">' + arr.map(item).join('') + '</div>' : ''; };
     var isi = C.isAdmin() ? blok('Memo berjalan', all.filter(function (x) { return x.status !== 'CLOSE'; })) + blok('Close', tutup) : blok('Perlu tindakan Anda', ps) + blok('Berjalan', lain) + blok('Close', tutup);
@@ -466,7 +468,7 @@
       else tombol += '<button type="button" class="pill go" data-act="memosahcepat" data-m="' + esc(x.id) + '" data-s="' + a + '">' + C.ic('centang') + 'Sahkan' + (jml > 1 ? ' ' + SLOT_PENDEK[a] : '') + '</button>';
     });
     if (jml) tombol += '<button type="button" class="pill" data-act="memopratinjaukartu" data-m="' + esc(x.id) + '">Pratinjau</button>';
-    return '<article class="group mcard tap" data-act="memolihat" data-m="' + esc(x.id) + '"><div class="eh"><span class="no">' + esc(x.noMemo ? pendek(x.noMemo) : 'Draf') + '</span><span class="tx">' + esc(x.kegiatan || x.lokasi || x.bidang) + '</span></div>' +
+    return '<article class="group mcard tap" data-act="memolihat" data-m="' + esc(x.id) + '"><div class="eh"><span class="no">' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</span><span class="tx">' + esc((x.kodeBidang ? x.kodeBidang + ' · ' : '') + (x.kegiatan || x.lokasi || x.bidang)) + '</span></div>' +
       '<div class="meta"><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span><span class="tag">' + esc(x.bidang) + '</span>' + (x.tingkat ? '<span class="tag ' + esc(x.tingkat.toLowerCase()) + '">' + esc(x.tingkat) + '</span>' : '') + hariTag(x) + '</div>' +
       '<div class="note">' + esc(lokasiTeks(x)) + '</div>' + dots(x) +
       '<div class="note"><b>' + esc(x.menunggu ? x.menunggu.teks : '') + '</b></div>' +
@@ -535,7 +537,7 @@
     var v = rekapFilter();
     h += legenda() + '<div class="cap" style="margin:6px 4px">' + v.length + ' dari ' + all.length + ' memo</div>';
     h += v.length ? '<div class="mlis">' + v.map(function (x) {
-      return '<button type="button" class="mli" data-act="memolihat" data-m="' + esc(x.id) + '"><div><b>' + esc(x.noMemo ? 'SM ' + pendek(x.noMemo) : 'Draf memo') + '</b><span>' + esc(x.kegiatan || x.lokasi) + '</span><span>' + esc(lokasiTeks(x)) + '</span>' + dots(x) +
+      return '<button type="button" class="mli" data-act="memolihat" data-m="' + esc(x.id) + '"><div><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b><span>' + esc((x.kodeBidang ? x.kodeBidang + ' · ' : '') + (x.kegiatan || x.lokasi)) + '</span><span>' + esc(lokasiTeks(x)) + '</span>' + dots(x) +
         (x.menunggu && x.status !== 'CLOSE' && x.status !== 'BATAL' ? '<em>' + esc(x.menunggu.teks) + '</em>' : '') + '</div><div class="mr"><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span>' + hariTag(x) + '</div></button>';
     }).join('') + '</div>' : '<div class="empty">Tidak ada memo yang cocok.</div>';
     return h + '<div class="btnrow"><button type="button" class="btn" data-act="memoexcel">' + C.ic('excel') + 'Unduh Excel</button></div>';
@@ -573,7 +575,7 @@
       '<select data-rk="mw" aria-label="Menunggu">' + opt([['QC MK', 'QC MK'], ['PJ', 'PJ'], ['MK', 'MK'], ['QC PJ', 'QC PJ']], RK.mw, 'Menunggu siapa pun') + '</select><label class="bchk"><input type="checkbox" data-rk="lama"' + (RK.lama ? ' checked' : '') + '>Lebih dari 7 hari</label></div>';
     var td = function (x, s) { return '<td class="ttdc' + (x.tgl && x.tgl[s] ? ' on' : '') + '">' + (x.tgl && x.tgl[s] ? tgl2(x.tgl[s]) : '&ndash;') + '</td>'; };
     var baris = v.map(function (x) {
-      return '<tr data-act="memolihat" data-m="' + esc(x.id) + '"><td><b>' + esc(x.noMemo ? 'SM ' + pendek(x.noMemo) : 'Draf') + '</b></td><td>' + esc(x.kodeBidang) + '</td><td>' + esc(x.kegiatan || x.lokasi) + '</td><td>' + esc(lokasiTeks(x)) + '</td>' +
+      return '<tr data-act="memolihat" data-m="' + esc(x.id) + '"><td><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b></td><td>' + esc(x.kodeBidang) + '</td><td>' + esc(x.kegiatan || x.lokasi) + '</td><td>' + esc(lokasiTeks(x)) + '</td>' +
         '<td><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></td><td>' + esc(x.status === 'CLOSE' || x.status === 'BATAL' ? '' : (x.menunggu ? x.menunggu.teks : '')) + '</td>' + td(x, 'MK1') + td(x, 'PJ1') + td(x, 'MK2') + td(x, 'PJ2') +
         '<td class="hr' + (x.hari > 7 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? ' lama' : '') + '">' + (x.status === 'CLOSE' || x.status === 'BATAL' ? '' : x.hari) + '</td></tr>';
     }).join('');
