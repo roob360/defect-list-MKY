@@ -5,13 +5,13 @@
   'use strict';
 
   var C = null;                         // konteks dari app.js
-  var D = { daftar: null, off: false }; // daftar ringkas memo (memo_daftar); off = server belum punya aksi memo
+  var D = { daftar: null, off: false, pv: null }; // daftar ringkas memo (memo_daftar); off = server belum punya aksi memo
   var LOGO = {};
   var BLN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   var NAMA_SLOT = { MK1: 'QC MK, Tahap I', PJ1: 'QC PJ, tanda terima', MK2: 'QC MK, Tahap II', PJ2: 'QC PJ, Tahap II' };
   var HINT = { MK1: 'Sahkan memo', PJ1: 'Sahkan tanda terima', MK2: 'Sahkan Tahap II (MK)', PJ2: 'Sahkan Tahap II (PJ)', tindak: 'Isi tindak lanjut' };
   var STAT = { 'MENUNGGU TTD MK': 'Menunggu TTD MK', TERBIT: 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', CLOSE: 'Close', BATAL: 'Batal' };
-  var MODAL = { memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1 };
+  var MODAL = { memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1, memoprev: 1 };
   var JENIS_MEMO = ['Kualitas', 'Material', 'Dimensi & Posisi (X,Y,Z)', 'Lainnya'];   // sama dengan Kode.gs
   var REF_MEMO = ['KPPK', 'RKS', 'Material yang disetujui', 'BQ', 'Drawing', 'Metoda Kerja/ WI/SOP', 'Spesifikasi'];
 
@@ -42,7 +42,7 @@
     var lbl = d.noMemo ? 'SM ' + pendek(d.noMemo) : 'Draf memo';
     return '<button type="button" class="tag memo ' + stCls(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '" aria-label="Site memo ' + esc(lbl) + '">' + C.ic('memo') + esc(lbl) + '</button>';
   }
-  function bisaNaik(d) { return C.canEdit() && !d.memoId && d.status !== 'Close' && (C.isAdmin() || d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }
+  function bisaNaik(d) { return C.canEdit() && !d.memoId && (C.isAdmin() || d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }
   function kartuTombol(d) {
     if (d.memoId || bisaNaik(d)) return '<button type="button" class="pill memo" data-act="memobuka" data-d="' + esc(d.id) + '">' + C.ic('memo') + 'Memo</button>';
     return '';
@@ -163,7 +163,7 @@
     });
     h += '</div></section><div class="gap">';
     if (r.bisaTindak && r.bisaTindak.ok && d.status !== 'CLOSE' && d.status !== 'BATAL') h += '<button type="button" class="btn" data-act="memotindak">' + C.ic('ubah') + (d.tindakLanjut ? 'Ubah tindak lanjut' : 'Isi tindak lanjut') + '</button>';
-    h += '<button type="button" class="btn sec" data-act="memopdf">' + C.ic('pdf') + 'PDF</button>';
+    h += '<button type="button" class="btn" data-act="memopratinjau">' + C.ic('memo') + 'Pratinjau</button><button type="button" class="btn sec" data-act="memopdf">' + C.ic('pdf') + 'PDF</button>';
     if (perluArsip(r).length && d.status !== 'BATAL') h += '<button type="button" class="btn sec" data-act="memoarsip">Arsipkan PDF ke Drive</button>';
     if (C.isAdmin()) {
       if (d.status !== 'BATAL') h += '<button type="button" class="btn sec" data-act="memoubah">' + C.ic('ubah') + 'Ubah isian</button><button type="button" class="btn bad" data-act="memobatal">Batalkan memo</button>';
@@ -375,6 +375,7 @@
       if (a === 'tindak') tombol += '<button type="button" class="pill start" data-act="memotindakcepat" data-m="' + esc(x.id) + '">' + C.ic('ubah') + 'Isi tindak lanjut</button>';
       else tombol += '<button type="button" class="pill go" data-act="memosahcepat" data-m="' + esc(x.id) + '" data-s="' + a + '">' + C.ic('centang') + 'Sahkan' + (jml > 1 ? ' ' + SLOT_PENDEK[a] : '') + '</button>';
     });
+    if (jml) tombol += '<button type="button" class="pill" data-act="memopratinjaukartu" data-m="' + esc(x.id) + '">Pratinjau</button>';
     return '<article class="group mcard"><div class="eh"><span class="no">' + esc(x.noMemo ? pendek(x.noMemo) : 'Draf') + '</span><span class="tx">' + esc(x.kegiatan || x.lokasi || x.bidang) + '</span></div>' +
       '<div class="meta"><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span><span class="tag">' + esc(x.bidang) + '</span>' + (x.tingkat ? '<span class="tag ' + esc(x.tingkat.toLowerCase()) + '">' + esc(x.tingkat) + '</span>' : '') + hariTag(x) + '</div>' +
       '<div class="note">' + esc(lokasiTeks(x)) + '</div>' + dots(x) +
@@ -516,6 +517,95 @@
     C.render(); muatDaftar();
   }
 
+  /* ---------- pratinjau PDF di dalam aplikasi (pdf.js, dimuat saat pertama dibuka) ---------- */
+
+  async function muatPdfJs() {
+    await C.loadLib('lib/pdf.min.js', 'pdfjsLib');
+    root.pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
+    return root.pdfjsLib;
+  }
+  /* PDF dari isian form (belum ada memo di server): memo sebagaimana akan diterbitkan, tanpa tanda tangan dan foto After. */
+  async function bangunPdfDraf(m) {
+    var v = m.v, i = m.s.isian;
+    var fake = { memo: { noMemo: '', tglPengajuan: tglId(v.tgl), noKontrak: i.noKontrak, tglKontrak: i.tglKontrak, namaPaket: i.namaPaket, namaProyek: i.namaProyek, bidang: v.bidang, kegiatan: v.kegiatan, lokasi: v.lokasi,
+      info: v.info, jenis: v.jenis, jenisLain: v.jenisLain, referensi: v.ref, kondisiAktual: v.aktual, kondisiSeharusnya: v.seharusnya, diajukanNama: '', konsultanMk: i.konsultanMk, kontraktor: i.kontraktor,
+      fotoBefore: v.foto.map(function (id) { return { id: id }; }), tindakLanjut: '', namaPenerima: '' }, defect: m.d, ttd: {} };
+    return bangunPdf(fake, 'before');
+  }
+  function slotSahkan(r) {   // slot yang bisa disahkan akun ini (bukan Admin, yang memilih QC di rincian)
+    if (C.isAdmin()) return '';
+    var urut = ['MK1', 'PJ1', 'MK2', 'PJ2'];
+    for (var i = 0; i < urut.length; i++) if (r.bisa[urut[i]] && r.bisa[urut[i]].ok) return urut[i];
+    return '';
+  }
+  async function bukaPratinjau(o) {
+    var t0 = performance.now();
+    var doc = await C.work('Membuat pratinjau...', function () { return o.mode === 'draf' ? bangunPdfDraf(o.form) : bangunPdf(o.r, 'akhir'); });
+    if (!doc) return;
+    var m = { t: 'memoprev', mode: o.mode, buf: doc.output('arraybuffer'), nama: o.mode === 'draf' ? 'Pratinjau memo.pdf' : namaBerkas(o.r.memo), r: o.r || null, form: o.form || null, kanvas: [], zoom: false };
+    root.__memoPrev = { bangun: Math.round(performance.now() - t0), render: 0, halaman: 0 };
+    D.pv = m;
+    C.openModal(m);
+    if (doc.fotoHilang) C.toast(doc.fotoHilang + ' foto belum termuat; pratinjau tanpa foto itu.');
+  }
+  function pvHtml(m) {
+    var u = C.S.user, tombol;
+    if (m.mode === 'draf') tombol = '<button type="button" class="btn" data-act="memopvlanjut">Lanjut ke konfirmasi</button><button type="button" class="btn sec" data-act="memopvtutup">Kembali ke form</button>';
+    else {
+      var slot = m.r ? slotSahkan(m.r) : '', sah = '';
+      if (slot) sah = (u && u.qc === 'YA' && !m.r.ttdSaya) ? '<button type="button" class="btn" data-act="ttd">' + C.ic('ubah') + 'Unggah tanda tangan dulu</button>' : '<button type="button" class="btn" data-act="memopvsahkan" data-s="' + slot + '">' + C.ic('centang') + 'Sahkan memo ini</button>';
+      tombol = sah + '<button type="button" class="btn sec" data-act="memopvunduh">Unduh PDF</button><button type="button" class="btn sec" data-act="memopvtutup">Tutup</button>';
+    }
+    return '<div class="ov" data-act="modalbg"><div class="sheet pv gap" role="dialog" aria-label="Pratinjau memo"><div class="pvbar"><b>Pratinjau</b><button type="button" class="pill" data-act="memopvzoom">' + (m.zoom ? 'Perkecil' : 'Perbesar') + '</button></div>' +
+      '<div class="pvwrap' + (m.zoom ? ' zoom' : '') + '" id="pvwrap"><div class="note" id="pvnote">Menggambar halaman...</div></div><div class="gap">' + tombol + '</div></div></div>';
+  }
+  /* Halaman digambar satu per satu supaya halaman pertama cepat tampil. Kanvas disimpan di state modal dan dipasang kembali bila overlay digambar ulang. */
+  async function gambarHalaman(pv) {
+    var t0 = performance.now();
+    try {
+      var L = await muatPdfJs();
+      var pdf = await L.getDocument({ data: new Uint8Array(pv.buf.slice(0)), isEvalSupported: false }).promise;
+      pv.pdf = pdf;
+      for (var i = 1; i <= pdf.numPages; i++) {
+        if (C.S.modal !== pv) return;
+        var wrap = $('pvwrap'); if (!wrap) return;
+        var page = await pdf.getPage(i), w = wrap.clientWidth || 360, vp0 = page.getViewport({ scale: 1 }), dpr = Math.min(root.devicePixelRatio || 1, 2) * 1.25;
+        var vp = page.getViewport({ scale: (w / vp0.width) * dpr }), cv = document.createElement('canvas');
+        cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height); cv.className = 'pvpage'; cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'Halaman ' + i + ' dari ' + pdf.numPages);
+        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+        if (C.S.modal !== pv) return;
+        pv.kanvas.push(cv);
+        var w2 = $('pvwrap'), n = $('pvnote'); if (n) n.remove();
+        if (w2) w2.appendChild(cv);
+        if (root.__memoPrev) { root.__memoPrev.halaman = i; root.__memoPrev.render = Math.round(performance.now() - t0); }
+      }
+    } catch (e) {
+      var n2 = $('pvnote'); if (n2) n2.textContent = 'Pratinjau tidak bisa ditampilkan. Gunakan Unduh PDF.';
+      if (root.__memoPrev) root.__memoPrev.galat = String(e && e.message || e);
+    }
+  }
+  function bersihPv(pv) { try { if (pv.pdf) pv.pdf.destroy(); } catch (e) { } pv.kanvas = []; pv.buf = null; pv.pdf = null; }
+  function pasangPv() {
+    var pv = D.pv, wrap = $('pvwrap');
+    if (pv && C.S.modal !== pv) { bersihPv(pv); D.pv = null; return; }   // pratinjau ditutup: lepaskan memori
+    if (!pv || !wrap) return;
+    if (pv.kanvas.length) { var n = $('pvnote'); if (n) n.remove(); pv.kanvas.forEach(function (c) { wrap.appendChild(c); }); }
+    if (!pv.mulai) { pv.mulai = true; gambarHalaman(pv); }
+  }
+  async function sahkanDariPv(slot) {
+    var m = C.S.modal; if (!m || m.t !== 'memoprev') return;
+    var perluTtd = false;
+    var h = await C.work('Mengesahkan...', async function () {
+      try { return await C.api('memo_sahkan', { memoId: m.r.memo.id, slot: slot }); }
+      catch (e) { if (e && e.server && /Unggah tanda tangan/.test(e.message)) { perluTtd = true; return null; } throw e; }
+    });
+    if (!h) { if (perluTtd) { C.toast('Unggah tanda tangan Anda dulu.'); bukaTtd(); } return; }
+    C.putDefect(h.defect);
+    C.toast(h.hasil && h.hasil.nomor ? 'Memo disahkan. Nomor ' + pendek(h.hasil.nomor) + '.' : h.hasil && h.hasil.close ? 'Memo Close. Temuan ikut Close.' : 'Tanda tangan tersimpan.');
+    C.openModal({ t: 'memo', r: h }); C.render(); muatDaftar();
+    if (h.hasil && h.hasil.arsip) await arsipkan(h, h.hasil.arsip);
+  }
+
   /* ---------- pintu masuk dari app.js ---------- */
 
   function modalHtml(m) {
@@ -526,9 +616,11 @@
     if (m.t === 'memolist') return listHtml();
     if (m.t === 'ttd') return ttdHtml(m);
     if (m.t === 'memoyakin') return yakinHtml(m);
+    if (m.t === 'memoprev') return pvHtml(m);
     return '';
   }
   function sesudahOverlay() {
+    pasangPv();
     var cv = $('ttdCv'); if (cv && !cv._b) { cv._b = 1; pasangCanvas(cv); }
     var f = $('ttdFile'); if (f && !f._b) { f._b = 1; f.addEventListener('change', function () { var fl = f.files && f.files[0]; f.value = ''; if (fl) dariBerkas(fl); }); }
   }
@@ -548,7 +640,18 @@
         bacaForm(m);
         var v = m.v;
         if (!v.lokasi.trim() || !v.aktual.trim() || !v.seharusnya.trim()) { C.toast('Lokasi, kondisi aktual, dan kondisi seharusnya wajib diisi.'); return; }
-        return C.openModal({ t: 'memokonfirm', d: m.d, s: m.s, v: v });
+        return bukaPratinjau({ mode: 'draf', form: m });
+      }
+      case 'memopvlanjut': return m && m.form && C.openModal({ t: 'memokonfirm', d: m.form.d, s: m.form.s, v: m.form.v });
+      case 'memopvtutup': return m && (m.mode === 'draf' ? C.openModal(m.form) : C.openModal({ t: 'memo', r: m.r }));
+      case 'memopvsahkan': return sahkanDariPv(el.getAttribute('data-s'));
+      case 'memopvunduh': return m && m.buf && C.showFile(m.nama, m.buf.slice(0), 'application/pdf');
+      case 'memopvzoom': if (m && m.t === 'memoprev') { m.zoom = !m.zoom; C.renderOverlay(); } return;
+      case 'memopratinjau': return m && m.t === 'memo' && bukaPratinjau({ mode: 'detail', r: m.r });
+      case 'memopratinjaukartu': {
+        var rp = await C.work('Memuat memo...', function () { return C.api('memo_detail', { memoId: el.getAttribute('data-m') }); });
+        if (rp) { C.putDefect(rp.defect); return bukaPratinjau({ mode: 'detail', r: rp }); }
+        return;
       }
       case 'memokembali': return m && C.openModal({ t: 'memoform', d: m.d, s: m.s, v: m.v });
       case 'memoya': return m && m.t === 'memokonfirm' && kirimDraf(m);

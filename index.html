@@ -744,6 +744,14 @@
   .mttd .cb{ flex:none; margin-left:auto; min-height:32px; padding:0 12px; font-size:12px; line-height:16px; }
   .mcard .mdots{ padding:0 16px; }
   .mcard .note{ padding:0 16px; margin:2px 0; }
+  /* pratinjau PDF */
+  .sheet.pv{ max-width:640px; }
+  .pvbar{ display:flex; align-items:center; justify-content:space-between; }
+  .pvwrap{ display:flex; flex-direction:column; gap:10px; background:var(--fill3); padding:8px; border-radius:12px; min-height:160px; }
+  .pvwrap.zoom{ overflow:auto; }
+  .pvpage{ display:block; width:100%; height:auto; background:#fff; border-radius:3px; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  .pvwrap.zoom .pvpage{ width:230%; max-width:none; }
+  .pvwrap .note{ padding:24px 0; text-align:center; }
 </style>
 </head>
 <body>
