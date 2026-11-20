@@ -20,6 +20,8 @@
   function tglId(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? Number(m[3]) + ' ' + BLN[Number(m[2]) - 1] + ' ' + m[1] : String(iso || ''); }
   function taruh(df) { if (df) C.putDefect(df); }   // memo peralihan tidak punya temuan
   /* Daftar memo menampilkan nomor urut saja (mis. 11); bidangnya tampil di baris keterangan atau kolom Bidang. */
+  /* Sel tabel yang dipotong satu baris dengan tiga titik; teks lengkap muncul saat diarahkan dan ada di rincian saat baris diketuk. */
+  function potong(teks, kls) { var s = String(teks || ''); return s ? '<span class="cl ' + kls + '" title="' + esc(s) + '">' + esc(s) + '</span>' : ''; }
   function nomorSaja(no) { var m = /^\s*(\d+)\s*\//.exec(String(no || '')); return m ? String(parseInt(m[1], 10)) : pendek(no); }
   function pendek(no) { var m = /^(\d+)\/SM-([A-Z]+)/.exec(String(no || '')); return m ? m[2] + ' ' + m[1] : ''; }
   /* Warna per status memo (sama di kartu temuan, tab Memo, Rekap, dan rincian): Belum memo kuning, Draf jingga, Terbit biru, Tindak lanjut ungu, Pemeriksaan II toska, Close hijau, Batal abu-abu. */
@@ -575,8 +577,8 @@
       '<select data-rk="mw" aria-label="Menunggu">' + opt([['QC MK', 'QC MK'], ['PJ', 'PJ'], ['MK', 'MK'], ['QC PJ', 'QC PJ']], RK.mw, 'Menunggu siapa pun') + '</select><label class="bchk"><input type="checkbox" data-rk="lama"' + (RK.lama ? ' checked' : '') + '>Lebih dari 7 hari</label></div>';
     var td = function (x, s) { return '<td class="ttdc' + (x.tgl && x.tgl[s] ? ' on' : '') + '">' + (x.tgl && x.tgl[s] ? tgl2(x.tgl[s]) : '&ndash;') + '</td>'; };
     var baris = v.map(function (x) {
-      return '<tr data-act="memolihat" data-m="' + esc(x.id) + '"><td><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b></td><td>' + esc(x.kodeBidang) + '</td><td>' + esc(x.kegiatan || x.lokasi) + '</td><td>' + esc(lokasiTeks(x)) + '</td>' +
-        '<td><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></td><td>' + esc(x.status === 'CLOSE' || x.status === 'BATAL' ? '' : (x.menunggu ? x.menunggu.teks : '')) + '</td>' + td(x, 'MK1') + td(x, 'PJ1') + td(x, 'MK2') + td(x, 'PJ2') +
+      return '<tr data-act="memolihat" data-m="' + esc(x.id) + '"><td><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b></td><td>' + esc(x.kodeBidang) + '</td><td>' + potong(x.kegiatan || x.lokasi, 'kg') + '</td><td>' + potong(lokasiTeks(x), 'lk') + '</td>' +
+        '<td><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></td><td>' + potong(x.status === 'CLOSE' || x.status === 'BATAL' ? '' : (x.menunggu ? x.menunggu.teks : ''), 'mn') + '</td>' + td(x, 'MK1') + td(x, 'PJ1') + td(x, 'MK2') + td(x, 'PJ2') +
         '<td class="hr' + (x.hari > 7 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? ' lama' : '') + '">' + (x.status === 'CLOSE' || x.status === 'BATAL' ? '' : x.hari) + '</td></tr>';
     }).join('');
     h += '<section class="bc s12"><div class="bch"><div class="cap">Daftar memo (' + v.length + ' dari ' + all.length + ')</div>' + fil + '</div><div class="tw"><table class="t rkt mt"><thead><tr><th>No</th><th>Bid</th><th>Kegiatan</th><th>Lokasi</th><th>Status</th><th>Menunggu</th><th>MK I</th><th>PJ I</th><th>MK II</th><th>PJ II</th><th>Hari</th></tr></thead><tbody>' +

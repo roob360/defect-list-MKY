@@ -854,6 +854,16 @@
   .kv{ display:grid; grid-template-columns:minmax(96px,34%) 1fr; gap:10px; font-size:14px; line-height:20px; }
   .kv span{ color:var(--label2); }
   .kv b{ font-weight:500; color:var(--label1); overflow-wrap:anywhere; }
+  /* tabel Rekap Memo: kegiatan, lokasi, dan penunggu dipotong satu baris; rincian lengkap ada saat baris diketuk */
+  table.t.mt{ table-layout:fixed; width:100%; }
+  table.t.mt th:nth-child(1){ width:52px; } table.t.mt th:nth-child(2){ width:58px; } table.t.mt th:nth-child(3){ width:27%; } table.t.mt th:nth-child(4){ width:13%; }
+  table.t.mt th:nth-child(5){ width:104px; } table.t.mt th:nth-child(6){ width:15%; } table.t.mt th:nth-child(n+7):nth-child(-n+10){ width:62px; } table.t.mt th:nth-child(11){ width:56px; }
+  table.t.mt th:nth-child(-n+6), table.t.mt td:nth-child(-n+6){ text-align:left; }
+  table.t.mt td:nth-child(3), table.t.mt td:nth-child(4), table.t.mt td:nth-child(6){ overflow:hidden; text-overflow:ellipsis; }
+  .mt .cl{ display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* daftar memo sempit: keterangan dipotong satu baris */
+  .mli > div > span{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mcard .eh .tx{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 </style>
 </head>
 <body>
