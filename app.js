@@ -21,6 +21,8 @@ var S={
 };
 var app=document.getElementById('app'), overlay=document.getElementById('overlay');
 var toastTimer=null, pickCb=null;
+/* Site memo (memo.js): modul terpisah yang dipanggil dari beberapa titik (kartu, dialog, Pengaturan, lencana). Bila memo.js tidak termuat, semuanya diam. */
+var M_=window.MEMO?window.MEMO.init({S:S,overlay:overlay,PDF_URL:PDF_URL,api:api,work:work,putDefect:putDefect,findDefect:findDefect,openModal:openModal,closeModal:closeModal,render:render,renderOverlay:renderOverlay,loadLib:loadLib,fetchImgs:fetchImgs,imgSize:imgSize,showFile:showFile,toast:toast,esc:esc,ic:ic,thumb:thumb,canEdit:canEdit,isAdmin:isAdmin,isPJ:isPJ}):null;
 
 /* ---------- util ---------- */
 function $(id){return document.getElementById(id)}
@@ -282,7 +284,7 @@ async function loadAll(){
 /* ---------- tampilan ---------- */
 function setHead(){
   var pr=$('bProf'),k=S.user?'u':'g';
-  if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);pr.innerHTML=S.user?'<span>'+esc(String(S.user.nama||S.user.peran).trim().charAt(0).toUpperCase())+'</span>':ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'');pr.setAttribute('aria-label',S.user?'Pengaturan, '+S.user.nama+' ('+S.user.peran+')':'Pengaturan');pr.title=S.user?S.user.nama+' · '+S.user.peran:'Pengaturan';pr.parentNode.classList.toggle('in',!!S.user)}
+  if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);var mj=(S.user&&M_)?M_.jumlahPerlu():0;pr.innerHTML=S.user?'<span>'+esc(String(S.user.nama||S.user.peran).trim().charAt(0).toUpperCase())+'</span>'+(mj?'<i class="pbdg" aria-hidden="true">'+(mj>9?'9+':mj)+'</i>':''):ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'');pr.setAttribute('aria-label',S.user?'Pengaturan, '+S.user.nama+' ('+S.user.peran+')'+(mj?', '+mj+' memo perlu tindakan':''):'Pengaturan');pr.title=S.user?S.user.nama+' · '+S.user.peran:'Pengaturan';pr.parentNode.classList.toggle('in',!!S.user)}
   $('bBack').hidden=!(S.paket&&!S.user);
 }
 /* Skeleton: memakai kelas asli (pagehead, locbar, summary, sbar, chips, entry, phs, acts, kpis, bgrid) tanpa pembungkus,
@@ -581,13 +583,13 @@ function kmenuItems(d){
 function entryHtml(d,n,ix,ro){
   var fresh=!S.seen[d.id],land=S.baru===d.id;S.seen[d.id]=1;
   var h='<article class="group entry'+(land?' land':fresh?' pop':'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
-    '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+'</div>'+
+    '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+(M_?M_.tag(d):'')+'</div>'+
     stepperHtml(d);
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
   if(d.verifikasi)h+='<div class="note'+(d.verifikasi==='Ditolak'?' tolak':' ok')+'">'+(d.verifikasi==='Diterima'?'Diterima':'Ditolak')+' MK '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):'')+(d.catatan?'. Catatan: '+esc(d.catatan):'')+'</div>';
   if(isPJ()&&d.verifikasi==='Ditolak')h+='<div class="note tolak">Unggah foto After yang baru supaya diverifikasi ulang oleh MK.</div>';
   h+='<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',ro)+'</div><div class="ph" data-j="after">'+phHtml(d,'after',ro)+'</div></div>';
-  h+='<div class="acts">'+aksiUtama(d);
+  h+='<div class="acts">'+aksiUtama(d)+(M_?M_.kartuTombol(d):'');
   if(kmenuItems(d).length)h+='<button type="button" class="pill menu" data-act="kmenu" data-d="'+esc(d.id)+'" aria-label="Menu temuan">&#8943;</button>';
   return h+'</div></article>';
 }
@@ -810,6 +812,7 @@ function renderOverlay(){
   overlay.classList.toggle('fx',!!key&&key!==S.ovKey);S.ovKey=key;
   overlay.innerHTML=h;
   aturDialog(key,prev);
+  if(M_)M_.sesudahOverlay();
 }
 /* Dialog: peran ARIA, fokus pindah ke dalam dialog saat dibuka dan kembali ke pemicu saat ditutup. */
 function aturDialog(key,prev){
@@ -828,6 +831,7 @@ function aturDialog(key,prev){
 }
 function modalHtml(){
   var m=S.modal;
+  if(M_&&M_.punya(m.t))return M_.modalHtml(m);
   if(m.t==='temuan')return fHtml(m);
   if(m.t==='rgatur')return rgHtml(m);
   if(m.t==='rgyakin')return rgYakinHtml(m);
@@ -845,6 +849,7 @@ function modalHtml(){
     var us=S.user;
     return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Pengaturan"><div class="grab" aria-hidden="true"></div><h2>Pengaturan</h2>'+
       (us?'<div class="ucard"><span class="av" aria-hidden="true">'+esc((us.nama||'?').trim().charAt(0).toUpperCase())+'</span><div><b>'+esc(us.nama)+'</b><span>'+esc(us.peran)+' &middot; '+esc(S.paket.nama)+'</span></div></div>':'')+
+      (M_?M_.setelanHtml():'')+
       '<div><div class="cap" style="margin:0 4px 8px">Tema</div><div class="seg">'+
       [['sistem','Sistem'],['terang','Terang'],['gelap','Gelap']].map(function(o){return '<button type="button" data-act="tema" data-v="'+o[0]+'" class="ico'+(S.tema===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>'+
       '<div><div class="cap" style="margin:0 4px 8px">Animasi</div><div class="seg">'+
@@ -2018,6 +2023,7 @@ async function onClick(ev){
   if(a==='zoomx'&&ev.target.closest('img')&&!ev.target.closest('.btn-ic'))return;
   var id=el.getAttribute('data-d');
   if(S.modal&&S.modal.t==='aksi'&&a!=='mtutup'&&a!=='modalbg')closeModal();
+  if(M_&&M_.milik(a))return M_.klik(a,el,ev);
   switch(a){
     case 'tempel': {
       var ki=$('kode');if(!ki)return;ki.focus({preventScroll:true});
@@ -2155,7 +2161,7 @@ async function onClick(ev){
       var d=S.modal.d,cat=$('vC').value,h=el.getAttribute('data-h');
       closeModal();
       var r2=await work('Menyimpan verifikasi...',function(){return api('verifikasi',{id:d.id,hasil:h,catatan:cat})});
-      if(r2){var aw2=S.view==='verif'?kartuPosisi():null;if(aw2&&!r2.siap)await kartuKeluar(r2.id);putDefect(r2);toast(h==='Diterima'?'Diterima. Temuan Close.':h==='Ditolak'?'Ditolak. Temuan kembali dalam proses.':'Verifikasi dibatalkan.');render();if(aw2)kartuNaik(aw2)}
+      if(r2){var aw2=S.view==='verif'?kartuPosisi():null;if(aw2&&!r2.siap)await kartuKeluar(r2.id);putDefect(r2);if(M_)M_.muatDaftar();toast(h==='Diterima'?(r2.memoId&&r2.status!=='Close'?'Diterima. Temuan Close setelah memo lengkap (tanda tangan QC).':'Diterima. Temuan Close.'):h==='Ditolak'?'Ditolak. Temuan kembali dalam proses.':'Verifikasi dibatalkan.');render();if(aw2)kartuNaik(aw2)}
       else openModal({t:'verif',d:d});
       return;
     }
@@ -2386,7 +2392,7 @@ async function ambilMulai(){
   }
 }
 function aturPengguna(u){
-  S.user={nama:u.nama,peran:u.peran};
+  S.user={nama:u.nama,peran:u.peran,qc:u.qc||'',qcBidang:u.qcBidang||''};
   var v=lsGet('dl-view');S.view=((v==='rekap'||v==='verif')&&u.peran!=='PJ')||(v==='perbaikan'&&u.peran==='PJ')||(v==='kelola'&&u.peran==='ADMIN')?v:'form';
   if(S.view!=='form'&&S.hist[S.hist.length-1]!=='view')hpush('view');
   try{var sv=JSON.parse(lsGet('dl-sel')||'null');if(sv&&sv.g)S.sel=sv}catch(e){}
@@ -2414,7 +2420,7 @@ async function cobaMasuk(auto){
     var r=await ambilMulai();
     if(!auto)await akSukses();
     aturPengguna(r);S.loginErr='';S.net='';
-    lsSet('dl-kode-'+pid,S.kode);lsSet('dl-user-'+pid,JSON.stringify({nama:r.nama,peran:r.peran}));
+    lsSet('dl-kode-'+pid,S.kode);lsSet('dl-user-'+pid,JSON.stringify({nama:r.nama,peran:r.peran,qc:r.qc||'',qcBidang:r.qcBidang||''}));
     if(r.ruangan){S.rooms=r.ruangan;S.roomsReady=true;lsSet('dl-rooms-'+pid,JSON.stringify(S.rooms))}
     if(r.siap)S.siap=r.siap;
     if(r.perlu)S.perlu=r.perlu;
@@ -2422,7 +2428,7 @@ async function cobaMasuk(auto){
     render();
     if(r.ruangan){var s=ensureSel(tree());if(s&&S.view==='form')loadDefects(s.r.id,false)}
     else loadRooms();
-    qPulihkan();drafMuat();
+    qPulihkan();drafMuat();if(M_)M_.muatDaftar();
   }catch(e){
     if(e&&e.server){
       if(/Kode tidak dikenal|nonaktif/i.test(e.message||'')){   // hanya kode yang benar-benar ditolak yang dihapus
