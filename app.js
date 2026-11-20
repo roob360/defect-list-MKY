@@ -649,8 +649,8 @@ function semuaList(){
   return S.all.slice().sort(function(a,b){return L.bandingAlami(a.gedung,b.gedung)||L.bandingAlami(a.lantai,b.lantai)||L.bandingAlami(a.ruangan,b.ruangan)||((a.no||0)-(b.no||0))});
 }
 function semuaHtml(){
-  if(!S.all&&!S.allBusy&&!S.allErr){S.allBusy=true;loadAll().then(function(){S.allBusy=false;if(S.view==='form'&&S.semua)render()}).catch(function(){S.allBusy=false;S.allErr=true;if(S.view==='form'&&S.semua)render()})}
-  if(S.allErr)return '<div class="err">Gagal memuat semua temuan.</div><button type="button" class="btn sec" data-act="muatsemua">Coba lagi</button>';
+  if(!S.all&&!S.allBusy&&!S.allErr){S.allBusy=true;loadAll().then(function(){S.allBusy=false;if(S.view==='form'&&S.semua)render()}).catch(function(e){S.allBusy=false;S.allErr=(e&&e.message)||true;if(S.view==='form'&&S.semua)render()})}
+  if(S.allErr)return '<div class="err">Gagal memuat semua temuan.'+(typeof S.allErr==='string'?' '+esc(S.allErr):'')+'</div><button type="button" class="btn sec" data-act="muatsemua">Coba lagi</button>';
   var list=semuaList();if(!list)return skel('entries');
   var a=AQ.form;
   return '<div class="banner" role="status"><span>'+list.length+' temuan di semua ruangan</span><button type="button" data-act="muatsemua">Muat ulang</button></div>'+aqBar(list,a,false,true)+(M_?M_.legenda(list):'')+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';

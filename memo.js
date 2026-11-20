@@ -11,7 +11,7 @@
   var NAMA_SLOT = { MK1: 'QC MK, Tahap I', PJ1: 'QC PJ, tanda terima', MK2: 'QC MK, Tahap II', PJ2: 'QC PJ, Tahap II' };
   var HINT = { MK1: 'Sahkan memo', PJ1: 'Sahkan tanda terima', MK2: 'Sahkan Tahap II (MK)', PJ2: 'Sahkan Tahap II (PJ)', tindak: 'Isi tindak lanjut' };
   var STAT = { 'MENUNGGU TTD MK': 'Menunggu TTD MK', TERBIT: 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', CLOSE: 'Close', BATAL: 'Batal' };
-  var MODAL = { memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1, memoprev: 1, memolainnya: 1 };
+  var MODAL = { memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1, memoprev: 1, memolainnya: 1, qcdaftar: 1 };
   var JENIS_MEMO = ['Kualitas', 'Material', 'Dimensi & Posisi (X,Y,Z)', 'Lainnya'];   // sama dengan Kode.gs
   var REF_MEMO = ['KPPK', 'RKS', 'Material yang disetujui', 'BQ', 'Drawing', 'Metoda Kerja/ WI/SOP', 'Spesifikasi'];
 
@@ -65,6 +65,7 @@
     if (!u) return '';
     if (C.canEdit() || C.isPJ()) h += '<button type="button" class="btn sec" data-act="memolist">' + C.ic('memo') + 'Memo' + (n ? ' (' + n + ')' : '') + '</button>';
     if (u.qc === 'YA') h += '<button type="button" class="btn sec" data-act="ttd">' + C.ic('ubah') + 'Tanda tangan</button>';
+    if (C.isAdmin()) h += '<button type="button" class="btn sec" data-act="ttdqc">' + C.ic('ubah') + 'Tanda tangan QC</button>';
     return h ? '<div class="btnrow">' + h + '</div>' : '';
   }
 
@@ -167,7 +168,7 @@
     ['MK1', 'PJ1', 'MK2', 'PJ2'].forEach(function (s) {
       var t = r.ttd[s], b = r.bisa[s], x;
       if (t) x = '<div class="who"><span class="ck">' + C.ic('centang') + '</span><b>' + esc(t.nama) + '</b></div><span class="sub">' + esc(t.jabatan) + ' &middot; ' + esc(tglId(t.waktu)) + (t.pelaksana ? ' &middot; oleh ' + esc(t.pelaksana) : '') + '</span>' +
-        (C.isAdmin() && s === terakhir && d.status !== 'BATAL' ? '<button type="button" class="pill bad cb" data-act="memocabut" data-s="' + s + '">Cabut</button>' : '');
+        (r.cabut === s ? '<button type="button" class="pill bad cb" data-act="memocabut" data-s="' + s + '">Batalkan</button>' : '');
       else if (b && b.ok) {
         var sel = (b.kandidat && b.kandidat.length > 1) ? '<select id="mQid_' + s + '" class="mqid">' + b.kandidat.map(function (k) { return '<option value="' + esc(k.qid) + '">' + esc(k.nama) + '</option>'; }).join('') + '</select>' : '';
         var perluTtd = u && u.qc === 'YA' && !r.ttdSaya && !C.isAdmin();
@@ -244,15 +245,15 @@
 
   function ttdHtml(m) {
     var gambar = m.mode === 'gambar';
-    return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tanda tangan"><div class="grab" aria-hidden="true"></div><h2>Tanda tangan</h2>' +
-      '<div class="note" style="padding:0">Dipakai saat Anda mengesahkan site memo. Tersimpan di akun Anda. Memo yang sudah disahkan tidak berubah bila Anda mengganti tanda tangan.</div>' +
+    return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tanda tangan"><div class="grab" aria-hidden="true"></div><h2>' + (m.hid ? 'Tanda tangan ' + esc(m.akun) : 'Tanda tangan') + '</h2>' +
+      '<div class="note" style="padding:0">' + (m.hid ? 'Anda menyetel nama cetak dan tanda tangan akun QC ini. Dipakai saat QC mengesahkan, atau saat Admin mengesahkan atas namanya.' : 'Dipakai saat Anda mengesahkan site memo. Tersimpan di akun Anda.') + ' Memo yang sudah disahkan tidak berubah bila tanda tangan diganti.</div>' +
       '<section class="group"><div class="list"><label class="row"><span class="lbl">Nama yang dicetak<i>*</i></span><input type="text" id="tNama" value="' + esc(m.nama) + '" autocomplete="off"></label>' +
       '<label class="row"><span class="lbl">Jabatan</span><input type="text" id="tJab" value="' + esc(m.jabatan) + '" placeholder="cth: QC Struktur" autocomplete="off"></label></div></section>' +
       (gambar ? '<div class="ttdbox"><canvas id="ttdCv" width="560" height="224" aria-label="Kotak menggambar tanda tangan"></canvas></div><div class="btnrow"><button type="button" class="btn sec" data-act="ttdbersih">Bersihkan</button><button type="button" class="btn" data-act="ttdselesai">Selesai</button></div>' :
         '<div class="ttdbox pv">' + (m.img ? '<img alt="Tanda tangan" src="' + esc(m.img) + '">' : '<span>Belum ada tanda tangan</span>') + '</div>' +
         '<div class="btnrow"><button type="button" class="btn sec" data-act="ttdgambar">' + C.ic('pena') + 'Gambar</button><button type="button" class="btn sec" data-act="ttdunggah">' + C.ic('img') + 'Unggah PNG</button></div>' +
         '<input type="file" id="ttdFile" accept="image/*" hidden>' +
-        '<div class="gap"><button type="button" class="btn" data-act="ttdsimpan"' + (m.img ? '' : ' disabled') + '>Simpan</button><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div>') + '</div></div>';
+        '<div class="gap"><button type="button" class="btn" data-act="ttdsimpan"' + (m.img || m.hid ? '' : ' disabled') + '>Simpan</button><button type="button" class="btn sec" data-act="' + (m.hid ? 'ttdqckembali' : 'mtutup') + '">' + (m.hid ? 'Kembali' : 'Tutup') + '</button></div>') + '</div></div>';
   }
   async function bukaTtd() {
     var r = await C.work('Memuat...', function () { return C.api('ttd_saya'); });
@@ -300,7 +301,7 @@
       c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
       var out = olahGambar(c, true);
       if (!out) { C.toast('Gambar tanda tangan tidak terbaca atau terlalu besar. Coba foto yang lebih jelas.'); return; }
-      bacaNama(m); m.img = out; C.renderOverlay();
+      bacaNama(m); m.img = out; m.berubah = true; C.renderOverlay();
     };
     im.onerror = function () { URL.revokeObjectURL(url); C.toast('Berkas bukan gambar yang bisa dibaca.'); };
     im.src = url;
@@ -308,10 +309,29 @@
   async function simpanTtd() {
     var m = C.S.modal; bacaNama(m);
     if (!m.nama.trim()) { C.toast('Isi nama yang dicetak.'); return; }
+    if (m.hid) {   // Admin menyetel akun QC lain; gambar dikirim hanya bila diganti
+      var p = { hid: m.hid, nama: m.nama, jabatan: m.jabatan };
+      if (m.berubah && m.img) p.gambar = m.img;
+      var ra = await C.work('Menyimpan tanda tangan QC...', function () { return C.api('ttd_atur', p); });
+      if (ra) { C.toast('Tanda tangan ' + m.akun + ' tersimpan.'); bukaDaftarQc(); }
+      return;
+    }
     var r = await C.work('Menyimpan tanda tangan...', function () { return C.api('ttd_simpan', { nama: m.nama, jabatan: m.jabatan, gambar: m.img }); });
     if (r) { C.toast('Tanda tangan tersimpan.'); C.closeModal(); }
   }
-
+  /* Admin: daftar akun QC dan penyetelan tanda tangan serta nama cetaknya */
+  async function bukaDaftarQc() {
+    var d = await C.work('Memuat akun QC...', function () { return C.api('qc_daftar'); });
+    if (d) C.openModal({ t: 'qcdaftar', daftar: d });
+  }
+  function qcdaftarHtml(m) {
+    var NAMA_PERAN = { MK: 'QC MK', PJ: 'QC PJ' }, bid = { STR: 'Struktur', ARS: 'Arsitektur', MEEP: 'MEEP', KOORD: 'Koordinator' };
+    var baris = m.daftar.map(function (x) {
+      return '<button type="button" class="mli" data-act="ttdqcpilih" data-h="' + esc(x.hid) + '"><div><b>' + esc(x.akun) + '</b><span>' + esc((NAMA_PERAN[x.peran] || x.peran) + (x.qcBidang ? ' ' + (bid[x.qcBidang] || x.qcBidang) : '')) + '</span><span>Tercetak: ' + esc(x.nama || '(belum diisi)') + (x.jabatan ? ', ' + esc(x.jabatan) : '') + '</span></div><span class="tag ' + (x.adaTtd ? 'm-close' : 'm-belum') + '">' + (x.adaTtd ? 'Ada tanda tangan' : 'Belum ada') + '</span></button>';
+    }).join('');
+    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tanda tangan QC"><h2>Tanda tangan QC</h2><div class="note" style="padding:0">Setel tanda tangan dan nama cetak akun QC. Akun QC ditandai di sheet PENGGUNA (kolom QC dan QCBidang).</div>' +
+      (baris ? '<div class="mlis">' + baris + '</div>' : '<div class="empty">Belum ada akun QC.</div>') + '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+  }
   /* ---------- PDF ---------- */
 
   function muatLogo(url) {
@@ -561,10 +581,10 @@
   var YAKIN = {
     batal: ['Batalkan memo?', 'Temuan kembali ke alur biasa dan boleh dinaikkan lagi dengan memo baru. Nomor memo ini tidak dipakai ulang.', 'Ya, batalkan'],
     hapus: ['Hapus memo permanen?', 'Memo, tanda tangan, dan arsip PDF-nya dihapus dan tidak bisa dikembalikan. Nomor memo ini tidak dipakai ulang.', 'Ya, hapus'],
-    cabut: ['Cabut tanda tangan?', '', 'Ya, cabut']
+    cabut: ['Batalkan tanda tangan?', '', 'Ya, batalkan']
   };
   function yakinHtml(m) {
-    var y = YAKIN[m.kind], d = m.r.memo, ket = y[1] || ('Tanda tangan ' + NAMA_SLOT[m.slot] + ' dicabut dan status memo mundur satu tahap. Nomor memo tetap.');
+    var y = YAKIN[m.kind], d = m.r.memo, ket = y[1] || ('Tanda tangan ' + NAMA_SLOT[m.slot] + ' dibatalkan dan status memo mundur satu tahap. Nomor memo tetap; tanda tangan bisa dibubuhkan lagi.');
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Konfirmasi"><h2>' + y[0] + '</h2>' +
       '<div class="note" style="padding:0"><b>' + esc(d.noMemo ? 'SM ' + pendek(d.noMemo) : 'Draf memo') + '</b> &middot; ' + esc(d.kegiatan || d.lokasi) + '</div><div class="note" style="padding:0">' + esc(ket) + '</div>' +
       '<div class="gap"><button type="button" class="btn bad" data-act="memoyakinya">' + y[2] + '</button><button type="button" class="btn sec" data-act="memoyakinbatal">Kembali</button></div></div></div>';
@@ -573,9 +593,9 @@
     var m = C.S.modal; if (!m || m.t !== 'memoyakin') return;
     var id = m.r.memo.id, d = m.r.defect;
     if (m.kind === 'cabut') {
-      var h = await C.work('Mencabut tanda tangan...', function () { return C.api('memo_cabut_ttd', { memoId: id, slot: m.slot, konfirmasi: true }); });
+      var h = await C.work('Membatalkan tanda tangan...', function () { return C.api('memo_cabut_ttd', { memoId: id, slot: m.slot, konfirmasi: true }); });
       if (!h) return;
-      C.putDefect(h.defect); C.toast('Tanda tangan dicabut.' + ((h.arsipBasi || []).length ? ' PDF After lama belum sesuai; arsipkan ulang setelah disahkan lagi.' : ''));
+      C.putDefect(h.defect); C.toast('Tanda tangan dibatalkan.' + ((h.arsipBasi || []).length ? ' PDF After lama belum sesuai; arsipkan ulang setelah disahkan lagi.' : ''));
       C.openModal({ t: 'memo', r: h }); C.render(); muatDaftar(); return;
     }
     var aksi = m.kind === 'batal' ? 'memo_batal' : 'memo_hapus';
@@ -689,6 +709,7 @@
     if (m.t === 'memoyakin') return yakinHtml(m);
     if (m.t === 'memoprev') return pvHtml(m);
     if (m.t === 'memolainnya') return lainnyaHtml(m);
+    if (m.t === 'qcdaftar') return qcdaftarHtml(m);
     return '';
   }
   function sesudahOverlay() {
@@ -745,10 +766,17 @@
         var c2 = $('ttdCv'); if (!c2 || !m) return;
         var out = olahGambar(c2, false);
         if (!out) { C.toast('Belum ada coretan. Gambar tanda tangan Anda dulu.'); return; }
-        bacaNama(m); m.img = out; m.mode = ''; return C.renderOverlay();
+        bacaNama(m); m.img = out; m.berubah = true; m.mode = ''; return C.renderOverlay();
       }
       case 'ttdunggah': { var f = $('ttdFile'); if (f) f.click(); return; }
       case 'ttdsimpan': return simpanTtd();
+      case 'ttdqc': return bukaDaftarQc();
+      case 'ttdqckembali': return bukaDaftarQc();
+      case 'ttdqcpilih': {
+        var qq = m && m.daftar && m.daftar.filter(function (x) { return x.hid === el.getAttribute('data-h'); })[0];
+        if (qq) C.openModal({ t: 'ttd', hid: qq.hid, akun: qq.akun, nama: qq.nama || qq.akun, jabatan: qq.jabatan, img: qq.gambar || '', mode: '' });
+        return;
+      }
       case 'memotabfilter': TB.semua = el.getAttribute('data-v') === '1'; return C.render();
       case 'memosegar2': D.daftar = null; C.render(); return muatDaftar();
       case 'memosahcepat': return sahkanCepat(el.getAttribute('data-m'), el.getAttribute('data-s'));
