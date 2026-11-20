@@ -23,10 +23,12 @@
   var KLS = { 'MENUNGGU TTD MK': 'm-draf', TERBIT: 'm-terbit', 'TINDAK LANJUT': 'm-tindak', 'PEMERIKSAAN II': 'm-periksa', CLOSE: 'm-close', BATAL: 'm-batal' };
   function stCls(st) { return KLS[st] || ''; }
   function perluMemo(d) { return !!d && C.canEdit() && !d.memoId && (d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }
-  function kelas(d) { return d && d.memoId ? ' mm ' + stCls(d.memoStatus) : perluMemo(d) ? ' mm m-belum' : ''; }
+  function stKartu(st) { return st === 'MENUNGGU TTD MK' ? 'm-draf' : st === 'BATAL' ? 'm-batal' : 'm-terbit'; }   // kartu temuan: Draf atau Terbit saja
+  function kelas(d) { return d && d.memoId ? ' mm ' + stKartu(d.memoStatus) : perluMemo(d) ? ' mm m-belum' : ''; }
   function legenda(list) {
     if (list && !list.some(function (d) { return d.memoId || perluMemo(d); })) return '';
-    return '<div class="mlg" aria-label="Arti warna memo">' + [['m-belum', 'Belum memo'], ['m-draf', 'Draf'], ['m-terbit', 'Terbit'], ['m-tindak', 'Tindak lanjut'], ['m-periksa', 'Pemeriksaan II'], ['m-close', 'Close']].map(function (x) { return '<span><i class="' + x[0] + '"></i>' + x[1] + '</span>'; }).join('') + '</div>';
+    var item = list ? [['m-belum', 'Belum memo'], ['m-draf', 'Draf'], ['m-terbit', 'Terbit']] : [['m-belum', 'Belum memo'], ['m-draf', 'Draf'], ['m-terbit', 'Terbit'], ['m-tindak', 'Tindak lanjut'], ['m-periksa', 'Pemeriksaan II'], ['m-close', 'Close']];   // dengan daftar temuan: tiga keadaan; tanpa: semua tahap
+    return '<div class="mlg" aria-label="Arti warna memo">' + item.map(function (x) { return '<span><i class="' + x[0] + '"></i>' + x[1] + '</span>'; }).join('') + '</div>';
   }
   function punya(t) { return !!MODAL[t]; }
   function milik(a) { return a.indexOf('memo') === 0 || a.indexOf('ttd') === 0; }
@@ -49,12 +51,12 @@
     if (d && !d.memoId) return perluMemo(d) ? '<span class="tag m-belum">Belum memo</span>' : '';
     if (!d) return '';
     var lbl = d.noMemo ? 'SM ' + pendek(d.noMemo) : 'Draf memo';
-    return '<button type="button" class="tag memo ' + stCls(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '" aria-label="Site memo ' + esc(lbl) + '">' + C.ic('memo') + esc(lbl) + '</button>';
+    return '<button type="button" class="tag memo ' + stKartu(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '" aria-label="Site memo ' + esc(lbl) + '">' + C.ic('memo') + esc(lbl) + '</button>';
   }
   function bisaNaik(d) { return C.canEdit() && !d.memoId && (d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }   // juga untuk Admin: tingkat Minor diubah dulu
   /* Tombol Memo berwarna menurut keadaan: kuning bergaris putus = belum dinaikkan; selebihnya sama dengan warna status memo. */
   function kartuTombol(d) {
-    if (d.memoId) return '<button type="button" class="pill memo ' + stCls(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '">' + C.ic('memo') + 'Memo</button>';
+    if (d.memoId) return '<button type="button" class="pill memo ' + stKartu(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '">' + C.ic('memo') + 'Memo</button>';
     if (bisaNaik(d)) return '<button type="button" class="pill memo m-belum" data-act="memobuka" data-d="' + esc(d.id) + '">' + C.ic('memo') + 'Memo</button>';
     return '';
   }
@@ -396,7 +398,7 @@
       else tombol += '<button type="button" class="pill go" data-act="memosahcepat" data-m="' + esc(x.id) + '" data-s="' + a + '">' + C.ic('centang') + 'Sahkan' + (jml > 1 ? ' ' + SLOT_PENDEK[a] : '') + '</button>';
     });
     if (jml) tombol += '<button type="button" class="pill" data-act="memopratinjaukartu" data-m="' + esc(x.id) + '">Pratinjau</button>';
-    return '<article class="group mcard"><div class="eh"><span class="no">' + esc(x.noMemo ? pendek(x.noMemo) : 'Draf') + '</span><span class="tx">' + esc(x.kegiatan || x.lokasi || x.bidang) + '</span></div>' +
+    return '<article class="group mcard tap" data-act="memolihat" data-m="' + esc(x.id) + '"><div class="eh"><span class="no">' + esc(x.noMemo ? pendek(x.noMemo) : 'Draf') + '</span><span class="tx">' + esc(x.kegiatan || x.lokasi || x.bidang) + '</span></div>' +
       '<div class="meta"><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span><span class="tag">' + esc(x.bidang) + '</span>' + (x.tingkat ? '<span class="tag ' + esc(x.tingkat.toLowerCase()) + '">' + esc(x.tingkat) + '</span>' : '') + hariTag(x) + '</div>' +
       '<div class="note">' + esc(lokasiTeks(x)) + '</div>' + dots(x) +
       '<div class="note"><b>' + esc(x.menunggu ? x.menunggu.teks : '') + '</b></div>' +

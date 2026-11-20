@@ -588,7 +588,7 @@ function kmenuItems(d){
 }
 function entryHtml(d,n,ix,ro){
   var fresh=!S.seen[d.id],land=S.baru===d.id;S.seen[d.id]=1;
-  var h='<article class="group entry'+(land?' land':fresh?' pop':'')+(M_?M_.kelas(d):'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
+  var h='<article class="group entry'+(land?' land':fresh?' pop':'')+(M_?M_.kelas(d):'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh tap" data-act="ttx" data-d="'+esc(d.id)+'" role="button" tabindex="0" aria-label="Lihat detail temuan"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
     '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+(M_?M_.tag(d):'')+'</div>'+
     stepperHtml(d);
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
@@ -899,7 +899,7 @@ function modalHtml(){
       '<button type="button" class="btn" data-act="miripPakai">Pakai '+esc(mp.entri)+'</button><button type="button" class="btn sec" data-act="miripBaru">Tetap buat baru</button><button type="button" class="btn sec" data-act="miripBatal">Batal</button></div></div>';
   }
   if(m.t==='ttx')
-    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(m.d.no||'')+'</h2><div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">'+esc(m.d.gedung)+' / '+esc(m.d.lantai)+' / '+esc(m.d.ruangan)+'</div><div class="phs"><div class="ph" data-j="before">'+phHtml(m.d,'before',true,'detail')+'</div><div class="ph" data-j="after">'+phHtml(m.d,'after',true,'detail')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(m.d.no||'')+'</h2><div class="meta"><span class="tag '+stCls(m.d.status)+'">'+esc(m.d.status)+'</span><span class="tag">'+esc(m.d.bidang)+'</span><span class="tag '+esc(String(m.d.tingkat).toLowerCase())+'">'+esc(m.d.tingkat)+'</span>'+(M_?M_.tag(m.d):'')+'</div><div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">'+esc(m.d.gedung)+' / '+esc(m.d.lantai)+' / '+esc(m.d.ruangan)+'</div><div class="phs"><div class="ph" data-j="before">'+phHtml(m.d,'before',true,'detail')+'</div><div class="ph" data-j="after">'+phHtml(m.d,'after',true,'detail')+'</div></div>'+(M_&&M_.kartuTombol(m.d)?'<div class="acts" style="padding:0">'+M_.kartuTombol(m.d)+'</div>':'')+'<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='kmenu')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu temuan"><div class="group kmenu"><div class="list">'+kmenuItems(m.d).map(function(it){return '<button type="button" class="row act'+(it.bad?' bad':'')+'" data-act="'+it.a+'" data-d="'+esc(m.d.id)+'">'+(it.ic?ic(it.ic):'')+'<span>'+it.t+'</span></button>'}).join('')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='unggah')
@@ -2097,7 +2097,7 @@ async function onClick(ev){
     case 'fclr2': {var s0=ensureSel(tree());S.flt={rid:S.flt.rid,q:S.flt.q,st:S.flt.st,bd:'',tk:'',el:''};if(S.modal&&S.modal.t==='filter')renderOverlay();refreshList();render();return}
     case 'kmenu': return openModal({t:'kmenu',d:findDefect(id)});
     case 'fotodetail': {var df=findDefect(id);if(df)openModal({t:'ttx',d:df});return}   // lencana +N di kartu: semua ukuran layar
-    case 'ttx': {if(!desk())return;var dt=findDefect(id);if(dt)openModal({t:'ttx',d:dt});return}
+    case 'ttx': {var dt=findDefect(id);if(dt)openModal({t:'ttx',d:dt});return}
     case 'unggah': return openModal({t:'unggah',d:findDefect(id),j:el.getAttribute('data-j')||'after'});
     case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){modalFotos(S.modal.f,items)});
     case 'upretry': {var jr=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];if(jr){jr.st='wait';upUi(jr.did);runQueue()}return}
