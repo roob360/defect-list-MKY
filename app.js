@@ -324,7 +324,7 @@ function skel(kind){
 }
 function render(){
   document.body.classList.toggle('wide',!!(S.paket&&S.user&&(S.view==='form'||S.view==='verif'||S.view==='perbaikan'||S.view==='memo')&&desk()));
-  document.body.classList.toggle('bento',!!(S.paket&&S.user&&((S.view==='rekap'&&canEdit()&&S.rekapMode!=='memo')||(S.view==='kelola'&&isAdmin()))&&desk()));
+  document.body.classList.toggle('bento',!!(S.paket&&S.user&&((S.view==='rekap'&&canEdit())||(S.view==='kelola'&&isAdmin()))&&desk()));
   setHead();setDock();
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
   var key=!S.paket?'pick':!S.user?'login':S.view+(S.view==='form'?':'+S.sel.r:'');
@@ -452,7 +452,7 @@ function renderMain(){
   if(S.view==='verif'&&canEdit())h+=verifHtml();
   else if(S.view==='perbaikan'&&(isPJ()||isAdmin()))h+=perbaikanHtml();
   else if(S.view==='memo'&&M_&&M_.punyaTab(S.user))h+=M_.tabHtml();
-  else if(S.view==='rekap'&&canEdit())h+=(M_?M_.rekapToggle():'')+((M_&&S.rekapMode==='memo')?M_.rekapHtml():(desk()?rekapBentoHtml():rekapHtml()));
+  else if(S.view==='rekap'&&canEdit())h+=(M_?M_.rekapToggle():'')+((M_&&S.rekapMode==='memo')?(desk()?M_.rekapBentoHtml():M_.rekapHtml()):(desk()?rekapBentoHtml():rekapHtml()));
   else if(S.view==='kelola'&&isAdmin())h+=kelolaHtml();
   else h+=formHtml();
   app.innerHTML=h;
@@ -537,21 +537,23 @@ function formHtml(){
   var f=S.flt,nf=(f.bd?1:0)+(f.tk?1:0)+(f.el?1:0);
   h+='<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="fq" placeholder="Cari uraian, elemen, titik" autocomplete="off" value="'+esc(f.q)+'"></label>'+
     '<button type="button" class="btn-sq" data-act="filterbuka">Filter'+(nf?' &middot; '+nf:'')+'</button><button type="button" class="btn-sq ic" data-act="menuaksi" aria-label="Menu aksi">&#8943;</button></div>';
-  return h+filterHtml(list,c)+'<div id="elist">'+entriesHtml(list)+'</div>';
+  return h+filterHtml(list,c)+(M_?M_.legenda(list):'')+'<div id="elist">'+entriesHtml(list)+'</div>';
 }
-function thumbsHtml(items,jenis,d,removable){
+/* mode: 'kartu' = satu foto paling atas dengan lencana +N; 'detail' = sampai 4 foto; kosong = semua. */
+function thumbsHtml(items,jenis,d,removable,mode){
   var jobs=S.up.filter(function(j){return j.did===d.id&&j.jenis===jenis});
+  var lim=mode==='kartu'?1:mode==='detail'?4:0,tampil=lim?items.slice(0,lim):items;
   if(!items.length&&!jobs.length)return '<div class="none">Belum ada foto '+jenis+'</div>';
-  return '<div class="thumbs">'+(items.length>1?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+items.map(function(f){
+  return '<div class="thumbs">'+(items.length>1?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+tampil.map(function(f,ix){
     return '<div class="thumb"><button type="button" data-act="zoom" data-f="'+esc(f.id)+'" data-d="'+esc(d.id)+'" data-j="'+jenis+'" aria-label="Lihat foto"><img loading="lazy" referrerpolicy="no-referrer" alt="Foto '+jenis+'" src="'+(S.pv[f.id]||thumb(f.id,400))+'"></button>'+
       (f.t?'<span class="dt">'+esc(fmt(f.t))+'</span>':'')+
       (S.fotoOk[f.id]?(delete S.fotoOk[f.id],'<span class="ok" aria-hidden="true">'+SVG_CEK+'</span>'):'')+
-      (removable?'<button type="button" class="x" data-act="delfoto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-f="'+esc(f.id)+'" aria-label="Hapus foto">&times;</button>':'')+'</div>';
-  }).join('')+jobs.map(upHtml).join('')+'</div>';
+      (removable?'<button type="button" class="x" data-act="delfoto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-f="'+esc(f.id)+'" aria-label="Hapus foto">&times;</button>':'')+(mode==='kartu'&&ix===0&&items.length>1?'<button type="button" class="plus" data-act="fotodetail" data-d="'+esc(d.id)+'" aria-label="Lihat semua '+items.length+' foto">+'+(items.length-1)+'</button>':'')+'</div>';
+  }).join('')+(mode==='detail'&&items.length>tampil.length?'<div class="note" style="grid-column:1/-1;padding:4px 0 0">+'+(items.length-tampil.length)+' foto lain (kelola lewat Ubah temuan)</div>':'')+jobs.map(upHtml).join('')+'</div>';
 }
-function phHtml(d,jenis,ro){
+function phHtml(d,jenis,ro,mode){
   var ed=canEdit()&&!ro;
-  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,false);
+  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,false,mode);
 }
 /* Stepper empat tahap: Temuan, Perbaikan, After, Verifikasi. Hijau selesai, oranye sedang, merah ditolak. */
 function stepperHtml(d){
@@ -586,13 +588,13 @@ function kmenuItems(d){
 }
 function entryHtml(d,n,ix,ro){
   var fresh=!S.seen[d.id],land=S.baru===d.id;S.seen[d.id]=1;
-  var h='<article class="group entry'+(land?' land':fresh?' pop':'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
+  var h='<article class="group entry'+(land?' land':fresh?' pop':'')+(M_?M_.kelas(d):'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
     '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+(M_?M_.tag(d):'')+'</div>'+
     stepperHtml(d);
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
   if(d.verifikasi)h+='<div class="note'+(d.verifikasi==='Ditolak'?' tolak':' ok')+'">'+(d.verifikasi==='Diterima'?'Diterima':'Ditolak')+' MK '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):'')+(d.catatan?'. Catatan: '+esc(d.catatan):'')+'</div>';
   if(isPJ()&&d.verifikasi==='Ditolak')h+='<div class="note tolak">Unggah foto After yang baru supaya diverifikasi ulang oleh MK.</div>';
-  h+='<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',ro)+'</div><div class="ph" data-j="after">'+phHtml(d,'after',ro)+'</div></div>';
+  h+='<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',ro,'kartu')+'</div><div class="ph" data-j="after">'+phHtml(d,'after',ro,'kartu')+'</div></div>';
   h+='<div class="acts">'+aksiUtama(d)+(M_?M_.kartuTombol(d):'');
   if(kmenuItems(d).length)h+='<button type="button" class="pill menu" data-act="kmenu" data-d="'+esc(d.id)+'" aria-label="Menu temuan">&#8943;</button>';
   return h+'</div></article>';
@@ -651,7 +653,7 @@ function semuaHtml(){
   if(S.allErr)return '<div class="err">Gagal memuat semua temuan.</div><button type="button" class="btn sec" data-act="muatsemua">Coba lagi</button>';
   var list=semuaList();if(!list)return skel('entries');
   var a=AQ.form;
-  return '<div class="banner" role="status"><span>'+list.length+' temuan di semua ruangan</span><button type="button" data-act="muatsemua">Muat ulang</button></div>'+aqBar(list,a,false,true)+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';
+  return '<div class="banner" role="status"><span>'+list.length+' temuan di semua ruangan</span><button type="button" data-act="muatsemua">Muat ulang</button></div>'+aqBar(list,a,false,true)+(M_?M_.legenda(list):'')+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';
 }
 
 /* ----- antrean verifikasi ----- */
@@ -897,7 +899,7 @@ function modalHtml(){
       '<button type="button" class="btn" data-act="miripPakai">Pakai '+esc(mp.entri)+'</button><button type="button" class="btn sec" data-act="miripBaru">Tetap buat baru</button><button type="button" class="btn sec" data-act="miripBatal">Batal</button></div></div>';
   }
   if(m.t==='ttx')
-    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(m.d.no||'')+'</h2><div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">'+esc(m.d.gedung)+' / '+esc(m.d.lantai)+' / '+esc(m.d.ruangan)+'</div><div class="phs"><div class="ph" data-j="before">'+phHtml(m.d,'before',true)+'</div><div class="ph" data-j="after">'+phHtml(m.d,'after',true)+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(m.d.no||'')+'</h2><div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">'+esc(m.d.gedung)+' / '+esc(m.d.lantai)+' / '+esc(m.d.ruangan)+'</div><div class="phs"><div class="ph" data-j="before">'+phHtml(m.d,'before',true,'detail')+'</div><div class="ph" data-j="after">'+phHtml(m.d,'after',true,'detail')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='kmenu')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu temuan"><div class="group kmenu"><div class="list">'+kmenuItems(m.d).map(function(it){return '<button type="button" class="row act'+(it.bad?' bad':'')+'" data-act="'+it.a+'" data-d="'+esc(m.d.id)+'">'+(it.ic?ic(it.ic):'')+'<span>'+it.t+'</span></button>'}).join('')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='unggah')
@@ -1056,7 +1058,7 @@ function upUi(did){
   var d=did&&findDefect(did);
   if(d){
     var a=Array.prototype.filter.call(document.querySelectorAll('article.entry'),function(x){return x.getAttribute('data-id')===did})[0];
-    if(a){var ro=a.getAttribute('data-ro')==='1';['before','after'].forEach(function(jn){var p=a.querySelector('.ph[data-j="'+jn+'"]');if(p)p.innerHTML=phHtml(d,jn,ro)})}
+    if(a){var ro=a.getAttribute('data-ro')==='1';['before','after'].forEach(function(jn){var p=a.querySelector('.ph[data-j="'+jn+'"]');if(p)p.innerHTML=phHtml(d,jn,ro,'kartu')})}
     if(S.modal&&S.modal.f&&S.modal.f.id===did)fotoEditRefresh();
   }
   upBar();
@@ -2094,6 +2096,7 @@ async function onClick(ev){
     case 'menuaksi': return openModal({t:'aksi'});
     case 'fclr2': {var s0=ensureSel(tree());S.flt={rid:S.flt.rid,q:S.flt.q,st:S.flt.st,bd:'',tk:'',el:''};if(S.modal&&S.modal.t==='filter')renderOverlay();refreshList();render();return}
     case 'kmenu': return openModal({t:'kmenu',d:findDefect(id)});
+    case 'fotodetail': {var df=findDefect(id);if(df)openModal({t:'ttx',d:df});return}   // lencana +N di kartu: semua ukuran layar
     case 'ttx': {if(!desk())return;var dt=findDefect(id);if(dt)openModal({t:'ttx',d:dt});return}
     case 'unggah': return openModal({t:'unggah',d:findDefect(id),j:el.getAttribute('data-j')||'after'});
     case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){modalFotos(S.modal.f,items)});
