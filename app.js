@@ -565,6 +565,14 @@ function stepperHtml(d){
     '<div class="bars">'+st.map(function(s,i){return '<i class="'+s+(fl[i]>=0?' fill" style="--i:'+fl[i]:'')+'"></i>'}).join('')+'</div>'+
     '<div class="lbls">'+nm.map(function(n,i){return '<span class="'+st[i]+'">'+n+'</span>'}).join('')+'</div></div>';
 }
+/* Temuan bermemo: alasan "Diterima" belum bisa (memo belum disahkan QC MK atau PJ belum mengisi tindak lanjut); kosong bila tidak ada hambatan. */
+function hambatTerima(d){
+  if(!d||!d.memoId)return '';
+  var ms=d.memoStatus;
+  if(ms==='MENUNGGU TTD MK')return 'Site memo belum disahkan QC MK.';
+  if(['TINDAK LANJUT','PEMERIKSAAN II','CLOSE'].indexOf(ms)<0)return 'Menunggu PJ mengisi tindak lanjut site memo. Setelah terisi, tombol Diterima aktif. Anda tetap bisa menolak.';
+  return '';
+}
 function bisaMulai(){return !!(S.user&&(S.user.peran==='PJ'||S.user.peran==='ADMIN'))}
 /* Satu aksi utama menurut peran dan tahap; sisanya di menu kartu (kmenuItems). */
 function aksiUtama(d){
@@ -865,7 +873,8 @@ function modalHtml(){
     return '<div class="ov" data-act="modalbg"><div class="sheet" role="dialog" aria-label="Verifikasi"><h2>Verifikasi MK</h2><div class="note" style="padding:0 0 10px;overflow-wrap:anywhere">'+esc(d.uraian)+'</div>'+
       '<section class="group"><div class="list"><label class="row"><span class="lbl">Catatan MK (opsional)</span><textarea id="vC" style="min-height:80px">'+esc(d.catatan||'')+'</textarea></label></div></section>'+
       (d.fotoAfter.length?'':'<div class="note" style="padding:0 0 10px">Belum ada foto After dari penanggung jawab, jadi belum bisa diterima atau ditolak.</div>')+
-      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length&&d.verifikasi!=='Diterima'?'':' disabled')+' data-act="vset" data-h="Diterima">'+(d.verifikasi==='Diterima'?'Sudah diterima (Close)':'Diterima (Close)')+'</button><button type="button" class="btn bad"'+(d.fotoAfter.length&&d.verifikasi!=='Ditolak'?'':' disabled')+' data-act="vset" data-h="Ditolak">'+(d.verifikasi==='Ditolak'?'Sudah ditolak':'Ditolak')+'</button>'+
+      (d.fotoAfter.length&&d.verifikasi!=='Diterima'&&hambatTerima(d)?'<div class="note tolak" style="padding:0 0 10px">'+esc(hambatTerima(d))+'</div>':'')+
+      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length&&d.verifikasi!=='Diterima'&&!hambatTerima(d)?'':' disabled')+' data-act="vset" data-h="Diterima">'+(d.verifikasi==='Diterima'?'Sudah diterima (Close)':'Diterima (Close)')+'</button><button type="button" class="btn bad"'+(d.fotoAfter.length&&d.verifikasi!=='Ditolak'?'':' disabled')+' data-act="vset" data-h="Ditolak">'+(d.verifikasi==='Ditolak'?'Sudah ditolak':'Ditolak')+'</button>'+
       (d.verifikasi?'<button type="button" class="btn sec" data-act="vset" data-h="">Batalkan verifikasi</button>':'')+
       '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div></div>';
   }
