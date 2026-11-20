@@ -104,17 +104,19 @@
       doc.addImage(im.url, fmt, x + (w - gw) / 2, yy + (h - gh) / 2, gw, gh);
     }
 
-    /* Tiga logo di blok kiri: Owner, KSO MK, KSO PJ. Tiga kotak berukuran sama; tiap logo diperbesar sampai menyentuh sisi kotak
-     * (rasio tetap) dan diletakkan di tengah kotaknya, jadi tidak ada logo yang tampak lebih besar dari yang lain. */
+    /* Tiga logo berjajar rata kiri di blok kiri, seperti PDF contoh: Owner, KSO MK, KSO PJ. Tinggi sama, lebar menurut rasio;
+     * semuanya diperkecil bersama bila tidak muat. */
     function logoBlok(c0, c1, yy, hpx) {
       var ada = [logo.owner, logo.mk, logo.pj].filter(function (l) { return l && l.url; });
       if (!ada.length) return;
-      var tinggi = H(hpx) - 5, jarak = 2, lebarBlok = X(c1) - X(c0) - 4;
-      var kotakW = (lebarBlok - jarak * (ada.length - 1)) / ada.length;
+      var tinggi = H(hpx) - 3.2, jarak = 2.5, lebarBlok = X(c1) - X(c0) - 4.4;
+      var lebar = ada.map(function (l) { return l.w * tinggi / l.h; });
+      var total = lebar.reduce(function (a, b) { return a + b; }, 0) + jarak * (ada.length - 1);
+      var sk = total > lebarBlok ? lebarBlok / total : 1;
+      var x = X(c0) + 2.2, ty = yy + (H(hpx) - tinggi * sk) / 2;
       ada.forEach(function (l, i) {
-        var sk = Math.min(kotakW / l.w, tinggi / l.h), w = l.w * sk, h = l.h * sk, fmt = /^data:image\/png/i.test(l.url) ? 'PNG' : 'JPEG';
-        var kx = X(c0) + 2 + i * (kotakW + jarak);
-        doc.addImage(l.url, fmt, kx + (kotakW - w) / 2, yy + 2.5 + (tinggi - h) / 2, w, h);
+        var w = lebar[i] * sk, fmt = /^data:image\/png/i.test(l.url) ? 'PNG' : 'JPEG';
+        doc.addImage(l.url, fmt, x, ty, w, tinggi * sk); x += w + jarak * sk;
       });
     }
 
@@ -152,7 +154,7 @@
     /* ===================== LEMBAR 1 ===================== */
     bar(y, 40, NAVY, [[0, 6, 'SITE MEMO']], UK_JUDUL); y += H(40);
 
-    var hNo = Math.max(36, butuh(d.noMemo, 4, 6, 1.6)), h1 = Math.max(96, hNo + 36);
+    var hNo = Math.max(36, butuh(d.noMemo, 4, 6, 1.6)), h1 = Math.max(78, hNo + 36);
     bingkai(0, 6, y, h1); vgaris(2, y, h1);
     logoBlok(0, 2, y, h1);
     sel(3, 4, y, hNo, { teks: 'No.', tebal: true }); sel(4, 6, y, hNo, { teks: d.noMemo });
