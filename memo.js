@@ -53,6 +53,15 @@
     var lbl = d.noMemo ? 'SM ' + pendek(d.noMemo) : 'Draf memo';
     return '<button type="button" class="tag memo ' + stKartu(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '" aria-label="Site memo ' + esc(lbl) + '">' + C.ic('memo') + esc(lbl) + '</button>';
   }
+  /* Bagian "Site memo" pada dialog Temuan lengkap: nomor, tahap, penerbit, tanggal. */
+  var NAMA_TAHAP = { 'MENUNGGU TTD MK': 'Menunggu tanda tangan QC MK', 'TERBIT': 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', 'CLOSE': 'Close', 'BATAL': 'Dibatalkan' };
+  function ringkasMemo(d) {
+    function baris(k, v) { return v ? '<div class="kv"><span>' + k + '</span><b>' + v + '</b></div>' : ''; }
+    if (!d.memoId) return perluMemo(d) ? baris('Status', 'Belum dimemokan') : '';
+    var x = (D.daftar || []).filter(function (r) { return r.id === d.memoId; })[0];
+    return baris('Nomor', d.noMemo ? esc(d.noMemo) : 'Draf, belum bernomor') + baris('Tahap', esc(NAMA_TAHAP[d.memoStatus] || d.memoStatus || '')) +
+      (x ? baris('Diterbitkan oleh', esc(x.oleh || '(tidak tercatat)')) + baris('Tanggal pengajuan', x.tglPengajuan ? esc(x.tglPengajuan) : '') : '');
+  }
   function bisaNaik(d) { return C.canEdit() && !d.memoId && (d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }   // juga untuk Admin: tingkat Minor diubah dulu
   /* Tombol Memo berwarna menurut keadaan: kuning bergaris putus = belum dinaikkan; selebihnya sama dengan warna status memo. */
   function kartuTombol(d) {
@@ -807,7 +816,7 @@
         var k = e.target && e.target.getAttribute && e.target.getAttribute('data-rk');
         if (k) { RK[k] = e.target.type === 'checkbox' ? (e.target.checked ? 1 : 0) : e.target.value; C.render(); }
       });
-      return { kelas: kelas, legenda: legenda, punyaTab: punyaTab, tabHtml: tabHtml, rekapToggle: rekapToggle, rekapHtml: rekapHtml, rekapBentoHtml: rekapBentoHtml, tag: tag, kartuTombol: kartuTombol, setelanHtml: setelanHtml, punya: punya, milik: milik, modalHtml: modalHtml, sesudahOverlay: sesudahOverlay, klik: klik, muatDaftar: muatDaftar, jumlahPerlu: jumlahPerlu }; },
+      return { kelas: kelas, legenda: legenda, punyaTab: punyaTab, tabHtml: tabHtml, rekapToggle: rekapToggle, rekapHtml: rekapHtml, rekapBentoHtml: rekapBentoHtml, tag: tag, ringkasMemo: ringkasMemo, kartuTombol: kartuTombol, setelanHtml: setelanHtml, punya: punya, milik: milik, modalHtml: modalHtml, sesudahOverlay: sesudahOverlay, klik: klik, muatDaftar: muatDaftar, jumlahPerlu: jumlahPerlu }; },
     /* untuk uji */
     _tglId: tglId, _pendek: pendek, _olahGambar: olahGambar
   };

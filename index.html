@@ -844,6 +844,12 @@
   /* kartu yang bisa diketuk */
   .eh.tap, .mcard.tap{ cursor:pointer; }
   .eh.tap:focus-visible{ outline:2px solid var(--blue); outline-offset:3px; border-radius:8px; }
+  /* dialog Temuan lengkap: bagian dan pasangan label-nilai */
+  .ttxs{ display:grid; gap:6px; padding-top:10px; border-top:.5px solid var(--sep); }
+  .ttxs .cap{ margin:0; }
+  .kv{ display:grid; grid-template-columns:minmax(96px,34%) 1fr; gap:10px; font-size:14px; line-height:20px; }
+  .kv span{ color:var(--label2); }
+  .kv b{ font-weight:500; color:var(--label1); overflow-wrap:anywhere; }
 </style>
 </head>
 <body>

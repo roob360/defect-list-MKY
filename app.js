@@ -573,11 +573,42 @@ function hambatTerima(d){
   if(['TINDAK LANJUT','PEMERIKSAAN II','CLOSE'].indexOf(ms)<0)return 'Menunggu PJ mengisi tindak lanjut site memo. Setelah terisi, tombol Diterima aktif. Anda tetap bisa menolak.';
   return '';
 }
+/* Hak mengubah, menghapus, dan mengelola foto Before: Admin, pelapor, QC MK yang berwenang (Koordinator semua bidang). Cermin aturan server (_bolehKelolaTemuan). */
+var QC_GRUP_BIDANG={Arsitektur:'ARS',Struktur:'STR',MEEP:'MEEP'};
+function bisaKelola(d){
+  var u=S.user;if(!u)return false;
+  if(u.peran==='ADMIN')return true;
+  if(u.peran!=='MK')return false;
+  if(!d.by||d.by===u.nama)return true;
+  return u.qc==='YA'&&(u.qcBidang==='KOORD'||u.qcBidang===QC_GRUP_BIDANG[d.bidang]);
+}
+/* Dialog "Temuan lengkap": ringkasan di atas, lalu bagian Temuan, Pelapor, Site memo, Perbaikan, dan foto. Kartu sengaja ringkas; rincian lengkap ada di sini. */
+function ttxHtml(d){
+  function baris(k,v){return v?'<div class="kv"><span>'+k+'</span><b>'+v+'</b></div>':''}
+  function bagian(j,isi){return isi?'<section class="ttxs"><div class="cap">'+j+'</div>'+isi+'</section>':''}
+  var lok=[d.gedung,d.lantai,d.ruangan].filter(Boolean).join(' / ')+(d.titik?' · '+(d.elemen?d.elemen+' ':'')+d.titik:'');
+  var memo=M_&&M_.ringkasMemo?M_.ringkasMemo(d):'';
+  var perbaikan=baris('Mulai perbaikan',d.mulai?esc(fmt(d.mulai)):'')+baris('Foto After',d.tglAfter?esc(fmt(d.tglAfter))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):''):'')+
+    baris('Verifikasi MK',d.verifikasi?esc(d.verifikasi)+' '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):''):'')+baris('Catatan MK',d.catatan?esc(d.catatan):'');
+  return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(d.no||'')+'</h2>'+
+    '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span>'+(M_?M_.tag(d):'')+'</div>'+
+    '<div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(d.uraian)+'</div>'+
+    bagian('Temuan',baris('Lokasi',esc(lok))+baris('Tanggal temuan',d.tglTemuan?esc(fmt(d.tglTemuan)):''))+
+    bagian('Pelapor',baris('Dilaporkan oleh',d.by?esc(d.by):'(tidak tercatat)')+baris('Terakhir diubah',d.ubah?esc(fmt(d.ubah)):''))+
+    bagian('Site memo',memo)+
+    bagian('Perbaikan',perbaikan)+
+    '<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',true,'detail')+'</div><div class="ph" data-j="after">'+phHtml(d,'after',true,'detail')+'</div></div>'+
+    (M_&&M_.kartuTombol(d)?'<div class="acts" style="padding:0">'+M_.kartuTombol(d)+'</div>':'')+
+    '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+}
+/* PJ: temuan bermemo yang sudah punya foto After tetapi tindak lanjut memonya belum diisi tidak bisa diterima MK. */
+function perluTindak(d){return !!(d&&d.memoId&&d.fotoAfter.length&&d.verifikasi!=='Diterima'&&d.memoStatus==='TERBIT')}
 function bisaMulai(){return !!(S.user&&(S.user.peran==='PJ'||S.user.peran==='ADMIN'))}
 /* Satu aksi utama menurut peran dan tahap; sisanya di menu kartu (kmenuItems). */
 function aksiUtama(d){
   var closed=d.status==='Close',af=d.fotoAfter.length>0,vd=d.verifikasi,id=esc(d.id);
   if(closed||vd==='Diterima')return '';
+  if(isPJ()&&perluTindak(d))return '<button type="button" class="pill start" data-act="memotindakcepat" data-m="'+esc(d.memoId)+'">Isi tindak lanjut</button>';
   if(bisaMulai()){
     if(!d.mulai)return '<button type="button" class="pill start" data-act="mulai" data-d="'+id+'">Mulai perbaikan</button>';
     if(!af||vd==='Ditolak')return '<button type="button" class="pill start" data-act="unggah" data-d="'+id+'" data-j="after">'+(vd==='Ditolak'?'Perbaiki ulang':'Unggah foto After')+'</button>';
@@ -588,10 +619,10 @@ function aksiUtama(d){
 /* Isi menu kartu per peran: ADMIN (ubah, ubah keputusan, batalkan mulai, hapus), MK (ubah, ubah keputusan, hapus), PJ (batalkan mulai). */
 function kmenuItems(d){
   var a=[],closed=d.status==='Close';
-  if(canEdit())a.push({a:'edit',t:'Ubah temuan',ic:'ubah'});
+  if(bisaKelola(d))a.push({a:'edit',t:'Ubah temuan',ic:'ubah'});
   if(canEdit()&&d.verifikasi)a.push({a:'verif',t:'Ubah keputusan verifikasi',ic:'centang'});
   if(bisaMulai()&&!closed&&d.mulai&&!d.fotoAfter.length)a.push({a:'batalmulai',t:'Batalkan mulai perbaikan',ic:'urungkan'});
-  if(canEdit())a.push({a:'hapus',t:'Hapus',bad:true,ic:'sampah'});
+  if(bisaKelola(d))a.push({a:'hapus',t:'Hapus',bad:true,ic:'sampah'});
   return a;
 }
 function entryHtml(d,n,ix,ro){
@@ -907,8 +938,7 @@ function modalHtml(){
     return '<div class="ov mid"><div class="sheet gap" role="dialog" aria-label="Nama mirip"><h2>Sudah ada '+esc(mp.entri)+'</h2><div class="note" style="padding:0;overflow-wrap:anywhere">Anda mengetik "'+esc(mp.masuk)+'"'+(mp.jenis==='lantai'?' di '+esc(mp.gedung):'')+'. '+esc(tj)+' yang sudah ada: "'+esc(mp.entri)+'". Pakai yang sudah ada supaya tidak ganda.</div>'+
       '<button type="button" class="btn" data-act="miripPakai">Pakai '+esc(mp.entri)+'</button><button type="button" class="btn sec" data-act="miripBaru">Tetap buat baru</button><button type="button" class="btn sec" data-act="miripBatal">Batal</button></div></div>';
   }
-  if(m.t==='ttx')
-    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(m.d.no||'')+'</h2><div class="meta"><span class="tag '+stCls(m.d.status)+'">'+esc(m.d.status)+'</span><span class="tag">'+esc(m.d.bidang)+'</span><span class="tag '+esc(String(m.d.tingkat).toLowerCase())+'">'+esc(m.d.tingkat)+'</span>'+(M_?M_.tag(m.d):'')+'</div><div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">'+esc(m.d.gedung)+' / '+esc(m.d.lantai)+' / '+esc(m.d.ruangan)+'</div><div class="phs"><div class="ph" data-j="before">'+phHtml(m.d,'before',true,'detail')+'</div><div class="ph" data-j="after">'+phHtml(m.d,'after',true,'detail')+'</div></div>'+(M_&&M_.kartuTombol(m.d)?'<div class="acts" style="padding:0">'+M_.kartuTombol(m.d)+'</div>':'')+'<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+  if(m.t==='ttx')return ttxHtml(m.d);
   if(m.t==='kmenu')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu temuan"><div class="group kmenu"><div class="list">'+kmenuItems(m.d).map(function(it){return '<button type="button" class="row act'+(it.bad?' bad':'')+'" data-act="'+it.a+'" data-d="'+esc(m.d.id)+'">'+(it.ic?ic(it.ic):'')+'<span>'+it.t+'</span></button>'}).join('')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='unggah')
