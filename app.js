@@ -1312,8 +1312,8 @@ async function coretTersimpan(zf){
     if(del){putDefect(del);render();fotoEditRefresh();toast('Foto asli dipindah ke folder sampah Drive.')}
   });
 }
-/** Tambah foto Before ke temuan yang sudah tersimpan: foto disiapkan, ditawari tahap coret, baru diantrekan untuk diunggah. */
-async function fotoBeforeCoret(did,files){
+/** Tambah foto (Before oleh Admin dan MK, After oleh PJ dan lainnya) ke temuan yang sudah tersimpan: foto disiapkan, ditawari tahap coret, baru diantrekan untuk diunggah. */
+async function fotoCoret(did,files,jenis){
   if(S.modal&&S.modal.f)readForm();   // simpan isian dialog sebelum layar memuat menggantikannya
   var siap=[];
   await work('Menyiapkan foto...',async function(){
@@ -1324,7 +1324,7 @@ async function fotoBeforeCoret(did,files){
     if(h===false)break;   // Lewati sisa foto: sisanya tetap diunggah apa adanya
     if(h)siap[k].d=h;
   }
-  siap.forEach(function(x){var jb={k:nk(),did:did,jenis:'before',data:x.d,tn:x.tn,st:'wait'};S.up.push(jb);qSave(jb)});
+  siap.forEach(function(x){var jb={k:nk(),did:did,jenis:jenis||'before',data:x.d,tn:x.tn,st:'wait'};S.up.push(jb);qSave(jb)});
   if(siap.length){upUi(did);upBar();runQueue();fotoEditRefresh()}
 }
 async function modalFotos(f,files){
@@ -2051,7 +2051,7 @@ async function onClick(ev){
     case 'foto': {
       var jenis=el.getAttribute('data-j');
       pick(!!el.getAttribute('data-cam'),function(items){
-        if(jenis==='before'&&canEdit())fotoBeforeCoret(id,items);else enqueue(id,jenis,items);
+        if((jenis==='before'&&canEdit())||jenis==='after')fotoCoret(id,items,jenis);else enqueue(id,jenis,items);   // Before dan After sama-sama ditawari tahap coret
       });
       if(S.modal&&S.modal.t==='unggah')closeModal();
       return;
@@ -2165,7 +2165,7 @@ async function onClick(ev){
       var r3=await work('Menghapus...',function(){return api('defect_hapus',{id:dd.id})});
       if(r3){var awal=kartuPosisi();await kartuKeluar(dd.id);dropDefect(dd.id,dd.ruanganId);if(isAdmin())toastAksi('Temuan dihapus.','Urungkan',function(){urungkanHapus(dd)});else toast('Temuan dihapus.');render();kartuNaik(awal)}return;
     }
-    case 'fadd': {var fa=S.modal&&S.modal.f;if(!fa)return;pick(!!el.getAttribute('data-cam'),function(items){fotoBeforeCoret(fa.id,items)});return}
+    case 'fadd': {var fa=S.modal&&S.modal.f;if(!fa)return;pick(!!el.getAttribute('data-cam'),function(items){fotoCoret(fa.id,items,'before')});return}
     case 'fcoret': {var fc=S.modal&&S.modal.f;if(!fc)return;readForm();return coretTersimpan({d:fc.id,j:'before',f:el.getAttribute('data-f')})}
     case 'fdel': {var fd=S.modal&&S.modal.f;if(fd){fd.hapusFoto=el.getAttribute('data-f');fotoEditRefresh()}return}
     case 'fdelbatal': {var fb=S.modal&&S.modal.f;if(fb){fb.hapusFoto=null;fotoEditRefresh()}return}
