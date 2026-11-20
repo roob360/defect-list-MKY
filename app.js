@@ -19,8 +19,11 @@ var S={
   defects:{}, loading:{}, errs:{}, all:null, siap:null, siapErr:'', perlu:null, perluErr:'', anim:'sistem', flt:{rid:'',q:'',st:'',bd:'',tk:'',el:''}, zipOff:{}, zipRun:false, zipStop:false, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
   reg:null, regOk:false, rg:{area:'',pakai:null}, imp:null, impRes:null, up:[], pv:{}, stale:{}, fokusAsal:null, kl:{g:'',l:'',n:''}, hist:[], skip:0, seen:{}, ringPrev:{}, stpPrev:{}, cntPrev:{}, cuPrev:{}, fotoOk:{}, baru:null, drafOk:0, drawn:'', ovKey:''
 };
+S.rekapMode=lsGet('dl-rekap')==='memo'?'memo':'temuan';S.semua=lsGet('dl-semua')==='1';   // Rekap: Temuan atau Memo; Temuan: per ruangan atau semua ruangan
 var app=document.getElementById('app'), overlay=document.getElementById('overlay');
 var toastTimer=null, pickCb=null;
+/* Site memo (memo.js): modul terpisah yang dipanggil dari beberapa titik (kartu, dialog, Pengaturan, lencana). Bila memo.js tidak termuat, semuanya diam. */
+var M_=window.MEMO?window.MEMO.init({S:S,overlay:overlay,PDF_URL:PDF_URL,api:api,work:work,putDefect:putDefect,findDefect:findDefect,openModal:openModal,closeModal:closeModal,render:render,renderOverlay:renderOverlay,loadLib:loadLib,fetchImgs:fetchImgs,imgSize:imgSize,showFile:showFile,toast:toast,esc:esc,ic:ic,thumb:thumb,canEdit:canEdit,isAdmin:isAdmin,isPJ:isPJ,skel:skel,XLSX_URL:XLSX_URL,loadDefects:loadDefects,loadSiap:loadSiap,loadPerlu:loadPerlu,today:today,clean:clean,BIDANG:BIDANG}):null;
 
 /* ---------- util ---------- */
 function $(id){return document.getElementById(id)}
@@ -282,7 +285,7 @@ async function loadAll(){
 /* ---------- tampilan ---------- */
 function setHead(){
   var pr=$('bProf'),k=S.user?'u':'g';
-  if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);pr.innerHTML=S.user?'<span>'+esc(String(S.user.nama||S.user.peran).trim().charAt(0).toUpperCase())+'</span>':ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'');pr.setAttribute('aria-label',S.user?'Pengaturan, '+S.user.nama+' ('+S.user.peran+')':'Pengaturan');pr.title=S.user?S.user.nama+' · '+S.user.peran:'Pengaturan';pr.parentNode.classList.toggle('in',!!S.user)}
+  if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);var mj=(S.user&&M_)?M_.jumlahPerlu():0;pr.innerHTML=S.user?'<span>'+esc(String(S.user.nama||S.user.peran).trim().charAt(0).toUpperCase())+'</span>'+(mj?'<i class="pbdg" aria-hidden="true">'+(mj>9?'9+':mj)+'</i>':''):ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'');pr.setAttribute('aria-label',S.user?'Pengaturan, '+S.user.nama+' ('+S.user.peran+')'+(mj?', '+mj+' memo perlu tindakan':''):'Pengaturan');pr.title=S.user?S.user.nama+' · '+S.user.peran:'Pengaturan';pr.parentNode.classList.toggle('in',!!S.user)}
   $('bBack').hidden=!(S.paket&&!S.user);
 }
 /* Skeleton: memakai kelas asli (pagehead, locbar, summary, sbar, chips, entry, phs, acts, kpis, bgrid) tanpa pembungkus,
@@ -320,7 +323,7 @@ function skel(kind){
   return h;
 }
 function render(){
-  document.body.classList.toggle('wide',!!(S.paket&&S.user&&(S.view==='form'||S.view==='verif'||S.view==='perbaikan')&&desk()));
+  document.body.classList.toggle('wide',!!(S.paket&&S.user&&(S.view==='form'||S.view==='verif'||S.view==='perbaikan'||S.view==='memo')&&desk()));
   document.body.classList.toggle('bento',!!(S.paket&&S.user&&((S.view==='rekap'&&canEdit())||(S.view==='kelola'&&isAdmin()))&&desk()));
   setHead();setDock();
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
@@ -405,11 +408,12 @@ function setDock(){
   var el=$('dock'),show=!!(S.paket&&S.user&&(canEdit()||isPJ()));
   if(show){
     var t=isPJ()?[['form','Form'],['perbaikan','Perbaikan']]:isAdmin()?[['form','Form'],['verif','Verifikasi'],['perbaikan','Perbaikan'],['rekap','Rekap'],['kelola','Kelola']]:[['form','Form'],['verif','Verifikasi'],['rekap','Rekap']];
+    if(M_&&M_.punyaTab(S.user))t.push(['memo','Memo']);   // QC MK, QC PJ, dan PJ
     var add=canEdit();
     var keys=t.map(function(x){return x[0]}).join(',')+(add?'+':'');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
-      var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan')?'<i class="bdg" hidden></i>':'')+'</button>'});
+      var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan'||x[0]==='memo')?'<i class="bdg" hidden></i>':'')+'</button>'});
       if(add)bt.push('<button type="button" class="dockadd" data-act="tambah" aria-label="Tambah temuan">'+ic('plus')+'</button>');
       el.innerHTML='<span class="ind"></span>'+bt.join('');
     }
@@ -418,9 +422,9 @@ function setDock(){
     if(ad){var vis=S.view==='form';el.classList.toggle('noadd',!vis);ad.tabIndex=vis?0:-1;ad.setAttribute('aria-hidden',vis?'false':'true')}
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(bt){
       var bg=bt.querySelector('.bdg');if(!bg)return;
-      var pj=bt.getAttribute('data-v')==='perbaikan',n=pj?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);
+      var vk=bt.getAttribute('data-v'),pj=vk==='perbaikan',mm=vk==='memo',n=mm?(M_?M_.jumlahPerlu():0):pj?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);
       var pn=bg._n;bg._n=n;
-      bg.textContent=n>99?'99+':n;bg.hidden=!n;bg.setAttribute('aria-label',n+(pj?' perlu dikerjakan':' menunggu verifikasi'));
+      bg.textContent=n>99?'99+':n;bg.hidden=!n;bg.setAttribute('aria-label',n+(mm?' memo perlu tindakan':pj?' perlu dikerjakan':' menunggu verifikasi'));
       if(n&&pn!==undefined&&pn!==n&&animOn()&&bg.animate)bg.animate([{transform:'scale(.4)'},{transform:'scale(1.3)',offset:.6},{transform:'none'}],{duration:300,easing:'ease-out'});   // lencana "pop" saat angkanya berubah
     });
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){
@@ -447,7 +451,8 @@ function renderMain(){
   if(S.net)h+='<div class="err" role="status">'+esc(S.net)+'</div>';
   if(S.view==='verif'&&canEdit())h+=verifHtml();
   else if(S.view==='perbaikan'&&(isPJ()||isAdmin()))h+=perbaikanHtml();
-  else if(S.view==='rekap'&&canEdit())h+=(desk()?rekapBentoHtml():rekapHtml());
+  else if(S.view==='memo'&&M_&&M_.punyaTab(S.user))h+=M_.tabHtml();
+  else if(S.view==='rekap'&&canEdit())h+=(M_?M_.rekapToggle():'')+((M_&&S.rekapMode==='memo')?(desk()?M_.rekapBentoHtml():M_.rekapHtml()):(desk()?rekapBentoHtml():rekapHtml()));
   else if(S.view==='kelola'&&isAdmin())h+=kelolaHtml();
   else h+=formHtml();
   app.innerHTML=h;
@@ -505,7 +510,8 @@ function formHtml(){
   if(!T.length)return '<div class="empty">Belum ada ruangan.'+(isAdmin()?' Tambahkan di tab Kelola.':' Hubungi admin.')+'</div>';
   var s=ensureSel(T),rid=s.r.id,list=S.defects[rid];
   if(S.flt.rid!==rid)S.flt={rid:rid,q:'',st:'',bd:'',tk:'',el:''};
-  var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Temuan</h1></div>';
+  var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Temuan</h1>'+tmodeHtml()+'</div>';
+  if(S.semua)return h+semuaHtml();
   h+='<div class="locbar"><button type="button" class="btn-ic" data-act="nav" data-d="-1" aria-label="Ruangan sebelumnya">'+ic('prev')+'</button>'+
     '<button type="button" class="locbtn" data-act="lokpilih" aria-label="Pilih lokasi"><span class="lk">'+esc(s.g.nama)+' &rsaquo; '+esc(s.l.nama)+'</span><b>'+esc(s.r.nama)+'</b><svg class="chv" viewBox="0 0 12 18" aria-hidden="true"><path d="M2 7l4-4 4 4M2 11l4 4 4-4"/></svg></button>'+
     '<button type="button" class="btn-ic" data-act="nav" data-d="1" aria-label="Ruangan berikutnya">'+ic('next')+'</button></div>';
@@ -531,21 +537,23 @@ function formHtml(){
   var f=S.flt,nf=(f.bd?1:0)+(f.tk?1:0)+(f.el?1:0);
   h+='<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="fq" placeholder="Cari uraian, elemen, titik" autocomplete="off" value="'+esc(f.q)+'"></label>'+
     '<button type="button" class="btn-sq" data-act="filterbuka">Filter'+(nf?' &middot; '+nf:'')+'</button><button type="button" class="btn-sq ic" data-act="menuaksi" aria-label="Menu aksi">&#8943;</button></div>';
-  return h+filterHtml(list,c)+'<div id="elist">'+entriesHtml(list)+'</div>';
+  return h+filterHtml(list,c)+(M_?M_.legenda(list):'')+'<div id="elist">'+entriesHtml(list)+'</div>';
 }
-function thumbsHtml(items,jenis,d,removable){
+/* mode: 'kartu' = satu foto paling atas dengan lencana +N; 'detail' = sampai 4 foto; kosong = semua. */
+function thumbsHtml(items,jenis,d,removable,mode){
   var jobs=S.up.filter(function(j){return j.did===d.id&&j.jenis===jenis});
+  var lim=mode==='kartu'?1:mode==='detail'?4:0,tampil=lim?items.slice(0,lim):items;
   if(!items.length&&!jobs.length)return '<div class="none">Belum ada foto '+jenis+'</div>';
-  return '<div class="thumbs">'+(items.length>1?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+items.map(function(f){
+  return '<div class="thumbs">'+(items.length>1&&!mode?'<button type="button" class="more" data-act="ttx" data-d="'+esc(d.id)+'" aria-label="Lihat semua foto">+'+(items.length-1)+'</button>':'')+tampil.map(function(f,ix){
     return '<div class="thumb"><button type="button" data-act="zoom" data-f="'+esc(f.id)+'" data-d="'+esc(d.id)+'" data-j="'+jenis+'" aria-label="Lihat foto"><img loading="lazy" referrerpolicy="no-referrer" alt="Foto '+jenis+'" src="'+(S.pv[f.id]||thumb(f.id,400))+'"></button>'+
       (f.t?'<span class="dt">'+esc(fmt(f.t))+'</span>':'')+
       (S.fotoOk[f.id]?(delete S.fotoOk[f.id],'<span class="ok" aria-hidden="true">'+SVG_CEK+'</span>'):'')+
-      (removable?'<button type="button" class="x" data-act="delfoto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-f="'+esc(f.id)+'" aria-label="Hapus foto">&times;</button>':'')+'</div>';
-  }).join('')+jobs.map(upHtml).join('')+'</div>';
+      (removable?'<button type="button" class="x" data-act="delfoto" data-d="'+esc(d.id)+'" data-j="'+jenis+'" data-f="'+esc(f.id)+'" aria-label="Hapus foto">&times;</button>':'')+(mode==='kartu'&&ix===0&&items.length>1?'<button type="button" class="plus" data-act="fotodetail" data-d="'+esc(d.id)+'" aria-label="Lihat semua '+items.length+' foto">+'+(items.length-1)+'</button>':'')+'</div>';
+  }).join('')+(mode==='detail'&&items.length>tampil.length?'<div class="note" style="grid-column:1/-1;padding:4px 0 0">+'+(items.length-tampil.length)+' foto lain (kelola lewat Ubah temuan)</div>':'')+jobs.map(upHtml).join('')+'</div>';
 }
-function phHtml(d,jenis,ro){
+function phHtml(d,jenis,ro,mode){
   var ed=canEdit()&&!ro;
-  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,false);
+  return '<div class="phl"><span>'+(jenis==='before'?'Before':'After')+'</span>'+'</div>'+thumbsHtml(jenis==='before'?d.fotoBefore:d.fotoAfter,jenis,d,false,mode);
 }
 /* Stepper empat tahap: Temuan, Perbaikan, After, Verifikasi. Hijau selesai, oranye sedang, merah ditolak. */
 function stepperHtml(d){
@@ -557,11 +565,51 @@ function stepperHtml(d){
     '<div class="bars">'+st.map(function(s,i){return '<i class="'+s+(fl[i]>=0?' fill" style="--i:'+fl[i]:'')+'"></i>'}).join('')+'</div>'+
     '<div class="lbls">'+nm.map(function(n,i){return '<span class="'+st[i]+'">'+n+'</span>'}).join('')+'</div></div>';
 }
+/* Temuan bermemo: alasan "Diterima" belum bisa (memo belum disahkan QC MK atau PJ belum mengisi tindak lanjut); kosong bila tidak ada hambatan. */
+function hambatTerima(d){
+  if(!d||!d.memoId)return '';
+  var ms=d.memoStatus;
+  if(ms==='MENUNGGU TTD MK')return 'Site memo belum disahkan QC MK.';
+  if(['TINDAK LANJUT','PEMERIKSAAN II','CLOSE'].indexOf(ms)<0)return 'Menunggu PJ mengisi tindak lanjut site memo. Setelah terisi, tombol Diterima aktif. Anda tetap bisa menolak.';
+  return '';
+}
+/* Hak mengubah, menghapus, dan mengelola foto Before: Admin, pelapor, QC MK yang berwenang (Koordinator semua bidang). Cermin aturan server (_bolehKelolaTemuan). */
+var QC_GRUP_BIDANG={Arsitektur:'ARS',Struktur:'STR',MEEP:'MEEP'};
+function bisaKelola(d){
+  if(typeof d.kelola==='boolean')return d.kelola;   // server menentukan (sidik akun); yang di bawah hanya cadangan untuk data tanpa penanda
+  var u=S.user;if(!u)return false;
+  if(u.peran==='ADMIN')return true;
+  if(u.peran!=='MK')return false;
+  if(!d.by||d.by===u.nama)return true;
+  return u.qc==='YA'&&(u.qcBidang==='KOORD'||u.qcBidang===QC_GRUP_BIDANG[d.bidang]);
+}
+/* Dialog "Temuan lengkap": ringkasan di atas, lalu bagian Temuan, Pelapor, Site memo, Perbaikan, dan foto. Kartu sengaja ringkas; rincian lengkap ada di sini. */
+function ttxHtml(d){
+  function baris(k,v){return v?'<div class="kv"><span>'+k+'</span><b>'+v+'</b></div>':''}
+  function bagian(j,isi){return isi?'<section class="ttxs"><div class="cap">'+j+'</div>'+isi+'</section>':''}
+  var lok=[d.gedung,d.lantai,d.ruangan].filter(Boolean).join(' / ')+(d.titik?' · '+(d.elemen?d.elemen+' ':'')+d.titik:'');
+  var memo=M_&&M_.ringkasMemo?M_.ringkasMemo(d):'';
+  var perbaikan=baris('Mulai perbaikan',d.mulai?esc(fmt(d.mulai)):'')+baris('Foto After',d.tglAfter?esc(fmt(d.tglAfter))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):''):'')+
+    baris('Verifikasi MK',d.verifikasi?esc(d.verifikasi)+' '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):''):'')+baris('Catatan MK',d.catatan?esc(d.catatan):'');
+  return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(d.no||'')+'</h2>'+
+    '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span>'+(M_?M_.tag(d):'')+'</div>'+
+    '<div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(d.uraian)+'</div>'+
+    bagian('Temuan',baris('Lokasi',esc(lok))+baris('Tanggal temuan',d.tglTemuan?esc(fmt(d.tglTemuan)):''))+
+    bagian('Pelapor',baris('Dilaporkan oleh',d.by?esc(d.by)+(d.saya?' (Anda)':''):'(tidak tercatat)')+baris('Terakhir diubah',d.ubah?esc(fmt(d.ubah)):''))+
+    bagian('Site memo',memo)+
+    bagian('Perbaikan',perbaikan)+
+    '<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',true,'detail')+'</div><div class="ph" data-j="after">'+phHtml(d,'after',true,'detail')+'</div></div>'+
+    (M_&&M_.kartuTombol(d)?'<div class="acts" style="padding:0">'+M_.kartuTombol(d)+'</div>':'')+
+    '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+}
+/* PJ: temuan bermemo yang sudah punya foto After tetapi tindak lanjut memonya belum diisi tidak bisa diterima MK. */
+function perluTindak(d){return !!(d&&d.memoId&&d.fotoAfter.length&&d.verifikasi!=='Diterima'&&d.memoStatus==='TERBIT')}
 function bisaMulai(){return !!(S.user&&(S.user.peran==='PJ'||S.user.peran==='ADMIN'))}
 /* Satu aksi utama menurut peran dan tahap; sisanya di menu kartu (kmenuItems). */
 function aksiUtama(d){
   var closed=d.status==='Close',af=d.fotoAfter.length>0,vd=d.verifikasi,id=esc(d.id);
   if(closed||vd==='Diterima')return '';
+  if(isPJ()&&perluTindak(d))return '<button type="button" class="pill start" data-act="memotindakcepat" data-m="'+esc(d.memoId)+'">Isi tindak lanjut</button>';
   if(bisaMulai()){
     if(!d.mulai)return '<button type="button" class="pill start" data-act="mulai" data-d="'+id+'">Mulai perbaikan</button>';
     if(!af||vd==='Ditolak')return '<button type="button" class="pill start" data-act="unggah" data-d="'+id+'" data-j="after">'+(vd==='Ditolak'?'Perbaiki ulang':'Unggah foto After')+'</button>';
@@ -572,42 +620,43 @@ function aksiUtama(d){
 /* Isi menu kartu per peran: ADMIN (ubah, ubah keputusan, batalkan mulai, hapus), MK (ubah, ubah keputusan, hapus), PJ (batalkan mulai). */
 function kmenuItems(d){
   var a=[],closed=d.status==='Close';
-  if(canEdit())a.push({a:'edit',t:'Ubah temuan',ic:'ubah'});
+  if(bisaKelola(d))a.push({a:'edit',t:'Ubah temuan',ic:'ubah'});
   if(canEdit()&&d.verifikasi)a.push({a:'verif',t:'Ubah keputusan verifikasi',ic:'centang'});
   if(bisaMulai()&&!closed&&d.mulai&&!d.fotoAfter.length)a.push({a:'batalmulai',t:'Batalkan mulai perbaikan',ic:'urungkan'});
-  if(canEdit())a.push({a:'hapus',t:'Hapus',bad:true,ic:'sampah'});
+  if(bisaKelola(d))a.push({a:'hapus',t:'Hapus',bad:true,ic:'sampah'});
   return a;
 }
 function entryHtml(d,n,ix,ro){
   var fresh=!S.seen[d.id],land=S.baru===d.id;S.seen[d.id]=1;
-  var h='<article class="group entry'+(land?' land':fresh?' pop':'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
-    '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+'</div>'+
+  var h='<article class="group entry'+(land?' land':fresh?' pop':'')+(M_?M_.kelas(d):'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh tap" data-act="ttx" data-d="'+esc(d.id)+'" role="button" tabindex="0" aria-label="Lihat detail temuan"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
+    '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+(M_?M_.tag(d):'')+'</div>'+
     stepperHtml(d);
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
   if(d.verifikasi)h+='<div class="note'+(d.verifikasi==='Ditolak'?' tolak':' ok')+'">'+(d.verifikasi==='Diterima'?'Diterima':'Ditolak')+' MK '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):'')+(d.catatan?'. Catatan: '+esc(d.catatan):'')+'</div>';
   if(isPJ()&&d.verifikasi==='Ditolak')h+='<div class="note tolak">Unggah foto After yang baru supaya diverifikasi ulang oleh MK.</div>';
-  h+='<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',ro)+'</div><div class="ph" data-j="after">'+phHtml(d,'after',ro)+'</div></div>';
-  h+='<div class="acts">'+aksiUtama(d);
+  h+='<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',ro,'kartu')+'</div><div class="ph" data-j="after">'+phHtml(d,'after',ro,'kartu')+'</div></div>';
+  h+='<div class="acts">'+aksiUtama(d)+(M_?M_.kartuTombol(d):'');
   if(kmenuItems(d).length)h+='<button type="button" class="pill menu" data-act="kmenu" data-d="'+esc(d.id)+'" aria-label="Menu temuan">&#8943;</button>';
   return h+'</div></article>';
 }
 
 /* ----- filter antrean (tab Verifikasi dan Perbaikan, masing-masing punya state sendiri) ----- */
-var AQ={verif:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},perbaikan:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0}};
-function aqOn(a){return !!(a.q.trim()||a.gd||a.lt||a.bd||a.tk||a.tl)}
+var AQ={verif:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},perbaikan:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},form:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,sy:0,n:60}};   // form = tab Temuan mode Semua ruangan
+function aqOn(a){return !!(a.q.trim()||a.gd||a.lt||a.bd||a.tk||a.tl||a.mm||a.sy)}
 function aqList(list,a){
   var q=a.q.trim().toLowerCase();
-  return list.filter(function(d){return (!a.gd||d.gedung===a.gd)&&(!a.lt||d.lantai===a.lt)&&(!a.bd||d.bidang===a.bd)&&(!a.tk||d.tingkat===a.tk)&&(!a.tl||d.verifikasi==='Ditolak')&&
+  return list.filter(function(d){return (!a.gd||d.gedung===a.gd)&&(!a.lt||d.lantai===a.lt)&&(!a.bd||d.bidang===a.bd)&&(!a.tk||d.tingkat===a.tk)&&(!a.tl||d.verifikasi==='Ditolak')&&(!a.mm||!!d.memoId)&&(!a.sy||d.saya===true)&&
     (!q||String(d.uraian+' '+(d.titik||'')+' '+(d.elemen||'')+' '+(d.ruangan||'')).toLowerCase().indexOf(q)>=0)});
 }
 function aqIsi(list,a,verif){
   var v=aqList(list,a),g='';
   if(!v.length)return '<div class="empty">Tidak ada temuan yang cocok.<div class="acts" style="padding:10px 0 0"><button type="button" class="pill" data-act="aqclr">Atur ulang</button></div></div>';
-  v.forEach(function(d,i){g+='<div class="ent"><div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+(verif?entryHtml(d,d.no||i+1,i,true):entryHtml(d,d.no||i+1,i))+'</div>'});
-  return '<div class="entgrid">'+g+'</div>';
+  var lim=(S.view==='form'&&a.n)?a.n:0;   // mode Semua ruangan: tampil bertahap supaya daftar panjang tidak berat
+  v.slice(0,lim||v.length).forEach(function(d,i){g+='<div class="ent"><div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+(verif?entryHtml(d,d.no||i+1,i,true):entryHtml(d,d.no||i+1,i))+'</div>'});
+  return '<div class="entgrid">'+g+'</div>'+(lim&&v.length>lim?'<div class="acts" style="padding:12px 0"><button type="button" class="btn sec" data-act="aqlebih">Tampilkan lebih banyak ('+(v.length-lim)+' lagi)</button></div>':'');
 }
 function aqCount(list,a){return aqOn(a)?aqList(list,a).length+' dari '+list.length+' temuan':''}
-function aqBar(list,a,perb){
+function aqBar(list,a,perb,semua){
   var gd=[],lt=[];
   list.forEach(function(d){
     if(d.gedung&&gd.indexOf(d.gedung)<0)gd.push(d.gedung);
@@ -621,13 +670,31 @@ function aqBar(list,a,perb){
   var n=(a.gd?1:0)+(a.lt?1:0)+(a.bd?1:0)+(a.tk?1:0);
   return '<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari uraian, elemen, titik, ruangan" autocomplete="off" value="'+esc(a.q)+'"></label>'+
     (aqOn(a)?'<button type="button" class="btn-sq" data-act="aqclr">Atur ulang</button>':'')+'</div>'+
+    (semua&&canEdit()?'<div class="chips" role="group" aria-label="Pelapor"><button type="button" class="chip'+(a.sy?'':' on')+'" data-act="aqsy" data-v="0">Semua pelapor</button><button type="button" class="chip'+(a.sy?' on':'')+'" data-act="aqsy" data-v="1">Temuan saya</button></div>':'')+
+    (semua?'<div class="chips" role="group" aria-label="Memo"><button type="button" class="chip'+(a.mm?'':' on')+'" data-act="aqmm" data-v="0">Semua</button><button type="button" class="chip'+(a.mm?' on':'')+'" data-act="aqmm" data-v="1">Bermemo</button></div>':'')+
     (perb?'<div class="chips" role="group" aria-label="Status verifikasi"><button type="button" class="chip'+(a.tl?'':' on')+'" data-act="aqtl" data-v="0">Semua</button><button type="button" class="chip'+(a.tl?' on':'')+'" data-act="aqtl" data-v="1">Ditolak MK</button></div>':'')+
     '<section class="group"><div class="list"><div class="two">'+sel('gd','Gedung',gd)+sel('lt','Lantai',lt)+'</div><div class="two">'+sel('bd','Bidang',BIDANG)+sel('tk','Tingkat',TINGKAT)+'</div></div><div class="gf" id="aqcount">'+esc(aqCount(list,a))+'</div></section>';
 }
 function aqSegar(){
-  var verif=S.view==='verif',list=verif?S.siap:S.perlu;if(!list)return;
+  var verif=S.view==='verif',list=verif?S.siap:S.view==='form'?semuaList():S.perlu;if(!list)return;
   var a=AQ[S.view],el=$('aqlist');if(el)el.innerHTML=aqIsi(list,a,verif);
   var ct=$('aqcount');if(ct)ct.textContent=aqCount(list,a);
+}
+
+/* ----- tab Temuan: Per ruangan (awal) atau Semua ruangan dengan filter Gedung, Lantai, Bidang, Tingkat, Bermemo ----- */
+function tmodeHtml(){
+  return '<div class="chips tmode" role="group" aria-label="Cakupan temuan"><button type="button" class="chip'+(S.semua?'':' on')+'" data-act="tmode" data-v="ruang">Per ruangan</button><button type="button" class="chip'+(S.semua?' on':'')+'" data-act="tmode" data-v="semua">Semua ruangan</button></div>';
+}
+function semuaList(){
+  if(!S.all)return null;
+  return S.all.slice().sort(function(a,b){return L.bandingAlami(a.gedung,b.gedung)||L.bandingAlami(a.lantai,b.lantai)||L.bandingAlami(a.ruangan,b.ruangan)||((a.no||0)-(b.no||0))});
+}
+function semuaHtml(){
+  if(!S.all&&!S.allBusy&&!S.allErr){S.allBusy=true;loadAll().then(function(){S.allBusy=false;if(S.view==='form'&&S.semua)render()}).catch(function(e){S.allBusy=false;S.allErr=(e&&e.message)||true;if(S.view==='form'&&S.semua)render()})}
+  if(S.allErr)return '<div class="err">Gagal memuat semua temuan.'+(typeof S.allErr==='string'?' '+esc(S.allErr):'')+'</div><button type="button" class="btn sec" data-act="muatsemua">Coba lagi</button>';
+  var list=semuaList();if(!list)return skel('entries');
+  var a=AQ.form;
+  return '<div class="banner" role="status"><span>'+list.length+' temuan di semua ruangan</span><button type="button" data-act="muatsemua">Muat ulang</button></div>'+aqBar(list,a,false,true)+(M_?M_.legenda(list):'')+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';
 }
 
 /* ----- antrean verifikasi ----- */
@@ -810,6 +877,7 @@ function renderOverlay(){
   overlay.classList.toggle('fx',!!key&&key!==S.ovKey);S.ovKey=key;
   overlay.innerHTML=h;
   aturDialog(key,prev);
+  if(M_)M_.sesudahOverlay();
 }
 /* Dialog: peran ARIA, fokus pindah ke dalam dialog saat dibuka dan kembali ke pemicu saat ditutup. */
 function aturDialog(key,prev){
@@ -828,6 +896,7 @@ function aturDialog(key,prev){
 }
 function modalHtml(){
   var m=S.modal;
+  if(M_&&M_.punya(m.t))return M_.modalHtml(m);
   if(m.t==='temuan')return fHtml(m);
   if(m.t==='rgatur')return rgHtml(m);
   if(m.t==='rgyakin')return rgYakinHtml(m);
@@ -837,7 +906,8 @@ function modalHtml(){
     return '<div class="ov" data-act="modalbg"><div class="sheet" role="dialog" aria-label="Verifikasi"><h2>Verifikasi MK</h2><div class="note" style="padding:0 0 10px;overflow-wrap:anywhere">'+esc(d.uraian)+'</div>'+
       '<section class="group"><div class="list"><label class="row"><span class="lbl">Catatan MK (opsional)</span><textarea id="vC" style="min-height:80px">'+esc(d.catatan||'')+'</textarea></label></div></section>'+
       (d.fotoAfter.length?'':'<div class="note" style="padding:0 0 10px">Belum ada foto After dari penanggung jawab, jadi belum bisa diterima atau ditolak.</div>')+
-      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length&&d.verifikasi!=='Diterima'?'':' disabled')+' data-act="vset" data-h="Diterima">'+(d.verifikasi==='Diterima'?'Sudah diterima (Close)':'Diterima (Close)')+'</button><button type="button" class="btn bad"'+(d.fotoAfter.length&&d.verifikasi!=='Ditolak'?'':' disabled')+' data-act="vset" data-h="Ditolak">'+(d.verifikasi==='Ditolak'?'Sudah ditolak':'Ditolak')+'</button>'+
+      (d.fotoAfter.length&&d.verifikasi!=='Diterima'&&hambatTerima(d)?'<div class="note tolak" style="padding:0 0 10px">'+esc(hambatTerima(d))+'</div>':'')+
+      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length&&d.verifikasi!=='Diterima'&&!hambatTerima(d)?'':' disabled')+' data-act="vset" data-h="Diterima">'+(d.verifikasi==='Diterima'?'Sudah diterima (Close)':'Diterima (Close)')+'</button><button type="button" class="btn bad"'+(d.fotoAfter.length&&d.verifikasi!=='Ditolak'?'':' disabled')+' data-act="vset" data-h="Ditolak">'+(d.verifikasi==='Ditolak'?'Sudah ditolak':'Ditolak')+'</button>'+
       (d.verifikasi?'<button type="button" class="btn sec" data-act="vset" data-h="">Batalkan verifikasi</button>':'')+
       '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div></div>';
   }
@@ -845,6 +915,7 @@ function modalHtml(){
     var us=S.user;
     return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Pengaturan"><div class="grab" aria-hidden="true"></div><h2>Pengaturan</h2>'+
       (us?'<div class="ucard"><span class="av" aria-hidden="true">'+esc((us.nama||'?').trim().charAt(0).toUpperCase())+'</span><div><b>'+esc(us.nama)+'</b><span>'+esc(us.peran)+' &middot; '+esc(S.paket.nama)+'</span></div></div>':'')+
+      (M_?M_.setelanHtml():'')+
       '<div><div class="cap" style="margin:0 4px 8px">Tema</div><div class="seg">'+
       [['sistem','Sistem'],['terang','Terang'],['gelap','Gelap']].map(function(o){return '<button type="button" data-act="tema" data-v="'+o[0]+'" class="ico'+(S.tema===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>'+
       '<div><div class="cap" style="margin:0 4px 8px">Animasi</div><div class="seg">'+
@@ -869,8 +940,7 @@ function modalHtml(){
     return '<div class="ov mid"><div class="sheet gap" role="dialog" aria-label="Nama mirip"><h2>Sudah ada '+esc(mp.entri)+'</h2><div class="note" style="padding:0;overflow-wrap:anywhere">Anda mengetik "'+esc(mp.masuk)+'"'+(mp.jenis==='lantai'?' di '+esc(mp.gedung):'')+'. '+esc(tj)+' yang sudah ada: "'+esc(mp.entri)+'". Pakai yang sudah ada supaya tidak ganda.</div>'+
       '<button type="button" class="btn" data-act="miripPakai">Pakai '+esc(mp.entri)+'</button><button type="button" class="btn sec" data-act="miripBaru">Tetap buat baru</button><button type="button" class="btn sec" data-act="miripBatal">Batal</button></div></div>';
   }
-  if(m.t==='ttx')
-    return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Temuan lengkap"><h2>Temuan '+esc(m.d.no||'')+'</h2><div class="note" style="padding:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:24px;color:var(--label1)">'+esc(m.d.uraian)+'</div><div class="note" style="padding:0">'+esc(m.d.gedung)+' / '+esc(m.d.lantai)+' / '+esc(m.d.ruangan)+'</div><div class="phs"><div class="ph" data-j="before">'+phHtml(m.d,'before',true)+'</div><div class="ph" data-j="after">'+phHtml(m.d,'after',true)+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+  if(m.t==='ttx')return ttxHtml(m.d);
   if(m.t==='kmenu')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu temuan"><div class="group kmenu"><div class="list">'+kmenuItems(m.d).map(function(it){return '<button type="button" class="row act'+(it.bad?' bad':'')+'" data-act="'+it.a+'" data-d="'+esc(m.d.id)+'">'+(it.ic?ic(it.ic):'')+'<span>'+it.t+'</span></button>'}).join('')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
   if(m.t==='unggah')
@@ -1029,7 +1099,7 @@ function upUi(did){
   var d=did&&findDefect(did);
   if(d){
     var a=Array.prototype.filter.call(document.querySelectorAll('article.entry'),function(x){return x.getAttribute('data-id')===did})[0];
-    if(a){var ro=a.getAttribute('data-ro')==='1';['before','after'].forEach(function(jn){var p=a.querySelector('.ph[data-j="'+jn+'"]');if(p)p.innerHTML=phHtml(d,jn,ro)})}
+    if(a){var ro=a.getAttribute('data-ro')==='1';['before','after'].forEach(function(jn){var p=a.querySelector('.ph[data-j="'+jn+'"]');if(p)p.innerHTML=phHtml(d,jn,ro,'kartu')})}
     if(S.modal&&S.modal.f&&S.modal.f.id===did)fotoEditRefresh();
   }
   upBar();
@@ -2018,6 +2088,7 @@ async function onClick(ev){
   if(a==='zoomx'&&ev.target.closest('img')&&!ev.target.closest('.btn-ic'))return;
   var id=el.getAttribute('data-d');
   if(S.modal&&S.modal.t==='aksi'&&a!=='mtutup'&&a!=='modalbg')closeModal();
+  if(M_&&M_.milik(a))return M_.klik(a,el,ev);
   switch(a){
     case 'tempel': {
       var ki=$('kode');if(!ki)return;ki.focus({preventScroll:true});
@@ -2038,7 +2109,8 @@ async function onClick(ev){
       lsSet('dl-view',S.view);if(S.view==='rekap'){S.all=null;S.allErr=false}render();
       if(S.view==='verif')loadSiap();
       else if(S.view==='perbaikan')loadPerlu();
-      else if(S.view==='rekap'||S.view==='kelola')loadRooms();
+      else if(S.view==='memo'){if(M_)M_.muatDaftar()}
+      else if(S.view==='rekap'||S.view==='kelola'){loadRooms();if(S.view==='rekap'&&M_&&S.rekapMode==='memo')M_.muatDaftar()}
       else{var s=ensureSel(tree());if(s)loadDefects(s.r.id,false)}
       return;
     case 'nav': {var T=tree(),fl=flat(T),ix=fl.map(function(x){return x.r}).indexOf(S.sel.r),n=fl[ix+(+el.getAttribute('data-d'))];if(!n)return;S.sel=n;lsSet('dl-sel',JSON.stringify(n));render();loadDefects(n.r,false);window.scrollTo(0,0);return}
@@ -2065,7 +2137,8 @@ async function onClick(ev){
     case 'menuaksi': return openModal({t:'aksi'});
     case 'fclr2': {var s0=ensureSel(tree());S.flt={rid:S.flt.rid,q:S.flt.q,st:S.flt.st,bd:'',tk:'',el:''};if(S.modal&&S.modal.t==='filter')renderOverlay();refreshList();render();return}
     case 'kmenu': return openModal({t:'kmenu',d:findDefect(id)});
-    case 'ttx': {if(!desk())return;var dt=findDefect(id);if(dt)openModal({t:'ttx',d:dt});return}
+    case 'fotodetail': {var df=findDefect(id);if(df)openModal({t:'ttx',d:df});return}   // lencana +N di kartu: semua ukuran layar
+    case 'ttx': {var dt=findDefect(id);if(dt)openModal({t:'ttx',d:dt});return}
     case 'unggah': return openModal({t:'unggah',d:findDefect(id),j:el.getAttribute('data-j')||'after'});
     case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){modalFotos(S.modal.f,items)});
     case 'upretry': {var jr=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];if(jr){jr.st='wait';upUi(jr.did);runQueue()}return}
@@ -2155,7 +2228,7 @@ async function onClick(ev){
       var d=S.modal.d,cat=$('vC').value,h=el.getAttribute('data-h');
       closeModal();
       var r2=await work('Menyimpan verifikasi...',function(){return api('verifikasi',{id:d.id,hasil:h,catatan:cat})});
-      if(r2){var aw2=S.view==='verif'?kartuPosisi():null;if(aw2&&!r2.siap)await kartuKeluar(r2.id);putDefect(r2);toast(h==='Diterima'?'Diterima. Temuan Close.':h==='Ditolak'?'Ditolak. Temuan kembali dalam proses.':'Verifikasi dibatalkan.');render();if(aw2)kartuNaik(aw2)}
+      if(r2){var aw2=S.view==='verif'?kartuPosisi():null;if(aw2&&!r2.siap)await kartuKeluar(r2.id);putDefect(r2);if(M_)M_.muatDaftar();toast(h==='Diterima'?(r2.memoId&&r2.status!=='Close'?'Diterima. Temuan Close setelah memo lengkap (tanda tangan QC).':'Diterima. Temuan Close.'):h==='Ditolak'?'Ditolak. Temuan kembali dalam proses.':'Verifikasi dibatalkan.');render();if(aw2)kartuNaik(aw2)}
       else openModal({t:'verif',d:d});
       return;
     }
@@ -2185,7 +2258,12 @@ async function onClick(ev){
     case 'rekapall': {var ok=await work('Memuat semua temuan...',loadAll);if(ok)render();return}
     case 'addroom': return tambahRuangan();
     case 'fst': S.flt.st=el.getAttribute('data-v')||'';return refreshList();
-    case 'aqclr': if(AQ[S.view])AQ[S.view]={q:'',gd:'',lt:'',bd:'',tk:'',tl:0};return render();
+    case 'aqclr': if(AQ[S.view])AQ[S.view]={q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,sy:0,n:60};return render();
+    case 'aqsy': AQ.form.sy=el.getAttribute('data-v')==='1'?1:0;AQ.form.n=60;return render();
+    case 'aqmm': AQ.form.mm=el.getAttribute('data-v')==='1'?1:0;AQ.form.n=60;return render();
+    case 'aqlebih': AQ.form.n=(AQ.form.n||60)+60;return render();
+    case 'muatsemua': S.all=null;S.allErr=false;S.allBusy=false;return render();
+    case 'tmode': S.semua=el.getAttribute('data-v')==='semua';lsSet('dl-semua',S.semua?'1':'0');return render();
     case 'aqtl': if(AQ[S.view])AQ[S.view].tl=el.getAttribute('data-v')==='1'?1:0;return render();
     case 'fclr': S.flt={rid:S.flt.rid,q:'',st:'',bd:'',tk:'',el:''};return render();
     case 'zipg': S.zipOff[el.getAttribute('data-g')]=!el.checked;return;
@@ -2386,8 +2464,8 @@ async function ambilMulai(){
   }
 }
 function aturPengguna(u){
-  S.user={nama:u.nama,peran:u.peran};
-  var v=lsGet('dl-view');S.view=((v==='rekap'||v==='verif')&&u.peran!=='PJ')||(v==='perbaikan'&&u.peran==='PJ')||(v==='kelola'&&u.peran==='ADMIN')?v:'form';
+  S.user={nama:u.nama,peran:u.peran,qc:u.qc||'',qcBidang:u.qcBidang||''};
+  var v=lsGet('dl-view');S.view=((v==='rekap'||v==='verif')&&u.peran!=='PJ')||(v==='perbaikan'&&u.peran==='PJ')||(v==='kelola'&&u.peran==='ADMIN')||(v==='memo'&&M_&&M_.punyaTab(u))?v:'form';
   if(S.view!=='form'&&S.hist[S.hist.length-1]!=='view')hpush('view');
   try{var sv=JSON.parse(lsGet('dl-sel')||'null');if(sv&&sv.g)S.sel=sv}catch(e){}
 }
@@ -2414,7 +2492,7 @@ async function cobaMasuk(auto){
     var r=await ambilMulai();
     if(!auto)await akSukses();
     aturPengguna(r);S.loginErr='';S.net='';
-    lsSet('dl-kode-'+pid,S.kode);lsSet('dl-user-'+pid,JSON.stringify({nama:r.nama,peran:r.peran}));
+    lsSet('dl-kode-'+pid,S.kode);lsSet('dl-user-'+pid,JSON.stringify({nama:r.nama,peran:r.peran,qc:r.qc||'',qcBidang:r.qcBidang||''}));
     if(r.ruangan){S.rooms=r.ruangan;S.roomsReady=true;lsSet('dl-rooms-'+pid,JSON.stringify(S.rooms))}
     if(r.siap)S.siap=r.siap;
     if(r.perlu)S.perlu=r.perlu;
@@ -2422,7 +2500,7 @@ async function cobaMasuk(auto){
     render();
     if(r.ruangan){var s=ensureSel(tree());if(s&&S.view==='form')loadDefects(s.r.id,false)}
     else loadRooms();
-    qPulihkan();drafMuat();
+    qPulihkan();drafMuat();if(M_)M_.muatDaftar();
   }catch(e){
     if(e&&e.server){
       if(/Kode tidak dikenal|nonaktif/i.test(e.message||'')){   // hanya kode yang benar-benar ditolak yang dihapus

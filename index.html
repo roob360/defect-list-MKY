@@ -680,6 +680,193 @@
   .btnrow .btn{ flex:1; }
   .btn.out{ background:var(--gbg2); color:var(--blue-teks); box-shadow:inset 0 0 0 1.5px var(--prominent); }
   @media (min-width:760px){ .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); align-items:start; } .grid2 > .group{ margin:0; } }
+  /* ===== site memo (memo.js) ===== */
+  .pill.memo{ background:var(--blue-fill); color:var(--blue-teks); }
+  .pill.memo svg, button.tag.memo svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  button.tag.memo{ display:inline-flex; align-items:center; gap:4px; border:0; font:inherit; font-size:12px; line-height:18px; font-weight:600; cursor:pointer; background:var(--blue-fill); color:var(--blue-teks); }
+  .prof{ position:relative; }
+  .prof .pbdg{ position:absolute; top:-3px; right:-3px; min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--red); color:#fff; font:700 11px/17px system-ui,sans-serif; font-style:normal; text-align:center; }
+  .mchk{ display:flex; align-items:center; gap:10px; min-height:40px; padding:4px 0; font-size:15px; }
+  .mchk input{ width:20px; height:20px; flex:none; accent-color:var(--prominent); }
+  .mchk.big{ background:var(--fill3); border-radius:12px; padding:8px 12px; }
+  .mfotos{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:6px; }
+  .mfoto{ position:relative; padding:0; border:2px solid transparent; border-radius:10px; overflow:hidden; background:var(--fill3); aspect-ratio:4/3; cursor:pointer; opacity:.55; }
+  .mfoto.on{ border-color:var(--prominent); opacity:1; }
+  .mfoto img{ display:block; width:100%; height:100%; object-fit:cover; }
+  .mfoto .n{ position:absolute; top:3px; left:3px; min-width:20px; height:20px; border-radius:10px; background:var(--prominent); color:#fff; font:700 12px/20px system-ui,sans-serif; text-align:center; }
+  .mlist .mrow{ display:block; padding:10px 14px; border-bottom:.5px solid var(--sep); }
+  .mlist .mrow:last-child{ border-bottom:0; }
+  .mlist .mrow span{ display:block; font-size:13px; color:var(--label2); }
+  .mlist .mrow b{ display:block; font-weight:500; font-size:15px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .mttd .mtr{ display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:.5px solid var(--sep); min-height:52px; }
+  .mttd .mtr:last-child{ border-bottom:0; }
+  .mttd .sl{ flex:none; width:104px; font-size:13px; color:var(--label2); }
+  .mttd .mtr > div{ min-width:0; }
+  .mttd .mtr b{ display:block; font-size:15px; }
+  .mttd .mtr div span{ display:block; font-size:12px; color:var(--label2); overflow-wrap:anywhere; }
+  .mttd .ok{ flex:none; color:var(--green-text); }
+  .mttd .ok svg{ width:22px; height:22px; }
+  .mttd .wait{ font-size:13px; color:var(--label2); }
+  .mttd .mact{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .mqid{ min-height:36px; border-radius:10px; border:0; background:var(--fill3); padding:0 8px; font:inherit; font-size:14px; max-width:150px; }
+  .mlis{ display:flex; flex-direction:column; gap:8px; }
+  .mli{ display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:12px 14px; border:0; border-radius:14px; background:var(--fill3); text-align:left; font:inherit; color:inherit; cursor:pointer; }
+  .mli > div{ min-width:0; }
+  .mli b{ display:block; font-size:15px; }
+  .mli div span{ display:block; font-size:13px; color:var(--label2); overflow-wrap:anywhere; }
+  .mli em{ display:block; font-style:normal; font-size:12px; font-weight:600; color:var(--blue-teks); }
+  .mli .tag{ flex:none; }
+  .ttdbox{ border:1px dashed var(--sep); border-radius:14px; background:#fff; display:flex; align-items:center; justify-content:center; min-height:120px; overflow:hidden; }
+  .ttdbox canvas{ width:100%; aspect-ratio:5/2; touch-action:none; display:block; }
+  .ttdbox.pv img{ max-width:100%; max-height:160px; }
+  .ttdbox.pv span{ color:#66666b; font-size:14px; }
+  .note.mono{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; overflow-wrap:anywhere; }
+  /* ===== Fase 4: tab Memo, Rekap memo, mode Semua ruangan ===== */
+  .chips.tmode, .chips.rkmode{ margin:2px 0 12px; }
+  .mkpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .mk{ background:var(--fill3); border-radius:14px; padding:10px 6px; text-align:center; }
+  .mk b{ display:block; font-size:24px; line-height:28px; }
+  .mk span{ display:block; font-size:12px; color:var(--label2); }
+  .mk.o b{ color:var(--red-text); } .mk.p b{ color:var(--orange-text); } .mk.c b{ color:var(--green-text); }
+  .mcard .eh{ align-items:flex-start; }
+  .mcard .eh .no{ width:auto; min-width:26px; padding:0 8px; white-space:nowrap; }
+  .mdots{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0; }
+  .mdots span{ padding:2px 9px; border-radius:11px; background:var(--fill3); color:var(--label2); font-size:11px; font-weight:600; line-height:18px; }
+  .mdots span.on{ background:var(--green-fill); color:var(--green-text); }
+  .tag.hari{ background:var(--fill3); color:var(--label2); }
+  .tag.hari.lama{ background:var(--red-fill); color:var(--red-text); }
+  .mli .mr{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none; }
+  .mli div .mdots{ margin:6px 0 2px; }
+  .mttd .ok svg{ fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .mttd .cb{ flex:none; margin-left:auto; min-height:32px; padding:0 12px; font-size:12px; line-height:16px; }
+  .mcard .mdots{ padding:0 16px; }
+  .mcard .note{ padding:0 16px; margin:2px 0; }
+  /* pratinjau PDF */
+  .sheet.pv{ max-width:640px; }
+  .pvbar{ display:flex; align-items:center; justify-content:space-between; }
+  .pvwrap{ display:flex; flex-direction:column; gap:10px; background:var(--fill3); padding:8px; border-radius:12px; min-height:160px; }
+  .pvwrap.zoom{ overflow:auto; }
+  .pvpage{ display:block; width:100%; height:auto; background:#fff; border-radius:3px; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  .pvwrap.zoom .pvpage{ width:230%; max-width:none; }
+  .pvwrap .note{ padding:24px 0; text-align:center; }
+  /* rincian memo ringkas dan dashboard memo layar lebar */
+  .mhead{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .mhead h2{ margin:0; }
+  .mact2{ display:flex; gap:8px; }
+  .mact2 .btn{ flex:1; }
+  .mact2 .btn.sq{ flex:none; width:56px; padding:0; font-size:26px; line-height:1; }
+  .rkrow.lb{ grid-template-columns:150px 1fr 44px; }
+  .rkrow.lnkrow{ width:100%; border:0; background:none; padding:2px 6px; margin:4px -6px; border-radius:10px; font:inherit; color:inherit; text-align:left; cursor:pointer; }
+  .rkrow.lnkrow.on{ background:var(--blue-fill); }
+  .bfil{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .bfil select{ height:36px; padding:0 12px; border:0; border-radius:18px; background:var(--fill3); color:var(--label1); font:inherit; font-size:13px; font-weight:600; }
+  .bchk{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; }
+  .rkt.mt tbody tr{ cursor:pointer; }
+  .rkt.mt tbody tr:hover{ background:var(--fill3); }
+  .rkt.mt td, .rkt.mt th{ text-align:left; padding:10px 8px; }
+  .rkt.mt td.ttdc{ text-align:center; color:var(--label2); font-size:12px; white-space:nowrap; }
+  .rkt.mt td.ttdc.on{ color:var(--green-text); font-weight:600; }
+  .rkt.mt td.hr{ text-align:right; font-weight:600; }
+  .rkt.mt td.hr.lama{ color:var(--red-text); }
+  @media (min-width:1100px){ .s12{ grid-column:span 12; } }
+  /* warna status memo */
+  .tag.m-belum{ background:transparent; box-shadow:inset 0 0 0 1.5px #d4a017; color:#8a6500; }
+  .tag.m-draf{ background:var(--orange-fill); color:var(--orange-text); }
+  .tag.m-terbit, button.tag.memo.m-terbit{ background:var(--blue-fill); color:var(--blue-teks); }
+  .tag.m-tindak{ background:var(--purple-fill); color:var(--purple-teks); }
+  .tag.m-periksa{ background:#d7f3f6; color:#0b6b76; }
+  .tag.m-peralihan, button.tag.memo.m-peralihan, .pill.memo.m-peralihan{ background:#e3e8f2; color:#44506b; }
+  .tag.m-close{ background:var(--green-fill); color:var(--green-text); }
+  .tag.m-batal{ background:var(--fill3); color:var(--label2); text-decoration:line-through; }
+  button.tag.memo.m-belum{ background:transparent; }
+  button.tag.memo.m-draf{ background:var(--orange-fill); color:var(--orange-text); }
+  button.tag.memo.m-tindak{ background:var(--purple-fill); color:var(--purple-teks); }
+  button.tag.memo.m-periksa{ background:#d7f3f6; color:#0b6b76; }
+  button.tag.memo.m-close{ background:var(--green-fill); color:var(--green-text); }
+  button.tag.memo.m-batal{ background:var(--fill3); color:var(--label2); text-decoration:line-through; }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .tag.m-belum{ color:#ffd75e; box-shadow:inset 0 0 0 1.5px #b8890f; }
+    :root:not([data-theme="light"]) .tag.m-periksa, :root:not([data-theme="light"]) button.tag.memo.m-periksa{ background:#0b3238; color:#5fd3df; }
+    :root:not([data-theme="light"]) .tag.m-peralihan, :root:not([data-theme="light"]) button.tag.memo.m-peralihan, :root:not([data-theme="light"]) .pill.memo.m-peralihan{ background:#232a3b; color:#a9b6d4; }
+  }
+  :root[data-theme="dark"] .tag.m-belum{ color:#ffd75e; box-shadow:inset 0 0 0 1.5px #b8890f; }
+  :root[data-theme="dark"] .tag.m-periksa, :root[data-theme="dark"] button.tag.memo.m-periksa{ background:#0b3238; color:#5fd3df; }
+  :root[data-theme="dark"] .tag.m-peralihan, :root[data-theme="dark"] button.tag.memo.m-peralihan, :root[data-theme="dark"] .pill.memo.m-peralihan{ background:#232a3b; color:#a9b6d4; }
+  .m-peralihan{ --mmc:#6b7a99; }
+  .m-belum{ --mmc:#d4a017; } .m-draf{ --mmc:var(--orange); } .m-terbit{ --mmc:var(--blue); } .m-tindak{ --mmc:#8b5cf6; } .m-periksa{ --mmc:#0aa5b5; } .m-close{ --mmc:var(--green); } .m-batal{ --mmc:var(--label2); }
+  .mlg{ display:flex; flex-wrap:wrap; gap:4px 14px; margin:2px 4px 12px; font-size:12px; color:var(--label2); }
+  .mlg i{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px; background:var(--mmc); }
+  .mlg i.m-belum{ background:transparent; box-shadow:inset 0 0 0 2px #d4a017; }
+  /* kartu: satu foto dengan lencana +N; detail: sampai 4 foto */
+  .thumb > button.plus{ position:absolute; bottom:6px; right:6px; width:auto; height:auto; padding:3px 10px; border:0; border-radius:13px; background:#000000b3; color:#fff; font:700 13px/18px system-ui,sans-serif; cursor:pointer; }
+  .thumb > button.plus::after{ content:""; position:absolute; inset:-8px; }
+  /* tombol Memo berwarna menurut keadaan */
+  .pill.memo.m-belum{ background:transparent; box-shadow:inset 0 0 0 1.5px #d4a017; color:#8a6500; }
+  .pill.memo.m-draf{ background:var(--orange-fill); color:var(--orange-text); }
+  .pill.memo.m-terbit{ background:var(--blue-fill); color:var(--blue-teks); }
+  .pill.memo.m-tindak{ background:var(--purple-fill); color:var(--purple-teks); }
+  .pill.memo.m-periksa{ background:#d7f3f6; color:#0b6b76; }
+  .pill.memo.m-close{ background:var(--green-fill); color:var(--green-text); }
+  .pill.memo.m-batal{ background:var(--fill3); color:var(--label2); }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .pill.memo.m-belum{ color:#ffd75e; box-shadow:inset 0 0 0 1.5px #b8890f; }
+    :root:not([data-theme="light"]) .pill.memo.m-periksa{ background:#0b3238; color:#5fd3df; }
+  }
+  :root[data-theme="dark"] .pill.memo.m-belum{ color:#ffd75e; box-shadow:inset 0 0 0 1.5px #b8890f; }
+  :root[data-theme="dark"] .pill.memo.m-periksa{ background:#0b3238; color:#5fd3df; }
+  /* rincian memo dua kolom */
+  .mgrid{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; padding:4px 16px 8px; }
+  .mgrid .mc{ padding:9px 0; border-bottom:.5px solid var(--sep); min-width:0; }
+  .mgrid .mc.full{ grid-column:1 / -1; }
+  .mgrid .mc span{ display:block; font-size:12px; color:var(--label2); }
+  .mgrid .mc b{ display:block; font-weight:500; font-size:14px; line-height:19px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .mttd2{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .mt2{ background:var(--fill3); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:0; min-height:86px; }
+  .mt2.ok{ background:var(--green-fill); }
+  .mt2 .sl{ font-size:12px; font-weight:600; color:var(--label2); }
+  .mt2 .who{ display:flex; align-items:center; gap:6px; max-width:100%; }
+  .mt2 .who .ck{ flex:none; color:var(--green-text); }
+  .mt2 .who svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; display:block; }
+  .mt2 .who b{ font-size:14px; line-height:18px; overflow-wrap:anywhere; }
+  .mt2 .sub{ font-size:12px; line-height:16px; color:var(--label2); overflow-wrap:anywhere; }
+  .mt2 .wait{ font-size:12px; line-height:16px; color:var(--label2); }
+  .mt2 .mqid{ max-width:100%; width:100%; }
+  .mt2 .cb{ margin-left:0; }
+  /* Rekap memo layar sempit: progres dan perlu perhatian */
+  .mprog{ padding:16px; }
+  .mpt{ display:flex; align-items:flex-end; gap:14px; margin-bottom:12px; }
+  .mpt b{ font-size:48px; line-height:48px; font-weight:700; letter-spacing:-1px; }
+  .mpt span{ font-size:13px; color:var(--label2); padding-bottom:4px; }
+  .mpt strong{ display:block; font-size:15px; color:var(--label1); }
+  .mstk{ display:flex; height:10px; border-radius:5px; overflow:hidden; background:var(--fill3); }
+  .mstk i{ display:block; height:100%; }
+  .matt{ display:flex; justify-content:space-between; align-items:center; width:100%; border:0; border-radius:14px; padding:12px 14px; margin-top:8px; font:inherit; font-size:14px; font-weight:600; cursor:pointer; text-align:left; }
+  .matt.r{ background:var(--red-fill); color:var(--red-text); }
+  .matt.o{ background:var(--orange-fill); color:var(--orange-text); }
+  .matt.n{ background:var(--fill3); color:var(--label1); }
+  .matt .cv{ font-size:20px; line-height:1; }
+  /* kartu yang bisa diketuk */
+  .eh.tap, .mcard.tap{ cursor:pointer; }
+  .eh.tap:focus-visible{ outline:2px solid var(--blue); outline-offset:3px; border-radius:8px; }
+  /* dialog Temuan lengkap: bagian dan pasangan label-nilai */
+  .ttxs{ display:grid; gap:6px; padding-top:10px; border-top:.5px solid var(--sep); }
+  .ttxs .cap{ margin:0; }
+  .kv{ display:grid; grid-template-columns:minmax(96px,34%) 1fr; gap:10px; font-size:14px; line-height:20px; }
+  .kv span{ color:var(--label2); }
+  .kv b{ font-weight:500; color:var(--label1); overflow-wrap:anywhere; }
+  /* tabel Rekap Memo: kegiatan, lokasi, dan penunggu dipotong satu baris; rincian lengkap ada saat baris diketuk */
+  table.t.mt{ table-layout:fixed; width:100%; }
+  table.t.mt th.srt{ cursor:pointer; user-select:none; }
+  table.t.mt th.srt:hover, table.t.mt th.srt.on{ color:var(--label1); }
+  table.t.mt th.srt .ar{ margin-left:4px; font-size:9px; opacity:.45; } table.t.mt th.srt.on .ar{ opacity:1; color:var(--blue); }
+  table.t.mt th:nth-child(1){ width:52px; } table.t.mt th:nth-child(2){ width:58px; } table.t.mt th:nth-child(3){ width:27%; } table.t.mt th:nth-child(4){ width:13%; }
+  table.t.mt th:nth-child(5){ width:104px; } table.t.mt th:nth-child(6){ width:15%; } table.t.mt th:nth-child(n+7):nth-child(-n+10){ width:62px; } table.t.mt th:nth-child(11){ width:56px; }
+  table.t.mt th:nth-child(-n+6), table.t.mt td:nth-child(-n+6){ text-align:left; }
+  table.t.mt td:nth-child(3), table.t.mt td:nth-child(4), table.t.mt td:nth-child(6){ overflow:hidden; text-overflow:ellipsis; }
+  .mt .cl{ display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* daftar memo sempit: keterangan dipotong satu baris */
+  .mli > div > span{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mcard .eh .tx{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 </style>
 </head>
 <body>
@@ -690,6 +877,7 @@
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3.6h7l4.6 4.6v11.2A1.6 1.6 0 0117 21H7a1.6 1.6 0 01-1.6-1.6V5.2A1.6 1.6 0 017 3.6z"/><path d="M14 3.6V8.4h4.6"/><path d="M8.8 13.6h6.4M8.8 16.8h4"/><circle class="kdot" cx="15.6" cy="17" r="1.1"/></symbol>
+  <symbol id="i-memo" viewBox="0 0 24 24"><path d="M6.4 3.6h8.2l3.6 3.6v12.2a1.4 1.4 0 01-1.4 1.4H6.4A1.4 1.4 0 015 19.4V5A1.4 1.4 0 016.4 3.6z"/><path d="M14.4 3.8v3.6h3.6"/><path d="M8.4 11.4h7.2M8.4 14.4h7.2M8.4 17.4h4.2"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></symbol>
   <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13M14 5l3 3-3 3M20 16H7M10 13l-3 3 3 3"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></symbol>
@@ -735,6 +923,8 @@
 
 <script src="config.js"></script>
 <script src="logika.js"></script>
+<script src="memo-pdf.js"></script>
+<script src="memo.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

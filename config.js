@@ -7,6 +7,7 @@ var PAKET_LIST = [
     label: 'Paket MA · PK · IKN',
     proyek: 'Proyek Pembangunan Gedung dan Kawasan Mahkamah Agung dan Plaza Keadilan',
     ringkas: 'Mahkamah Agung dan Plaza Keadilan',
+    logo: { owner: 'logo/owner-oikn.png', mk: 'logo/mk-kso.png', pj: 'logo/pj-mapk.png' },   // logo PDF site memo: Owner, KSO MK, KSO PJ (HK - Jaya Konstruksi)
     apiUrl: 'https://script.google.com/macros/s/AKfycbzHaGK3b9SwUN7ami4e0VnZ0RNLFsxBHxMkau2HlOVzLq3erd6SwkumafIx50SMrrB9WQ/exec'
   },
   {
@@ -15,6 +16,7 @@ var PAKET_LIST = [
     label: 'Paket MK · KY · Masjid · IKN',
     proyek: 'Proyek Pembangunan Gedung dan Kawasan Mahkamah Konstitusi, Komisi Yudisial dan Masjid',
     ringkas: 'Mahkamah Konstitusi, Komisi Yudisial dan Masjid',
+    logo: { owner: 'logo/owner-oikn.png', mk: 'logo/mk-kso.png', pj: 'logo/pj-mkky.png' },   // logo PDF site memo: Owner, KSO MK, KSO PJ (Adhi - Deta)
     apiUrl: 'https://script.google.com/macros/s/AKfycbxlUo6-ktSlad_TbweyBckkJDW1-1SrT9DEipdpSucCwhjt_eLYh7TOfbrubN6AH8k8/exec'
   }
 ];
