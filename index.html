@@ -724,6 +724,26 @@
   .ttdbox.pv img{ max-width:100%; max-height:160px; }
   .ttdbox.pv span{ color:#66666b; font-size:14px; }
   .note.mono{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; overflow-wrap:anywhere; }
+  /* ===== Fase 4: tab Memo, Rekap memo, mode Semua ruangan ===== */
+  .chips.tmode, .chips.rkmode{ margin:2px 0 12px; }
+  .mkpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .mk{ background:var(--fill3); border-radius:14px; padding:10px 6px; text-align:center; }
+  .mk b{ display:block; font-size:24px; line-height:28px; }
+  .mk span{ display:block; font-size:12px; color:var(--label2); }
+  .mk.o b{ color:var(--red-text); } .mk.p b{ color:var(--orange-text); } .mk.c b{ color:var(--green-text); }
+  .mcard .eh{ align-items:flex-start; }
+  .mcard .eh .no{ width:auto; min-width:26px; padding:0 8px; white-space:nowrap; }
+  .mdots{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0; }
+  .mdots span{ padding:2px 9px; border-radius:11px; background:var(--fill3); color:var(--label2); font-size:11px; font-weight:600; line-height:18px; }
+  .mdots span.on{ background:var(--green-fill); color:var(--green-text); }
+  .tag.hari{ background:var(--fill3); color:var(--label2); }
+  .tag.hari.lama{ background:var(--red-fill); color:var(--red-text); }
+  .mli .mr{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none; }
+  .mli div .mdots{ margin:6px 0 2px; }
+  .mttd .ok svg{ fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .mttd .cb{ flex:none; margin-left:auto; min-height:32px; padding:0 12px; font-size:12px; line-height:16px; }
+  .mcard .mdots{ padding:0 16px; }
+  .mcard .note{ padding:0 16px; margin:2px 0; }
 </style>
 </head>
 <body>

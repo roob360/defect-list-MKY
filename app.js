@@ -19,10 +19,11 @@ var S={
   defects:{}, loading:{}, errs:{}, all:null, siap:null, siapErr:'', perlu:null, perluErr:'', anim:'sistem', flt:{rid:'',q:'',st:'',bd:'',tk:'',el:''}, zipOff:{}, zipRun:false, zipStop:false, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
   reg:null, regOk:false, rg:{area:'',pakai:null}, imp:null, impRes:null, up:[], pv:{}, stale:{}, fokusAsal:null, kl:{g:'',l:'',n:''}, hist:[], skip:0, seen:{}, ringPrev:{}, stpPrev:{}, cntPrev:{}, cuPrev:{}, fotoOk:{}, baru:null, drafOk:0, drawn:'', ovKey:''
 };
+S.rekapMode=lsGet('dl-rekap')==='memo'?'memo':'temuan';S.semua=lsGet('dl-semua')==='1';   // Rekap: Temuan atau Memo; Temuan: per ruangan atau semua ruangan
 var app=document.getElementById('app'), overlay=document.getElementById('overlay');
 var toastTimer=null, pickCb=null;
 /* Site memo (memo.js): modul terpisah yang dipanggil dari beberapa titik (kartu, dialog, Pengaturan, lencana). Bila memo.js tidak termuat, semuanya diam. */
-var M_=window.MEMO?window.MEMO.init({S:S,overlay:overlay,PDF_URL:PDF_URL,api:api,work:work,putDefect:putDefect,findDefect:findDefect,openModal:openModal,closeModal:closeModal,render:render,renderOverlay:renderOverlay,loadLib:loadLib,fetchImgs:fetchImgs,imgSize:imgSize,showFile:showFile,toast:toast,esc:esc,ic:ic,thumb:thumb,canEdit:canEdit,isAdmin:isAdmin,isPJ:isPJ}):null;
+var M_=window.MEMO?window.MEMO.init({S:S,overlay:overlay,PDF_URL:PDF_URL,api:api,work:work,putDefect:putDefect,findDefect:findDefect,openModal:openModal,closeModal:closeModal,render:render,renderOverlay:renderOverlay,loadLib:loadLib,fetchImgs:fetchImgs,imgSize:imgSize,showFile:showFile,toast:toast,esc:esc,ic:ic,thumb:thumb,canEdit:canEdit,isAdmin:isAdmin,isPJ:isPJ,skel:skel,XLSX_URL:XLSX_URL,loadDefects:loadDefects,loadSiap:loadSiap,loadPerlu:loadPerlu,today:today,clean:clean,BIDANG:BIDANG}):null;
 
 /* ---------- util ---------- */
 function $(id){return document.getElementById(id)}
@@ -322,8 +323,8 @@ function skel(kind){
   return h;
 }
 function render(){
-  document.body.classList.toggle('wide',!!(S.paket&&S.user&&(S.view==='form'||S.view==='verif'||S.view==='perbaikan')&&desk()));
-  document.body.classList.toggle('bento',!!(S.paket&&S.user&&((S.view==='rekap'&&canEdit())||(S.view==='kelola'&&isAdmin()))&&desk()));
+  document.body.classList.toggle('wide',!!(S.paket&&S.user&&(S.view==='form'||S.view==='verif'||S.view==='perbaikan'||S.view==='memo')&&desk()));
+  document.body.classList.toggle('bento',!!(S.paket&&S.user&&((S.view==='rekap'&&canEdit()&&S.rekapMode!=='memo')||(S.view==='kelola'&&isAdmin()))&&desk()));
   setHead();setDock();
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
   var key=!S.paket?'pick':!S.user?'login':S.view+(S.view==='form'?':'+S.sel.r:'');
@@ -407,11 +408,12 @@ function setDock(){
   var el=$('dock'),show=!!(S.paket&&S.user&&(canEdit()||isPJ()));
   if(show){
     var t=isPJ()?[['form','Form'],['perbaikan','Perbaikan']]:isAdmin()?[['form','Form'],['verif','Verifikasi'],['perbaikan','Perbaikan'],['rekap','Rekap'],['kelola','Kelola']]:[['form','Form'],['verif','Verifikasi'],['rekap','Rekap']];
+    if(M_&&M_.punyaTab(S.user))t.push(['memo','Memo']);   // QC MK, QC PJ, dan PJ
     var add=canEdit();
     var keys=t.map(function(x){return x[0]}).join(',')+(add?'+':'');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
-      var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan')?'<i class="bdg" hidden></i>':'')+'</button>'});
+      var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan'||x[0]==='memo')?'<i class="bdg" hidden></i>':'')+'</button>'});
       if(add)bt.push('<button type="button" class="dockadd" data-act="tambah" aria-label="Tambah temuan">'+ic('plus')+'</button>');
       el.innerHTML='<span class="ind"></span>'+bt.join('');
     }
@@ -420,9 +422,9 @@ function setDock(){
     if(ad){var vis=S.view==='form';el.classList.toggle('noadd',!vis);ad.tabIndex=vis?0:-1;ad.setAttribute('aria-hidden',vis?'false':'true')}
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(bt){
       var bg=bt.querySelector('.bdg');if(!bg)return;
-      var pj=bt.getAttribute('data-v')==='perbaikan',n=pj?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);
+      var vk=bt.getAttribute('data-v'),pj=vk==='perbaikan',mm=vk==='memo',n=mm?(M_?M_.jumlahPerlu():0):pj?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);
       var pn=bg._n;bg._n=n;
-      bg.textContent=n>99?'99+':n;bg.hidden=!n;bg.setAttribute('aria-label',n+(pj?' perlu dikerjakan':' menunggu verifikasi'));
+      bg.textContent=n>99?'99+':n;bg.hidden=!n;bg.setAttribute('aria-label',n+(mm?' memo perlu tindakan':pj?' perlu dikerjakan':' menunggu verifikasi'));
       if(n&&pn!==undefined&&pn!==n&&animOn()&&bg.animate)bg.animate([{transform:'scale(.4)'},{transform:'scale(1.3)',offset:.6},{transform:'none'}],{duration:300,easing:'ease-out'});   // lencana "pop" saat angkanya berubah
     });
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){
@@ -449,7 +451,8 @@ function renderMain(){
   if(S.net)h+='<div class="err" role="status">'+esc(S.net)+'</div>';
   if(S.view==='verif'&&canEdit())h+=verifHtml();
   else if(S.view==='perbaikan'&&(isPJ()||isAdmin()))h+=perbaikanHtml();
-  else if(S.view==='rekap'&&canEdit())h+=(desk()?rekapBentoHtml():rekapHtml());
+  else if(S.view==='memo'&&M_&&M_.punyaTab(S.user))h+=M_.tabHtml();
+  else if(S.view==='rekap'&&canEdit())h+=(M_?M_.rekapToggle():'')+((M_&&S.rekapMode==='memo')?M_.rekapHtml():(desk()?rekapBentoHtml():rekapHtml()));
   else if(S.view==='kelola'&&isAdmin())h+=kelolaHtml();
   else h+=formHtml();
   app.innerHTML=h;
@@ -507,7 +510,8 @@ function formHtml(){
   if(!T.length)return '<div class="empty">Belum ada ruangan.'+(isAdmin()?' Tambahkan di tab Kelola.':' Hubungi admin.')+'</div>';
   var s=ensureSel(T),rid=s.r.id,list=S.defects[rid];
   if(S.flt.rid!==rid)S.flt={rid:rid,q:'',st:'',bd:'',tk:'',el:''};
-  var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Temuan</h1></div>';
+  var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Temuan</h1>'+tmodeHtml()+'</div>';
+  if(S.semua)return h+semuaHtml();
   h+='<div class="locbar"><button type="button" class="btn-ic" data-act="nav" data-d="-1" aria-label="Ruangan sebelumnya">'+ic('prev')+'</button>'+
     '<button type="button" class="locbtn" data-act="lokpilih" aria-label="Pilih lokasi"><span class="lk">'+esc(s.g.nama)+' &rsaquo; '+esc(s.l.nama)+'</span><b>'+esc(s.r.nama)+'</b><svg class="chv" viewBox="0 0 12 18" aria-hidden="true"><path d="M2 7l4-4 4 4M2 11l4 4 4-4"/></svg></button>'+
     '<button type="button" class="btn-ic" data-act="nav" data-d="1" aria-label="Ruangan berikutnya">'+ic('next')+'</button></div>';
@@ -595,21 +599,22 @@ function entryHtml(d,n,ix,ro){
 }
 
 /* ----- filter antrean (tab Verifikasi dan Perbaikan, masing-masing punya state sendiri) ----- */
-var AQ={verif:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},perbaikan:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0}};
-function aqOn(a){return !!(a.q.trim()||a.gd||a.lt||a.bd||a.tk||a.tl)}
+var AQ={verif:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},perbaikan:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0},form:{q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,n:60}};   // form = tab Temuan mode Semua ruangan
+function aqOn(a){return !!(a.q.trim()||a.gd||a.lt||a.bd||a.tk||a.tl||a.mm)}
 function aqList(list,a){
   var q=a.q.trim().toLowerCase();
-  return list.filter(function(d){return (!a.gd||d.gedung===a.gd)&&(!a.lt||d.lantai===a.lt)&&(!a.bd||d.bidang===a.bd)&&(!a.tk||d.tingkat===a.tk)&&(!a.tl||d.verifikasi==='Ditolak')&&
+  return list.filter(function(d){return (!a.gd||d.gedung===a.gd)&&(!a.lt||d.lantai===a.lt)&&(!a.bd||d.bidang===a.bd)&&(!a.tk||d.tingkat===a.tk)&&(!a.tl||d.verifikasi==='Ditolak')&&(!a.mm||!!d.memoId)&&
     (!q||String(d.uraian+' '+(d.titik||'')+' '+(d.elemen||'')+' '+(d.ruangan||'')).toLowerCase().indexOf(q)>=0)});
 }
 function aqIsi(list,a,verif){
   var v=aqList(list,a),g='';
   if(!v.length)return '<div class="empty">Tidak ada temuan yang cocok.<div class="acts" style="padding:10px 0 0"><button type="button" class="pill" data-act="aqclr">Atur ulang</button></div></div>';
-  v.forEach(function(d,i){g+='<div class="ent"><div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+(verif?entryHtml(d,d.no||i+1,i,true):entryHtml(d,d.no||i+1,i))+'</div>'});
-  return '<div class="entgrid">'+g+'</div>';
+  var lim=(S.view==='form'&&a.n)?a.n:0;   // mode Semua ruangan: tampil bertahap supaya daftar panjang tidak berat
+  v.slice(0,lim||v.length).forEach(function(d,i){g+='<div class="ent"><div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+(verif?entryHtml(d,d.no||i+1,i,true):entryHtml(d,d.no||i+1,i))+'</div>'});
+  return '<div class="entgrid">'+g+'</div>'+(lim&&v.length>lim?'<div class="acts" style="padding:12px 0"><button type="button" class="btn sec" data-act="aqlebih">Tampilkan lebih banyak ('+(v.length-lim)+' lagi)</button></div>':'');
 }
 function aqCount(list,a){return aqOn(a)?aqList(list,a).length+' dari '+list.length+' temuan':''}
-function aqBar(list,a,perb){
+function aqBar(list,a,perb,semua){
   var gd=[],lt=[];
   list.forEach(function(d){
     if(d.gedung&&gd.indexOf(d.gedung)<0)gd.push(d.gedung);
@@ -623,13 +628,30 @@ function aqBar(list,a,perb){
   var n=(a.gd?1:0)+(a.lt?1:0)+(a.bd?1:0)+(a.tk?1:0);
   return '<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari uraian, elemen, titik, ruangan" autocomplete="off" value="'+esc(a.q)+'"></label>'+
     (aqOn(a)?'<button type="button" class="btn-sq" data-act="aqclr">Atur ulang</button>':'')+'</div>'+
+    (semua?'<div class="chips" role="group" aria-label="Memo"><button type="button" class="chip'+(a.mm?'':' on')+'" data-act="aqmm" data-v="0">Semua</button><button type="button" class="chip'+(a.mm?' on':'')+'" data-act="aqmm" data-v="1">Bermemo</button></div>':'')+
     (perb?'<div class="chips" role="group" aria-label="Status verifikasi"><button type="button" class="chip'+(a.tl?'':' on')+'" data-act="aqtl" data-v="0">Semua</button><button type="button" class="chip'+(a.tl?' on':'')+'" data-act="aqtl" data-v="1">Ditolak MK</button></div>':'')+
     '<section class="group"><div class="list"><div class="two">'+sel('gd','Gedung',gd)+sel('lt','Lantai',lt)+'</div><div class="two">'+sel('bd','Bidang',BIDANG)+sel('tk','Tingkat',TINGKAT)+'</div></div><div class="gf" id="aqcount">'+esc(aqCount(list,a))+'</div></section>';
 }
 function aqSegar(){
-  var verif=S.view==='verif',list=verif?S.siap:S.perlu;if(!list)return;
+  var verif=S.view==='verif',list=verif?S.siap:S.view==='form'?semuaList():S.perlu;if(!list)return;
   var a=AQ[S.view],el=$('aqlist');if(el)el.innerHTML=aqIsi(list,a,verif);
   var ct=$('aqcount');if(ct)ct.textContent=aqCount(list,a);
+}
+
+/* ----- tab Temuan: Per ruangan (awal) atau Semua ruangan dengan filter Gedung, Lantai, Bidang, Tingkat, Bermemo ----- */
+function tmodeHtml(){
+  return '<div class="chips tmode" role="group" aria-label="Cakupan temuan"><button type="button" class="chip'+(S.semua?'':' on')+'" data-act="tmode" data-v="ruang">Per ruangan</button><button type="button" class="chip'+(S.semua?' on':'')+'" data-act="tmode" data-v="semua">Semua ruangan</button></div>';
+}
+function semuaList(){
+  if(!S.all)return null;
+  return S.all.slice().sort(function(a,b){return L.bandingAlami(a.gedung,b.gedung)||L.bandingAlami(a.lantai,b.lantai)||L.bandingAlami(a.ruangan,b.ruangan)||((a.no||0)-(b.no||0))});
+}
+function semuaHtml(){
+  if(!S.all&&!S.allBusy&&!S.allErr){S.allBusy=true;loadAll().then(function(){S.allBusy=false;if(S.view==='form'&&S.semua)render()}).catch(function(){S.allBusy=false;S.allErr=true;if(S.view==='form'&&S.semua)render()})}
+  if(S.allErr)return '<div class="err">Gagal memuat semua temuan.</div><button type="button" class="btn sec" data-act="muatsemua">Coba lagi</button>';
+  var list=semuaList();if(!list)return skel('entries');
+  var a=AQ.form;
+  return '<div class="banner" role="status"><span>'+list.length+' temuan di semua ruangan</span><button type="button" data-act="muatsemua">Muat ulang</button></div>'+aqBar(list,a,false,true)+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';
 }
 
 /* ----- antrean verifikasi ----- */
@@ -2044,7 +2066,8 @@ async function onClick(ev){
       lsSet('dl-view',S.view);if(S.view==='rekap'){S.all=null;S.allErr=false}render();
       if(S.view==='verif')loadSiap();
       else if(S.view==='perbaikan')loadPerlu();
-      else if(S.view==='rekap'||S.view==='kelola')loadRooms();
+      else if(S.view==='memo'){if(M_)M_.muatDaftar()}
+      else if(S.view==='rekap'||S.view==='kelola'){loadRooms();if(S.view==='rekap'&&M_&&S.rekapMode==='memo')M_.muatDaftar()}
       else{var s=ensureSel(tree());if(s)loadDefects(s.r.id,false)}
       return;
     case 'nav': {var T=tree(),fl=flat(T),ix=fl.map(function(x){return x.r}).indexOf(S.sel.r),n=fl[ix+(+el.getAttribute('data-d'))];if(!n)return;S.sel=n;lsSet('dl-sel',JSON.stringify(n));render();loadDefects(n.r,false);window.scrollTo(0,0);return}
@@ -2191,7 +2214,11 @@ async function onClick(ev){
     case 'rekapall': {var ok=await work('Memuat semua temuan...',loadAll);if(ok)render();return}
     case 'addroom': return tambahRuangan();
     case 'fst': S.flt.st=el.getAttribute('data-v')||'';return refreshList();
-    case 'aqclr': if(AQ[S.view])AQ[S.view]={q:'',gd:'',lt:'',bd:'',tk:'',tl:0};return render();
+    case 'aqclr': if(AQ[S.view])AQ[S.view]={q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,n:60};return render();
+    case 'aqmm': AQ.form.mm=el.getAttribute('data-v')==='1'?1:0;AQ.form.n=60;return render();
+    case 'aqlebih': AQ.form.n=(AQ.form.n||60)+60;return render();
+    case 'muatsemua': S.all=null;S.allErr=false;S.allBusy=false;return render();
+    case 'tmode': S.semua=el.getAttribute('data-v')==='semua';lsSet('dl-semua',S.semua?'1':'0');return render();
     case 'aqtl': if(AQ[S.view])AQ[S.view].tl=el.getAttribute('data-v')==='1'?1:0;return render();
     case 'fclr': S.flt={rid:S.flt.rid,q:'',st:'',bd:'',tk:'',el:''};return render();
     case 'zipg': S.zipOff[el.getAttribute('data-g')]=!el.checked;return;
@@ -2393,7 +2420,7 @@ async function ambilMulai(){
 }
 function aturPengguna(u){
   S.user={nama:u.nama,peran:u.peran,qc:u.qc||'',qcBidang:u.qcBidang||''};
-  var v=lsGet('dl-view');S.view=((v==='rekap'||v==='verif')&&u.peran!=='PJ')||(v==='perbaikan'&&u.peran==='PJ')||(v==='kelola'&&u.peran==='ADMIN')?v:'form';
+  var v=lsGet('dl-view');S.view=((v==='rekap'||v==='verif')&&u.peran!=='PJ')||(v==='perbaikan'&&u.peran==='PJ')||(v==='kelola'&&u.peran==='ADMIN')||(v==='memo'&&M_&&M_.punyaTab(u))?v:'form';
   if(S.view!=='form'&&S.hist[S.hist.length-1]!=='view')hpush('view');
   try{var sv=JSON.parse(lsGet('dl-sel')||'null');if(sv&&sv.g)S.sel=sv}catch(e){}
 }
