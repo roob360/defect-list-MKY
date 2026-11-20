@@ -164,7 +164,7 @@
     h += '</div></section><div class="gap">';
     if (r.bisaTindak && r.bisaTindak.ok && d.status !== 'CLOSE' && d.status !== 'BATAL') h += '<button type="button" class="btn" data-act="memotindak">' + C.ic('ubah') + (d.tindakLanjut ? 'Ubah tindak lanjut' : 'Isi tindak lanjut') + '</button>';
     h += '<button type="button" class="btn" data-act="memopratinjau">' + C.ic('memo') + 'Pratinjau</button><button type="button" class="btn sec" data-act="memopdf">' + C.ic('pdf') + 'PDF</button>';
-    if (perluArsip(r).length && d.status !== 'BATAL') h += '<button type="button" class="btn sec" data-act="memoarsip">Arsipkan PDF ke Drive</button>';
+    if (perluArsip(r).length && d.status !== 'BATAL' && (C.isAdmin() || (u && u.qc === 'YA'))) h += '<button type="button" class="btn sec" data-act="memoarsip">Arsipkan PDF ke Drive</button>';
     if (C.isAdmin()) {
       if (d.status !== 'BATAL') h += '<button type="button" class="btn sec" data-act="memoubah">' + C.ic('ubah') + 'Ubah isian</button><button type="button" class="btn bad" data-act="memobatal">Batalkan memo</button>';
       h += '<button type="button" class="btn bad" data-act="memohapus">' + C.ic('sampah') + 'Hapus memo</button>';
