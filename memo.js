@@ -9,6 +9,13 @@
   var LOGO = {};
   var BLN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   var NAMA_SLOT = { MK1: 'QC MK, Tahap I', PJ1: 'QC PJ, tanda terima', MK2: 'QC MK, Tahap II', PJ2: 'QC PJ, Tahap II' };
+  /* HSE dan BGH disahkan TA atau QC MK; sisi PJ oleh QC atau Manager PJ (cermin _lblMK dan _lblPJ di server). */
+  function bidangTA(k) { return k === 'HSE' || k === 'BGH'; }
+  function namaSlot(s, kode) {
+    if (bidangTA(kode)) return { MK1: 'TA atau QC MK, Tahap I', PJ1: 'QC atau Manager PJ, tanda terima', MK2: 'TA atau QC MK, Tahap II', PJ2: 'QC atau Manager PJ, Tahap II' }[s];
+    return NAMA_SLOT[s];
+  }
+  function lblGrup(g, ta) { return g === 'KOORD' ? 'Koordinator QC MK' : (ta ? 'TA ' + g + ', QC ' + g + ', atau Koordinator QC MK' : 'QC ' + g + ' atau Koordinator QC MK'); }
   var HINT = { MK1: 'Sahkan memo', PJ1: 'Sahkan tanda terima', MK2: 'Sahkan Tahap II (MK)', PJ2: 'Sahkan Tahap II (PJ)', tindak: 'Isi tindak lanjut' };
   var STAT = { 'MENUNGGU TTD MK': 'Menunggu TTD MK', TERBIT: 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', CLOSE: 'Close', BATAL: 'Batal', PERALIHAN: 'Peralihan' };
   var MODAL = { memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1, memoprev: 1, memolainnya: 1, qcdaftar: 1, tutupperalihan: 1 };
@@ -103,7 +110,7 @@
     }).join('');
     return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Memo"><div class="grab" aria-hidden="true"></div><h2>' + (m.mode === 'ubah' ? 'Ubah memo' : 'Memo') + '</h2>' +
       '<div class="note" style="padding:0;overflow-wrap:anywhere">' + esc(d.uraian) + '</div>' +
-      '<div class="note" style="padding:0">' + (m.mode === 'ubah' ? 'Ubah isian memo. Nomor memo tidak berubah. PDF yang sudah diarsipkan dibuat ulang setelah disimpan.' : 'Isian di bawah diambil dari temuan. Lengkapi yang belum terisi. Nomor memo keluar setelah ' + (s.qc.grup === 'KOORD' ? 'Koordinator QC MK' : 'QC ' + esc(s.qc.grup) + ' atau Koordinator QC MK') + ' mengesahkan.') + '</div>' +
+      '<div class="note" style="padding:0">' + (m.mode === 'ubah' ? 'Ubah isian memo. Nomor memo tidak berubah. PDF yang sudah diarsipkan dibuat ulang setelah disimpan.' : 'Isian di bawah diambil dari temuan. Lengkapi yang belum terisi. Nomor memo keluar setelah ' + esc(lblGrup(s.qc.grup, s.qc.ta)) + ' mengesahkan.') + '</div>' +
       '<section class="group"><div class="list">' + (m.mode === 'ubah' ? '' : row('mTgl', 'Tanggal pengajuan', v.tgl, 'date')) + row('mBid', 'Bidang pekerjaan', v.bidang) + row('mKeg', 'Kegiatan pekerjaan', v.kegiatan) + row('mLok', 'Lokasi pekerjaan', v.lokasi, 'text', true) + row('mInfo', 'Info lainnya', v.info) + '</div></section>' +
       '<section class="group"><div class="list"><div class="row"><span class="lbl">Jenis ketidaksesuaian</span>' + cekHtml('jenis', s.opsi.jenis, v.jenis) + '</div>' + row('mJL', 'Jika memilih "Lainnya"', v.jenisLain) + '</div></section>' +
       '<section class="group"><div class="list"><div class="row"><span class="lbl">Referensi</span>' + cekHtml('ref', s.opsi.referensi, v.ref) + '</div></div></section>' +
@@ -197,7 +204,7 @@
       sel2('Info', d.info && d.info !== '-' ? d.info : '', true) + sel2('Kondisi aktual', d.kondisiAktual) + sel2('Kondisi seharusnya', d.kondisiSeharusnya) +
       sel2('Tindak lanjut PJ', d.tindakLanjut ? d.tindakLanjut + (d.namaPenerima ? ' (penerima: ' + d.namaPenerima + ')' : '') : '', true) +
       sel2('Verifikasi MK', df.verifikasi ? df.verifikasi + (df.tglVerif ? ' ' + tglId(df.tglVerif) : '') + (df.verifOleh ? ' oleh ' + df.verifOleh : '') + (df.catatan ? '. ' + df.catatan : '') : '', true) + '</div></section>';
-    if (bukanQc) h += '<div class="note" style="padding:0">Pengesahan memo dilakukan oleh QC.</div>';
+    if (bukanQc) h += '<div class="note" style="padding:0">Pengesahan memo dilakukan oleh ' + (bidangTA(d.kodeBidang) ? 'TA atau QC' : 'QC') + '.</div>';
     h += '<div class="mttd2">';
     var terakhir = ''; ['MK1', 'PJ1', 'MK2', 'PJ2'].forEach(function (s) { if (r.ttd[s]) terakhir = s; });
     ['MK1', 'PJ1', 'MK2', 'PJ2'].forEach(function (s) {
@@ -209,7 +216,7 @@
         var perluTtd = u && u.qc === 'YA' && !r.ttdSaya && !C.isAdmin();
         x = sel + (perluTtd ? '<button type="button" class="pill" data-act="ttd">' + C.ic('ubah') + 'Unggah tanda tangan</button>' : '<button type="button" class="pill go" data-act="memosah" data-s="' + s + '">' + C.ic('centang') + 'Sahkan</button>');
       } else x = '<span class="wait">' + esc(bukanQc ? 'Menunggu' : ((b && b.alasan) || 'Menunggu')) + '</span>';
-      h += '<div class="mt2' + (t ? ' ok' : '') + '"><span class="sl">' + NAMA_SLOT[s] + '</span>' + x + '</div>';
+      h += '<div class="mt2' + (t ? ' ok' : '') + '"><span class="sl">' + namaSlot(s, d.kodeBidang) + '</span>' + x + '</div>';
     });
     h += '</div>';
     var aktif = d.status !== 'CLOSE' && d.status !== 'BATAL', utama = '';
@@ -283,7 +290,7 @@
     return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tanda tangan"><div class="grab" aria-hidden="true"></div><h2>' + (m.hid ? 'Tanda tangan ' + esc(m.akun) : 'Tanda tangan') + '</h2>' +
       '<div class="note" style="padding:0">' + (m.hid ? 'Anda menyetel nama cetak dan tanda tangan akun QC ini. Dipakai saat QC mengesahkan, atau saat Admin mengesahkan atas namanya.' : 'Dipakai saat Anda mengesahkan site memo. Tersimpan di akun Anda.') + ' Memo yang sudah disahkan tidak berubah bila tanda tangan diganti.</div>' +
       '<section class="group"><div class="list"><label class="row"><span class="lbl">Nama yang dicetak<i>*</i></span><input type="text" id="tNama" value="' + esc(m.nama) + '" autocomplete="off"></label>' +
-      '<label class="row"><span class="lbl">Jabatan</span><input type="text" id="tJab" value="' + esc(m.jabatan) + '" placeholder="cth: QC Struktur" autocomplete="off"></label></div></section>' +
+      '<label class="row"><span class="lbl">Jabatan</span><input type="text" id="tJab" value="' + esc(m.jabatan) + '" placeholder="cth: QC Struktur atau TA HSE" autocomplete="off"></label></div></section>' +
       (gambar ? '<div class="ttdbox"><canvas id="ttdCv" width="560" height="224" aria-label="Kotak menggambar tanda tangan"></canvas></div><div class="btnrow"><button type="button" class="btn sec" data-act="ttdbersih">Bersihkan</button><button type="button" class="btn" data-act="ttdselesai">Selesai</button></div>' :
         '<div class="ttdbox pv">' + (m.img ? '<img alt="Tanda tangan" src="' + esc(m.img) + '">' : '<span>Belum ada tanda tangan</span>') + '</div>' +
         '<div class="btnrow"><button type="button" class="btn sec" data-act="ttdgambar">' + C.ic('pena') + 'Gambar</button><button type="button" class="btn sec" data-act="ttdunggah">' + C.ic('img') + 'Unggah PNG</button></div>' +
@@ -360,9 +367,9 @@
     if (d) C.openModal({ t: 'qcdaftar', daftar: d });
   }
   function qcdaftarHtml(m) {
-    var NAMA_PERAN = { MK: 'QC MK', PJ: 'QC PJ' }, bid = { STR: 'Struktur', ARS: 'Arsitektur', MEEP: 'MEEP', KOORD: 'Koordinator' };
+    var NAMA_PERAN = { MK: 'QC MK', PJ: 'QC PJ' }, bid = { STR: 'Struktur', ARS: 'Arsitektur', MEEP: 'MEEP', INF: 'Infrastruktur', LSC: 'Lansekap', HSE: 'HSE', BGH: 'BGH', KOORD: 'Koordinator' };
     var baris = m.daftar.map(function (x) {
-      return '<button type="button" class="mli" data-act="ttdqcpilih" data-h="' + esc(x.hid) + '"><div><b>' + esc(x.akun) + '</b><span>' + esc((NAMA_PERAN[x.peran] || x.peran) + (x.qcBidang ? ' ' + (bid[x.qcBidang] || x.qcBidang) : '')) + '</span><span>Tercetak: ' + esc(x.nama || '(belum diisi)') + (x.jabatan ? ', ' + esc(x.jabatan) : '') + '</span></div><span class="tag ' + (x.adaTtd ? 'm-close' : 'm-belum') + '">' + (x.adaTtd ? 'Ada tanda tangan' : 'Belum ada') + '</span></button>';
+      return '<button type="button" class="mli" data-act="ttdqcpilih" data-h="' + esc(x.hid) + '"><div><b>' + esc(x.akun) + '</b><span>' + esc((x.ta && x.peran === 'MK' ? 'TA MK' : (NAMA_PERAN[x.peran] || x.peran)) + (x.qcBidang ? ' ' + (bid[x.qcBidang] || x.qcBidang) : '')) + '</span><span>Tercetak: ' + esc(x.nama || '(belum diisi)') + (x.jabatan ? ', ' + esc(x.jabatan) : '') + '</span></div><span class="tag ' + (x.adaTtd ? 'm-close' : 'm-belum') + '">' + (x.adaTtd ? 'Ada tanda tangan' : 'Belum ada') + '</span></button>';
     }).join('');
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Tanda tangan QC"><h2>Tanda tangan QC</h2><div class="note" style="padding:0">Setel tanda tangan dan nama cetak akun QC. Akun QC ditandai di sheet PENGGUNA (kolom QC dan QCBidang).</div>' +
       (baris ? '<div class="mlis">' + baris + '</div>' : '<div class="empty">Belum ada akun QC.</div>') + '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
@@ -503,7 +510,7 @@
   /* ---------- Rekap > Memo (Admin dan MK) ---------- */
 
   var RK = { bd: '', st: '', mw: '', lama: 0, ur: '', ud: 1 };   // ur: kolom urutan (kosong = urutan bawaan: yang berjalan dulu, terlama di atas), ud: 1 naik atau -1 turun
-  var BID_KODE = [['ARS', 'Arsitektur'], ['STR', 'Struktur'], ['MEEP', 'MEEP'], ['INF', 'Infrastruktur'], ['LSC', 'Lansekap']];
+  var BID_KODE = [['ARS', 'Arsitektur'], ['STR', 'Struktur'], ['MEEP', 'MEEP'], ['INF', 'Infrastruktur'], ['LSC', 'Lansekap'], ['HSE', 'HSE'], ['BGH', 'BGH']];
   var ST_URUT = ['MENUNGGU TTD MK', 'TERBIT', 'TINDAK LANJUT', 'PEMERIKSAAN II', 'PERALIHAN', 'CLOSE'];
   function simpanMode(v) { try { localStorage.setItem('dl-rekap', v); } catch (e) { } }
   function rekapToggle() {
@@ -665,7 +672,7 @@
     cabut: ['Batalkan tanda tangan?', '', 'Ya, batalkan']
   };
   function yakinHtml(m) {
-    var y = YAKIN[m.kind], d = m.r.memo, ket = y[1] || ('Tanda tangan ' + NAMA_SLOT[m.slot] + ' dibatalkan dan status memo mundur satu tahap. Nomor memo tetap; tanda tangan bisa dibubuhkan lagi.');
+    var y = YAKIN[m.kind], d = m.r.memo, ket = y[1] || ('Tanda tangan ' + namaSlot(m.slot, d.kodeBidang) + ' dibatalkan dan status memo mundur satu tahap. Nomor memo tetap; tanda tangan bisa dibubuhkan lagi.');
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Konfirmasi"><h2>' + y[0] + '</h2>' +
       '<div class="note" style="padding:0"><b>' + esc(d.noMemo ? 'SM ' + pendek(d.noMemo) : 'Draf memo') + '</b> &middot; ' + esc(d.kegiatan || d.lokasi) + '</div><div class="note" style="padding:0">' + esc(ket) + '</div>' +
       '<div class="gap"><button type="button" class="btn bad" data-act="memoyakinya">' + y[2] + '</button><button type="button" class="btn sec" data-act="memoyakinbatal">Kembali</button></div></div></div>';

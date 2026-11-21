@@ -25,5 +25,5 @@ var PAKET_LIST = [
 var LABEL = { area: 'Gedung', level: 'Lantai', lokasi: 'Ruangan' };
 
 // Pilihan isian form. Ubah di sini bila perlu.
-var BIDANG = ['Arsitektur', 'Struktur', 'MEEP', 'Infrastruktur', 'Lansekap'];
+var BIDANG = ['Arsitektur', 'Struktur', 'MEEP', 'Infrastruktur', 'Lansekap', 'HSE', 'BGH'];
 var TINGKAT = ['Minor', 'Mayor', 'Kritis'];
