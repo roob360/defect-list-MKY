@@ -612,13 +612,20 @@
     var fil = '<div class="bfil"><select data-rk="bd" aria-label="Bidang">' + opt(BID_KODE, RK.bd, 'Semua bidang') + '</select><select data-rk="st" aria-label="Status">' + opt(ST_URUT.concat(C.isAdmin() ? ['BATAL'] : []).map(function (s) { return [s, STAT[s]]; }), RK.st, 'Semua status') + '</select>' +
       '<select data-rk="mw" aria-label="Menunggu">' + opt([['QC MK', 'QC MK'], ['PJ', 'PJ'], ['MK', 'MK'], ['QC PJ', 'QC PJ']], RK.mw, 'Menunggu siapa pun') + '</select><label class="bchk"><input type="checkbox" data-rk="lama"' + (RK.lama ? ' checked' : '') + '>Lebih dari 7 hari</label></div>';
     var td = function (x, s) { return '<td class="ttdc' + (x.tgl && x.tgl[s] ? ' on' : '') + '">' + (x.tgl && x.tgl[s] ? tgl2(x.tgl[s]) : '&ndash;') + '</td>'; };
+    /* Kolom pratinjau dan unduh: Open = memo sebagaimana diterbitkan (sampai tanda tangan MK Tahap I, nomor sudah keluar); Close = memo lengkap setelah semua selesai. */
+    var pdfSel = function (x, j) {
+      var ada = !x.sumber && x.status !== 'BATAL' && (j === 'before' ? !!(x.noMemo && x.tgl && x.tgl.MK1) : x.status === 'CLOSE');
+      if (!ada) return '<td class="pdfc">&ndash;</td>';
+      var b = function (a, t) { return '<button type="button" class="pill pdfb" data-act="memorkpdf" data-m="' + esc(x.id) + '" data-j="' + j + '" data-a="' + a + '">' + t + '</button>'; };
+      return '<td class="pdfc">' + b('lihat', 'Lihat') + b('unduh', 'Unduh') + '</td>';
+    };
     var baris = v.map(function (x) {
       return '<tr data-act="memolihat" data-m="' + esc(x.id) + '"><td><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b></td><td>' + esc(x.kodeBidang) + '</td><td>' + potong(x.kegiatan || x.lokasi, 'kg') + '</td><td>' + potong(lokasiTeks(x), 'lk') + '</td>' +
         '<td><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></td><td>' + potong(x.status === 'CLOSE' || x.status === 'BATAL' ? '' : (x.menunggu ? x.menunggu.teks : ''), 'mn') + '</td>' + td(x, 'MK1') + td(x, 'PJ1') + td(x, 'MK2') + td(x, 'PJ2') +
-        '<td class="hr' + (x.hari > 7 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? ' lama' : '') + '">' + (x.status === 'CLOSE' || x.status === 'BATAL' ? '' : x.hari) + '</td></tr>';
+        '<td class="hr' + (x.hari > 7 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? ' lama' : '') + '">' + (x.status === 'CLOSE' || x.status === 'BATAL' ? '' : x.hari) + '</td>' + pdfSel(x, 'before') + pdfSel(x, 'akhir') + '</tr>';
     }).join('');
-    h += '<section class="bc s12"><div class="bch"><div class="cap">Daftar memo (' + v.length + ' dari ' + all.length + ')</div>' + fil + '</div><div class="tw"><table class="t rkt mt"><thead><tr>' + th('no', 'No') + th('bd', 'Bid') + th('kg', 'Kegiatan') + th('lk', 'Lokasi') + th('st', 'Status') + '<th>Menunggu</th>' + th('mk1', 'MK I') + th('pj1', 'PJ I') + th('mk2', 'MK II') + th('pj2', 'PJ II') + th('hr', 'Hari') + '</tr></thead><tbody>' +
-      (baris || '<tr><td colspan="11">Tidak ada memo yang cocok.</td></tr>') + '</tbody></table></div></section></div>';
+    h += '<section class="bc s12"><div class="bch"><div class="cap">Daftar memo (' + v.length + ' dari ' + all.length + ')</div>' + fil + '</div><div class="tw"><table class="t rkt mt"><thead><tr>' + th('no', 'No') + th('bd', 'Bid') + th('kg', 'Kegiatan') + th('lk', 'Lokasi') + th('st', 'Status') + '<th>Menunggu</th>' + th('mk1', 'MK I') + th('pj1', 'PJ I') + th('mk2', 'MK II') + th('pj2', 'PJ II') + th('hr', 'Hari') + '<th>Memo Open</th><th>Memo Close</th></tr></thead><tbody>' +
+      (baris || '<tr><td colspan="13">Tidak ada memo yang cocok.</td></tr>') + '</tbody></table></div></section></div>';
     return kepala(h);
   }
   async function eksporExcel() {
@@ -717,11 +724,25 @@
     for (var i = 0; i < urut.length; i++) if (r.bisa[urut[i]] && r.bisa[urut[i]].ok) return urut[i];
     return '';
   }
+  /* Rekap Memo: pratinjau atau unduh PDF memo Open (sampai Tahap I) dan Close (lengkap) langsung dari baris tabel. */
+  async function rkPdf(id, j, aksi) {
+    var r = await C.work('Memuat memo...', function () { return C.api('memo_detail', { memoId: id }); });
+    if (!r) return;
+    taruh(r.defect);
+    if (j === 'akhir' && r.memo.status !== 'CLOSE') { C.toast('Memo ini belum Close.'); return; }
+    if (j === 'before' && !(r.ttd && r.ttd.MK1)) { C.toast('Memo ini belum disahkan Tahap I.'); return; }
+    var mode = j === 'before' ? 'before' : 'akhir', akh = j === 'before' ? ' (Open)' : ' (Close)';
+    if (aksi === 'lihat') return bukaPratinjau({ mode: 'detail', r: r, pdfMode: mode, dari: 'rekap', akhiran: akh });
+    var doc = await C.work('Membuat PDF memo...', function () { return bangunPdf(r, mode); });
+    if (!doc) return;
+    C.showFile(namaBerkas(r.memo, akh), doc.output('arraybuffer'), 'application/pdf');
+    if (doc.fotoHilang) C.toast(doc.fotoHilang + ' foto belum termuat, jadi PDF ini tanpa foto itu. Coba lagi bila sinyal membaik.');
+  }
   async function bukaPratinjau(o) {
     var t0 = performance.now();
-    var doc = await C.work('Membuat pratinjau...', function () { return o.mode === 'draf' ? bangunPdfDraf(o.form) : bangunPdf(o.r, 'akhir'); });
+    var doc = await C.work('Membuat pratinjau...', function () { return o.mode === 'draf' ? bangunPdfDraf(o.form) : bangunPdf(o.r, o.pdfMode || 'akhir'); });
     if (!doc) return;
-    var m = { t: 'memoprev', mode: o.mode, buf: doc.output('arraybuffer'), nama: o.mode === 'draf' ? 'Pratinjau memo.pdf' : namaBerkas(o.r.memo), r: o.r || null, form: o.form || null, kanvas: [], zoom: false };
+    var m = { t: 'memoprev', mode: o.mode, buf: doc.output('arraybuffer'), nama: o.mode === 'draf' ? 'Pratinjau memo.pdf' : namaBerkas(o.r.memo, o.akhiran), dari: o.dari || '', r: o.r || null, form: o.form || null, kanvas: [], zoom: false };
     root.__memoPrev = { bangun: Math.round(performance.now() - t0), render: 0, halaman: 0 };
     D.pv = m;
     C.openModal(m);
@@ -731,7 +752,7 @@
     var u = C.S.user, tombol;
     if (m.mode === 'draf') tombol = '<button type="button" class="btn" data-act="memopvlanjut">Lanjut ke konfirmasi</button><button type="button" class="btn sec" data-act="memopvtutup">Kembali ke form</button>';
     else {
-      var slot = m.r ? slotSahkan(m.r) : '', sah = '';
+      var slot = (m.r && !m.dari) ? slotSahkan(m.r) : '', sah = '';
       if (slot) sah = (u && u.qc === 'YA' && !m.r.ttdSaya) ? '<button type="button" class="btn" data-act="ttd">' + C.ic('ubah') + 'Unggah tanda tangan dulu</button>' : '<button type="button" class="btn" data-act="memopvsahkan" data-s="' + slot + '">' + C.ic('centang') + 'Sahkan memo ini</button>';
       tombol = sah + '<button type="button" class="btn sec" data-act="memopvunduh">Unduh PDF</button><button type="button" class="btn sec" data-act="memopvtutup">Tutup</button>';
     }
@@ -827,7 +848,8 @@
         return bukaPratinjau({ mode: 'draf', form: m });
       }
       case 'memopvlanjut': return m && m.form && C.openModal({ t: 'memokonfirm', d: m.form.d, s: m.form.s, v: m.form.v });
-      case 'memopvtutup': return m && (m.mode === 'draf' ? C.openModal(m.form) : C.openModal({ t: 'memo', r: m.r }));
+      case 'memopvtutup': return m && (m.mode === 'draf' ? C.openModal(m.form) : m.dari ? C.closeModal() : C.openModal({ t: 'memo', r: m.r }));
+      case 'memorkpdf': return rkPdf(el.getAttribute('data-m'), el.getAttribute('data-j'), el.getAttribute('data-a'));
       case 'memopvsahkan': return sahkanDariPv(el.getAttribute('data-s'));
       case 'memopvunduh': return m && m.buf && C.showFile(m.nama, m.buf.slice(0), 'application/pdf');
       case 'memopvzoom': if (m && m.t === 'memoprev') { m.zoom = !m.zoom; C.renderOverlay(); } return;

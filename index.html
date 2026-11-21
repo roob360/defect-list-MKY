@@ -723,6 +723,21 @@
   .note.mono{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; overflow-wrap:anywhere; }
   /* ===== Fase 4: tab Memo, Rekap memo, mode Semua ruangan ===== */
   .chips.tmode, .chips.rkmode{ margin:2px 0 12px; }
+  /* penyaring Semua area: ringkas, panel filter dilipat */
+  .sbar .btn-sq svg, .aqtool .chip svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; vertical-align:-3px; margin-right:5px; }
+  .aqtool{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
+  .aqtool .chip{ display:inline-flex; align-items:center; }
+  .aqn{ margin-left:6px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--blue); color:#fff; font-size:11px; line-height:18px; text-align:center; }
+  .chip.on .aqn{ background:var(--gbg1); color:var(--label1); }
+  .aqso span{ color:var(--label2); font-weight:500; margin-right:6px; }
+  .aqso select{ border:0; background:transparent; color:inherit; font:inherit; font-weight:600; padding:0; max-width:130px; }
+  .aqpanel{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 10px; margin:0 0 10px; padding:12px; border-radius:14px; background:var(--gbg2); box-shadow:inset 0 0 0 1px var(--sep); }
+  @media (min-width:700px){ .aqpanel{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (min-width:1100px){ .aqpanel{ grid-template-columns:repeat(5,minmax(0,1fr)); } }
+  .aqf{ display:flex; flex-direction:column; gap:3px; min-width:0; font-size:11px; font-weight:600; color:var(--label2); text-transform:uppercase; letter-spacing:.02em; }
+  .aqf select, .aqf input{ width:100%; min-width:0; height:36px; padding:0 10px; border:0; border-radius:10px; background:var(--fill3); color:var(--label1); font:inherit; font-size:14px; text-transform:none; letter-spacing:0; }
+  .aqcnt{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:20px; margin:0 2px 8px; font-size:13px; color:var(--label2); }
+  .aqreset{ border:0; background:none; color:var(--blue-teks); font:inherit; font-size:13px; font-weight:600; cursor:pointer; padding:2px 0; }
   .mkpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
   .mk{ background:var(--fill3); border-radius:14px; padding:10px 6px; text-align:center; }
   .mk b{ display:block; font-size:24px; line-height:28px; }
@@ -768,6 +783,8 @@
   .rkt.mt td.ttdc.on{ color:var(--green-text); font-weight:600; }
   .rkt.mt td.hr{ text-align:right; font-weight:600; }
   .rkt.mt td.hr.lama{ color:var(--red-text); }
+  .rkt.mt td.pdfc{ white-space:nowrap; color:var(--label2); }
+  .rkt.mt .pdfb{ font-size:11px; padding:3px 9px; margin-right:4px; min-height:0; }
   @media (min-width:1100px){ .s12{ grid-column:span 12; } }
   /* warna status memo */
   .tag.m-belum{ background:transparent; box-shadow:inset 0 0 0 1.5px #d4a017; color:#8a6500; }
@@ -859,8 +876,13 @@
   table.t.mt th.srt{ cursor:pointer; user-select:none; }
   table.t.mt th.srt:hover, table.t.mt th.srt.on{ color:var(--label1); }
   table.t.mt th.srt .ar{ margin-left:4px; font-size:9px; opacity:.45; } table.t.mt th.srt.on .ar{ opacity:1; color:var(--blue); }
-  table.t.mt th:nth-child(1){ width:52px; } table.t.mt th:nth-child(2){ width:58px; } table.t.mt th:nth-child(3){ width:27%; } table.t.mt th:nth-child(4){ width:13%; }
-  table.t.mt th:nth-child(5){ width:104px; } table.t.mt th:nth-child(6){ width:15%; } table.t.mt th:nth-child(n+7):nth-child(-n+10){ width:62px; } table.t.mt th:nth-child(11){ width:56px; }
+  /* lebar kolom dalam persen (jumlah 100): tabel selalu muat di lebar layar, tanpa geser horizontal */
+  table.t.mt th:nth-child(1){ width:4%; } table.t.mt th:nth-child(2){ width:4.5%; } table.t.mt th:nth-child(3){ width:21.6%; } table.t.mt th:nth-child(4){ width:11%; }
+  table.t.mt th:nth-child(5){ width:9%; } table.t.mt th:nth-child(6){ width:11%; } table.t.mt th:nth-child(n+7):nth-child(-n+10){ width:4.6%; } table.t.mt th:nth-child(11){ width:3.5%; }
+  table.t.mt th:nth-child(12), table.t.mt th:nth-child(13){ width:8.5%; }
+  .rkt.mt td, .rkt.mt th{ padding-left:5px; padding-right:5px; }
+  .rkt.mt td.pdfc{ white-space:normal; }
+  table.t.mt td:nth-child(5) .tag{ white-space:normal; line-height:1.2; }
   table.t.mt th:nth-child(-n+6), table.t.mt td:nth-child(-n+6){ text-align:left; }
   table.t.mt td:nth-child(3), table.t.mt td:nth-child(4), table.t.mt td:nth-child(6){ overflow:hidden; text-overflow:ellipsis; }
   .mt .cl{ display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -876,6 +898,7 @@
   <symbol id="i-img" viewBox="0 0 24 24"><rect x="3.8" y="4.8" width="16.4" height="14.4" rx="2.8"/><path d="M4.4 16.2l4.6-4.4 3.4 3.2 2.6-2.5 4.6 4.2"/><circle class="kdot" cx="16.4" cy="9.2" r="1.9"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></symbol>
   <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3.6h7l4.6 4.6v11.2A1.6 1.6 0 0117 21H7a1.6 1.6 0 01-1.6-1.6V5.2A1.6 1.6 0 017 3.6z"/><path d="M14 3.6V8.4h4.6"/><path d="M8.8 13.6h6.4M8.8 16.8h4"/><circle class="kdot" cx="15.6" cy="17" r="1.1"/></symbol>
   <symbol id="i-memo" viewBox="0 0 24 24"><path d="M6.4 3.6h8.2l3.6 3.6v12.2a1.4 1.4 0 01-1.4 1.4H6.4A1.4 1.4 0 015 19.4V5A1.4 1.4 0 016.4 3.6z"/><path d="M14.4 3.8v3.6h3.6"/><path d="M8.4 11.4h7.2M8.4 14.4h7.2M8.4 17.4h4.2"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></symbol>

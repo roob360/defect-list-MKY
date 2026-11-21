@@ -19,7 +19,7 @@ var S={
   defects:{}, loading:{}, errs:{}, all:null, siap:null, siapErr:'', perlu:null, perluErr:'', anim:'sistem', flt:{rid:'',q:'',st:'',bd:'',tk:'',el:''}, zipOff:{}, zipRun:false, zipStop:false, terhapus:null, img:{}, busy:'', file:null, loginErr:'', net:'',
   reg:null, regOk:false, rg:{area:'',pakai:null}, imp:null, impRes:null, up:[], pv:{}, stale:{}, fokusAsal:null, kl:{g:'',l:'',n:''}, hist:[], skip:0, seen:{}, ringPrev:{}, stpPrev:{}, cntPrev:{}, cuPrev:{}, fotoOk:{}, baru:null, drafOk:0, drawn:'', ovKey:''
 };
-S.rekapMode=lsGet('dl-rekap')==='memo'?'memo':'temuan';S.semua=lsGet('dl-semua')==='1';   // Rekap: Temuan atau Memo; Temuan: per ruangan atau semua ruangan
+S.rekapMode=lsGet('dl-rekap')==='memo'?'memo':'temuan';S.semua=lsGet('dl-semua')!=='0';   // Rekap: Temuan atau Memo; Temuan: per ruangan atau semua ruangan
 var app=document.getElementById('app'), overlay=document.getElementById('overlay');
 var toastTimer=null, pickCb=null;
 /* Site memo (memo.js): modul terpisah yang dipanggil dari beberapa titik (kartu, dialog, Pengaturan, lencana). Bila memo.js tidak termuat, semuanya diam. */
@@ -641,9 +641,9 @@ function entryHtml(d,n,ix,ro){
 }
 
 /* ----- filter antrean (tab Verifikasi dan Perbaikan, masing-masing punya state sendiri) ----- */
-function aqBaru(){return {q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,sy:0,rg:'',st:'',ft:'',dr:'',sp:'',so:'',n:60}}
+function aqBaru(){return {q:'',gd:'',lt:'',bd:'',tk:'',tl:0,mm:0,sy:0,rg:'',st:'',ft:'',dr:'',sp:'',so:'',pn:0,n:60}}
 var AQ={verif:aqBaru(),perbaikan:aqBaru(),form:aqBaru()};   // form = tab Temuan mode Semua area
-var AQ_URUT=[['','Lokasi (gedung, lantai, ruangan)'],['baru','Tanggal temuan terbaru'],['lama','Tanggal temuan terlama'],['tingkat','Tingkat (Kritis dulu)'],['status','Status (Open dulu)'],['bidang','Bidang'],['uraian','Uraian (A-Z)']];
+var AQ_URUT=[['','Lokasi'],['baru','Terbaru'],['lama','Terlama'],['tingkat','Tingkat tertinggi'],['status','Open dulu'],['bidang','Bidang'],['uraian','Uraian A-Z']];
 var AQ_FOTO=[['','Semua'],['bb','Belum ada After'],['ada','Sudah ada After']];
 function aqOn(a){return !!(a.q.trim()||a.gd||a.lt||a.bd||a.tk||a.tl||a.mm||a.sy||a.rg||a.st||a.ft||a.dr||a.sp)}
 function aqUrut(l,so){
@@ -682,6 +682,7 @@ function aqIsi(list,a,verif){
 }
 function aqCount(list,a){return aqOn(a)?aqList(list,a).length+' dari '+list.length+' temuan':''}
 function aqBar(list,a,perb,semua){
+  if(semua)return aqBarSemua(list,a);
   var gd=[],lt=[];
   list.forEach(function(d){
     if(d.gedung&&gd.indexOf(d.gedung)<0)gd.push(d.gedung);
@@ -690,19 +691,40 @@ function aqBar(list,a,perb,semua){
   gd.sort(L.bandingAlami);lt.sort(L.bandingAlami);
   if(a.gd&&gd.indexOf(a.gd)<0)a.gd='';
   if(a.lt&&lt.indexOf(a.lt)<0)a.lt='';
-  var rg=[];
-  if(semua){list.forEach(function(d){if((!a.gd||d.gedung===a.gd)&&(!a.lt||d.lantai===a.lt)&&d.ruangan&&rg.indexOf(d.ruangan)<0)rg.push(d.ruangan)});rg.sort(L.bandingAlami);if(a.rg&&rg.indexOf(a.rg)<0)a.rg=''}
   var opt=function(arr,cur,all){return '<option value="">'+all+'</option>'+arr.map(function(x){return '<option value="'+esc(x)+'"'+(x===cur?' selected':'')+'>'+esc(x)+'</option>'}).join('')};
   var sel=function(k,lbl,arr){return '<label class="row"><span class="lbl">'+lbl+'</span><select data-aq="'+k+'">'+opt(arr,a[k],'Semua')+'</select></label>'};
-  var selv=function(k,lbl,pr){return '<label class="row"><span class="lbl">'+lbl+'</span><select data-aq="'+k+'">'+pr.map(function(x){return '<option value="'+esc(x[0])+'"'+(x[0]===a[k]?' selected':'')+'>'+esc(x[1])+'</option>'}).join('')+'</select></label>'};
-  var tgl=function(k,lbl){return '<label class="row"><span class="lbl">'+lbl+'</span><input type="date" data-aq="'+k+'" value="'+esc(a[k]||'')+'"></label>'};
-  var ekstra=semua?'<div class="two">'+sel('rg','Ruangan',rg)+selv('st','Status',[['','Semua'],['Open','Open'],['Dalam proses','Proses'],['Close','Close']])+'</div><div class="two">'+selv('ft','Foto After',AQ_FOTO)+selv('so','Urutkan',AQ_URUT)+'</div><div class="two">'+tgl('dr','Temuan dari')+tgl('sp','Temuan sampai')+'</div>':'';
   return '<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari uraian, elemen, titik, ruangan" autocomplete="off" value="'+esc(a.q)+'"></label>'+
     (aqOn(a)?'<button type="button" class="btn-sq" data-act="aqclr">Atur ulang</button>':'')+'</div>'+
     (semua&&canEdit()?'<div class="chips" role="group" aria-label="Pelapor"><button type="button" class="chip'+(a.sy?'':' on')+'" data-act="aqsy" data-v="0">Semua pelapor</button><button type="button" class="chip'+(a.sy?' on':'')+'" data-act="aqsy" data-v="1">Temuan saya</button></div>':'')+
     (semua?'<div class="chips" role="group" aria-label="Memo"><button type="button" class="chip'+(a.mm?'':' on')+'" data-act="aqmm" data-v="0">Semua</button><button type="button" class="chip'+(a.mm?' on':'')+'" data-act="aqmm" data-v="1">Bermemo</button></div>':'')+
     (perb?'<div class="chips" role="group" aria-label="Status verifikasi"><button type="button" class="chip'+(a.tl?'':' on')+'" data-act="aqtl" data-v="0">Semua</button><button type="button" class="chip'+(a.tl?' on':'')+'" data-act="aqtl" data-v="1">Ditolak MK</button></div>':'')+
-    '<section class="group"><div class="list"><div class="two">'+sel('gd','Gedung',gd)+sel('lt','Lantai',lt)+'</div><div class="two">'+sel('bd','Bidang',BIDANG)+sel('tk','Tingkat',TINGKAT)+'</div>'+ekstra+'</div><div class="gf" id="aqcount">'+esc(aqCount(list,a))+'</div></section>';
+    '<section class="group"><div class="list"><div class="two">'+sel('gd','Gedung',gd)+sel('lt','Lantai',lt)+'</div><div class="two">'+sel('bd','Bidang',BIDANG)+sel('tk','Tingkat',TINGKAT)+'</div></div><div class="gf" id="aqcount">'+esc(aqCount(list,a))+'</div></section>';
+}
+/** Penyaring tab Temuan > Semua area: satu baris cari + PDF, satu baris tombol (Filter, Urutan, Bermemo, Temuan saya), panel filter bisa dilipat. */
+function aqBarSemua(list,a){
+  var gd=[],lt=[],rg=[];
+  list.forEach(function(d){
+    if(d.gedung&&gd.indexOf(d.gedung)<0)gd.push(d.gedung);
+    if((!a.gd||d.gedung===a.gd)&&d.lantai&&lt.indexOf(d.lantai)<0)lt.push(d.lantai);
+    if((!a.gd||d.gedung===a.gd)&&(!a.lt||d.lantai===a.lt)&&d.ruangan&&rg.indexOf(d.ruangan)<0)rg.push(d.ruangan);
+  });
+  gd.sort(L.bandingAlami);lt.sort(L.bandingAlami);rg.sort(L.bandingAlami);
+  if(a.gd&&gd.indexOf(a.gd)<0)a.gd='';
+  if(a.lt&&lt.indexOf(a.lt)<0)a.lt='';
+  if(a.rg&&rg.indexOf(a.rg)<0)a.rg='';
+  var pr=function(arr){return arr.map(function(x){return [x,x]})};
+  var sel=function(k,lbl,pairs){return '<label class="aqf"><span>'+lbl+'</span><select data-aq="'+k+'"><option value="">Semua</option>'+pairs.map(function(x){return '<option value="'+esc(x[0])+'"'+(x[0]===a[k]?' selected':'')+'>'+esc(x[1])+'</option>'}).join('')+'</select></label>'};
+  var tgl=function(k,lbl){return '<label class="aqf"><span>'+lbl+'</span><input type="date" data-aq="'+k+'" value="'+esc(a[k]||'')+'"></label>'};
+  var n=(a.gd?1:0)+(a.lt?1:0)+(a.rg?1:0)+(a.bd?1:0)+(a.tk?1:0)+(a.st?1:0)+(a.ft?1:0)+((a.dr||a.sp)?1:0);
+  var panel=a.pn?'<div class="aqpanel" id="aqpanel">'+sel('gd','Gedung',pr(gd))+sel('lt','Lantai',pr(lt))+sel('rg','Ruangan',pr(rg))+sel('bd','Bidang',pr(BIDANG))+sel('tk','Tingkat',pr(TINGKAT))+
+    sel('st','Status',[['Open','Open'],['Dalam proses','Proses'],['Close','Close']])+sel('ft','Foto After',AQ_FOTO.slice(1))+tgl('dr','Temuan dari')+tgl('sp','Temuan sampai')+'</div>':'';
+  return '<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari uraian, elemen, titik, ruangan" autocomplete="off" value="'+esc(a.q)+'"></label>'+
+    '<button type="button" class="btn-sq" data-act="pdfsemua" aria-label="Cetak PDF sesuai penyaring dan urutan" title="Cetak PDF sesuai penyaring dan urutan">'+ic('pdf')+' PDF</button></div>'+
+    '<div class="aqtool"><button type="button" class="chip'+(a.pn||n?' on':'')+'" data-act="aqpn" aria-expanded="'+(a.pn?'true':'false')+'" aria-controls="aqpanel">'+ic('filter')+'Filter'+(n?' <b class="aqn">'+n+'</b>':'')+'</button>'+
+    '<label class="chip aqso"><span>Urutan</span><select data-aq="so" aria-label="Urutkan">'+AQ_URUT.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===(a.so||'')?' selected':'')+'>'+esc(x[1])+'</option>'}).join('')+'</select></label>'+
+    '<button type="button" class="chip'+(a.mm?' on':'')+'" data-act="aqmm" data-v="'+(a.mm?0:1)+'" aria-pressed="'+(a.mm?'true':'false')+'">Bermemo</button>'+
+    (canEdit()?'<button type="button" class="chip'+(a.sy?' on':'')+'" data-act="aqsy" data-v="'+(a.sy?0:1)+'" aria-pressed="'+(a.sy?'true':'false')+'">Temuan saya</button>':'')+'</div>'+
+    panel+'<div class="aqcnt"><span id="aqcount">'+esc(aqCount(list,a))+'</span>'+(aqOn(a)?'<button type="button" class="aqreset" data-act="aqclr">Atur ulang</button>':'')+'</div>';
 }
 function aqSegar(){
   var verif=S.view==='verif',list=verif?S.siap:S.view==='form'?semuaList():S.perlu;if(!list)return;
@@ -712,7 +734,7 @@ function aqSegar(){
 
 /* ----- tab Temuan: Per ruangan (awal) atau Semua ruangan dengan filter Gedung, Lantai, Bidang, Tingkat, Bermemo ----- */
 function tmodeHtml(){
-  return '<div class="chips tmode" role="group" aria-label="Cakupan temuan"><button type="button" class="chip'+(S.semua?'':' on')+'" data-act="tmode" data-v="ruang">Per ruangan</button><button type="button" class="chip'+(S.semua?' on':'')+'" data-act="tmode" data-v="semua">Semua area</button></div>';
+  return '<div class="chips tmode" role="group" aria-label="Cakupan temuan"><button type="button" class="chip'+(S.semua?' on':'')+'" data-act="tmode" data-v="semua">Semua area</button><button type="button" class="chip'+(S.semua?'':' on')+'" data-act="tmode" data-v="ruang">Per ruangan</button></div>';
 }
 function semuaList(){
   if(!S.all)return null;
@@ -723,7 +745,7 @@ function semuaHtml(){
   if(S.allErr)return '<div class="err">Gagal memuat semua temuan.'+(typeof S.allErr==='string'?' '+esc(S.allErr):'')+'</div><button type="button" class="btn sec" data-act="muatsemua">Coba lagi</button>';
   var list=semuaList();if(!list)return skel('entries');
   var a=AQ.form;
-  return '<div class="banner" role="status"><span>'+list.length+' temuan di semua area</span><button type="button" data-act="pdfsemua">PDF</button><button type="button" data-act="muatsemua">Muat ulang</button></div>'+aqBar(list,a,false,true)+(M_?M_.legenda(list):'')+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';
+  return '<div class="banner" role="status"><span>'+list.length+' temuan di semua area</span><button type="button" data-act="muatsemua">Muat ulang</button></div>'+aqBar(list,a,false,true)+(M_?M_.legenda(list):'')+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';
 }
 
 /* ----- antrean verifikasi ----- */
@@ -1203,12 +1225,45 @@ function rgKandidat(a){
   });
   return out;
 }
+/** Ringkasan kode satu grid: A-E, 1-20, atau daftar bila tidak berurutan. */
+function rgRentang(kodes){
+  var k=kodes.map(function(c){return c.n}).sort(L.bandingAlami);
+  if(!k.length)return 'belum ada garis';
+  if(k.length===1)return k[0];
+  var angka=k.every(function(x){return /^[0-9]+$/.test(x)}),huruf=k.every(function(x){return /^[A-Z]$/.test(x)});
+  if(angka&&+k[k.length-1]-+k[0]===k.length-1)return k[0]+' sampai '+k[k.length-1];
+  if(huruf&&k[k.length-1].charCodeAt(0)-k[0].charCodeAt(0)===k.length-1)return k[0]+' sampai '+k[k.length-1];
+  return k.length>6?k.slice(0,6).join(', ')+', ...':k.join(', ');
+}
+/** Contoh hasil pengisian grid, diperbarui langsung saat mengetik. */
+function rgSeedPrev(){
+  var k=L.rapi(($('rgK')||{}).value||''),pem=($('rgP')||{value:'-'}).value,d=($('rgD')||{}).value||'',e=($('rgS')||{}).value||'',el=$('rgPrev');
+  if(!el)return;
+  if(!k&&!L.rapi(d)){el.textContent='Contoh: nama T3, garis A sampai E menghasilkan T3-A, T3-B, T3-C, T3-D, T3-E.';return}
+  var x=expansiKode(d,e);
+  if(x.err){el.textContent=x.err;return}
+  var l=x.kode.map(function(c){return (k||'?')+pem+c});
+  el.textContent='Hasil: '+(l.length>8?l.slice(0,6).join(', ')+', ... '+l[l.length-1]:l.join(', '))+' ('+l.length+' garis)';
+}
+function rgSeedHtml(){
+  return '<div class="note" style="font-weight:600;padding-top:12px">Tambah grid</div>'+
+    '<div class="note" style="padding-top:0">Grid adalah nama sumbu pada gambar kerja, misalnya <b>T3-C</b>. Isi sekali di sini, lalu pilihannya muncul sendiri saat membuat temuan.</div><div class="list">'+
+    '<label class="row"><span class="lbl">Nama grid</span><input type="text" id="rgK" placeholder="Contoh: T3" autocomplete="off"></label>'+
+    '<div class="two"><label class="row"><span class="lbl">Garis dari</span><input type="text" id="rgD" placeholder="A atau 1" autocomplete="off"></label><label class="row"><span class="lbl">sampai</span><input type="text" id="rgS" placeholder="E atau 20" autocomplete="off"></label></div>'+
+    '<label class="row"><span class="lbl">Penulisan</span><select id="rgP"><option value="-">Strip: T3-C</option><option value=".">Titik: T3.C</option><option value="">Rapat: T3C</option></select></label></div>'+
+    '<div class="note" id="rgPrev" style="padding-top:8px">Contoh: nama T3, garis A sampai E menghasilkan T3-A, T3-B, T3-C, T3-D, T3-E.</div>'+
+    '<div class="acts" style="padding-top:4px;padding-bottom:14px"><button type="button" class="pill" data-act="rgseed">'+ic('plus')+'Tambahkan</button></div>';
+}
 function regAdminHtml(){
   var h='<section class="group"><div class="sh">Daftar isian</div>';
   if(!S.regOk||!S.reg)return h+'<div class="gf">Server belum mendukung daftar isian. Pasang Kode.gs terbaru lalu jalankan siapkan().</div></section>';
   var T=tree(),a=rgArea();
   h+='<div class="list"><label class="row"><span class="lbl">Area</span><select data-rg="area">'+T.map(function(g){return '<option value="'+esc(g.nama)+'"'+(g.nama===a?' selected':'')+'>'+esc(g.nama)+'</option>'}).join('')+'</select></label></div>';
-  if(!S.rg.pakai)return h+'<div class="gf">Kelompok grid dan Elemen terbentuk sendiri dari temuan. Di sini admin merapikan yang salah ketik.</div><div class="acts" style="padding-top:0;padding-bottom:14px"><button type="button" class="pill" data-act="rgmuat">Tampilkan daftar</button></div></section>';
+  if(!S.rg.pakai){
+    if(!S.rg.muat&&!S.rg.gagal){S.rg.muat=true;api('registri_pakai').then(function(pk){S.rg.pakai=pk;S.rg.muat=false;if(S.view==='kelola')render()}).catch(function(){S.rg.muat=false;S.rg.gagal=true;if(S.view==='kelola')render()})}
+    return h+(S.rg.gagal?'<div class="gf">Daftar belum bisa dimuat.</div><div class="acts" style="padding-top:0;padding-bottom:14px"><button type="button" class="pill" data-act="rgmuat">Coba lagi</button></div>':'<div class="gf">Memuat daftar...</div>')+'</section>';
+  }
+  h+=rgSeedHtml();
   var P=S.rg.pakai,ka=L.kunci(a);
   var kand=rgKandidat(a);
   if(kand.length){
@@ -1218,12 +1273,12 @@ function regAdminHtml(){
   }
   var kels=S.reg.kelompok.filter(function(e){return L.kunci(e.area)===ka}).sort(function(x,y){return L.bandingNama(x.k,y.k)});
   var tanpa=S.reg.kode.filter(function(e){return L.kunci(e.area)===ka&&e.k===''});
-  h+='<div class="note" style="font-weight:600;padding-top:12px">Kelompok grid</div><div class="list">';
-  if(!kels.length&&!tanpa.length)h+='<div class="gf">Belum ada. Terbentuk otomatis dari temuan, atau isi awal di bawah.</div>';
+  h+='<div class="note" style="font-weight:600;padding-top:12px">Grid yang sudah ada</div><div class="list">';
+  if(!kels.length&&!tanpa.length)h+='<div class="gf">Belum ada. Tambahkan lewat form di atas, atau terbentuk sendiri saat temuan dibuat.</div>';
   function kodeTags(k,list){return '<div class="meta" style="padding:8px 0 0">'+list.sort(function(x,y){return L.bandingAlami(x.n,y.n)}).map(function(c){var nn=P.kode[ka+'|'+k+'|'+c.n]||0;return '<button type="button" class="tag" style="border:0;cursor:pointer" data-act="rgatur" data-j="kode" data-k="'+esc(k)+'" data-n="'+esc(c.n)+'">'+esc(c.n)+' · '+nn+'</button>'}).join('')+'</div>'}
   kels.forEach(function(e){
     var n=P.kelompok[ka+'|'+e.k]||0,kodes=S.reg.kode.filter(function(x){return L.kunci(x.area)===ka&&x.k===e.k});
-    h+='<div class="row"><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0"><b>'+esc(e.k)+'</b> <span class="tag">'+(e.pem===''?'tanpa pemisah':'pemisah '+esc(e.pem))+'</span> <span class="tag">'+n+' temuan</span></span><button type="button" class="pill" data-act="rgatur" data-j="kelompok" data-k="'+esc(e.k)+'">Atur</button></div>'+kodeTags(e.k,kodes)+'</div>';
+    h+='<div class="row"><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0"><b>'+esc(e.k)+'</b> <span class="tag">'+esc(rgRentang(kodes))+'</span> <span class="tag">'+n+' temuan</span></span><button type="button" class="pill" data-act="rgatur" data-j="kelompok" data-k="'+esc(e.k)+'">Atur</button></div>'+kodeTags(e.k,kodes)+'</div>';
   });
   if(tanpa.length)h+='<div class="row"><b>(tanpa kelompok)</b>'+kodeTags('',tanpa)+'</div>';
   h+='</div>';
@@ -1235,10 +1290,7 @@ function regAdminHtml(){
       return '<div class="row" style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0;overflow-wrap:anywhere"><b>'+esc(e.nama)+'</b> <span class="tag">'+n+' temuan</span>'+(e.mode?' <span class="tag">'+esc(e.mode)+'</span>':'')+'</span><button type="button" class="pill" data-act="rgatur" data-j="elemen" data-b="'+esc(b)+'" data-nama="'+esc(e.nama)+'">Atur</button></div>'}).join('')+'</div>';
   });
   if(adaEl)h+='<div class="note" style="font-weight:600;padding-top:12px">Elemen</div>'+hE;
-  h+='<div class="note" style="font-weight:600;padding-top:12px">Isi awal dari gambar kerja</div><div class="list">'+
-    '<div class="two"><label class="row"><span class="lbl">Kelompok</span><input type="text" id="rgK" placeholder="Mis. T3" autocomplete="off"></label><label class="row"><span class="lbl">Pemisah</span><select id="rgP"><option value="-">T3-C</option><option value=".">T3.C</option><option value="">T3C</option></select></label></div>'+
-    '<div class="two"><label class="row"><span class="lbl">Kode dari</span><input type="text" id="rgD" placeholder="A atau 1" autocomplete="off"></label><label class="row"><span class="lbl">sampai</span><input type="text" id="rgS" placeholder="E atau 20" autocomplete="off"></label></div></div>'+
-    '<div class="acts" style="padding-top:12px;padding-bottom:14px"><button type="button" class="pill" data-act="rgseed">'+ic('plus')+'Tambahkan</button><button type="button" class="pill" data-act="rgmuat">'+ic('refresh')+'Muat ulang</button></div></section>';
+  h+='<div class="acts" style="padding-top:12px;padding-bottom:14px"><button type="button" class="pill" data-act="rgmuat">'+ic('refresh')+'Muat ulang</button></div></section>';
   return h;
 }
 /** Jumlah temuan yang memakai entri m (dari hitungan pemakaian terakhir). */
@@ -2179,7 +2231,7 @@ async function onClick(ev){
     case 'msimpanlagi': return saveForm(true);
     case 'pdfbidang': {var sb=ensureSel(tree());var lb=lsGet('dl-bidang');openModal({t:'pdfbidang',g:sb?sb.g.nama:'',b:BIDANG.indexOf(lb)>=0?lb:BIDANG[0]});return}
     case 'pdfbidangya': {var pg=$('pbG').value,pb=$('pbB').value;lsSet('dl-bidang',pb);closeModal();return exportPdfBidang(pg,pb)}
-    case 'rgmuat': {var pk=await work('Memuat...',function(){return api('registri_pakai')});if(pk){S.rg.pakai=pk;render()}return}
+    case 'rgmuat': {S.rg.gagal=false;var pk=await work('Memuat...',function(){return api('registri_pakai')});if(pk){S.rg.pakai=pk;render()}return}
     case 'rgatur': {openModal({t:'rgatur',j:el.getAttribute('data-j'),area:rgArea(),k:el.getAttribute('data-k')||'',n:el.getAttribute('data-n')||'',bidang:el.getAttribute('data-b')||'',nama:el.getAttribute('data-nama')||''});return}
     case 'rgpem': {
       var mp=S.modal;closeModal();
@@ -2206,7 +2258,7 @@ async function onClick(ev){
     case 'rgseed': {
       var ek=expansiKode($('rgD').value,$('rgS').value);
       if(ek.err){toast(ek.err);return}
-      if(!L.rapi($('rgK').value)){toast('Isi Kelompok. Untuk grid tanpa kelompok, ketik langsung di form temuan.');return}
+      if(!L.rapi($('rgK').value)){toast('Isi nama grid, misalnya T3. Untuk grid tanpa nama, ketik langsung di form temuan.');return}
       var rs=await work('Menambahkan...',function(){return api('registri_seed',{area:rgArea(),kelompok:$('rgK').value,pemisah:$('rgP').value,daftarKode:ek.kode})});
       if(rs){await rgSegarkan();toast(rs.kodeBaru+' kode ditambahkan'+(rs.kelompokBaru?', kelompok baru':'')+'.')}return;
     }
@@ -2287,7 +2339,8 @@ async function onClick(ev){
     case 'rekapall': {var ok=await work('Memuat semua temuan...',loadAll);if(ok)render();return}
     case 'addroom': return tambahRuangan();
     case 'fst': S.flt.st=el.getAttribute('data-v')||'';return refreshList();
-    case 'aqclr': if(AQ[S.view])AQ[S.view]=aqBaru();return render();
+    case 'aqclr': if(AQ[S.view]){var pn0=AQ[S.view].pn;AQ[S.view]=aqBaru();AQ[S.view].pn=pn0}return render();
+    case 'aqpn': AQ.form.pn=AQ.form.pn?0:1;return render();
     case 'pdfsemua': return exportPdfSemua();
     case 'aqsy': AQ.form.sy=el.getAttribute('data-v')==='1'?1:0;AQ.form.n=60;return render();
     case 'aqmm': AQ.form.mm=el.getAttribute('data-v')==='1'?1:0;AQ.form.n=60;return render();
@@ -2373,6 +2426,7 @@ document.addEventListener('input',function(e){
   if(e.target.id==='teks'&&S.modal&&S.modal.f&&!S.modal.f.id&&!S.modal.f.lama){var tf=S.modal.f;tf.teks=e.target.value;var tl=$('tkl');if(tl)tl.innerHTML=wTeksSaran(tf);fSegar();return}
   if(e.target.id==='elq'&&S.modal&&S.modal.f){S.modal.f.elq=e.target.value;var ll=$('ell');if(ll)ll.innerHTML=wElemenList(S.modal.f);return}
   if(e.target.id==='fq'){S.flt.q=e.target.value;refreshList();return}
+  if(e.target.id==='rgK'||e.target.id==='rgD'||e.target.id==='rgS'||e.target.id==='rgP'){rgSeedPrev();return}
   if(e.target.id==='aqq'&&AQ[S.view]){AQ[S.view].q=e.target.value;aqSegar();return}
   if(e.target.id==='kode'){
     var v=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);e.target.value=v;S.kode=v;
