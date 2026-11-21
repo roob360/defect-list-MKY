@@ -74,7 +74,7 @@
     return baris('Nomor', d.noMemo ? esc(d.noMemo) : 'Draf, belum bernomor') + baris('Tahap', esc(NAMA_TAHAP[d.memoStatus] || d.memoStatus || '')) +
       (x ? baris('Diterbitkan oleh', esc(x.oleh || '(tidak tercatat)')) + baris('Tanggal pengajuan', x.tglPengajuan ? esc(x.tglPengajuan) : '') : '');
   }
-  function bisaNaik(d) { return C.canEdit() && !d.memoId && (d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }   // juga untuk Admin: tingkat Minor diubah dulu
+  function bisaNaik(d) { return C.canEdit() && C.bisaKelola(d) && !d.memoId && (d.tingkat === 'Mayor' || d.tingkat === 'Kritis'); }   // hanya yang berhak mengelola temuan (pelapor, QC MK berwenang, Admin); rincian memo tetap terbuka bagi semua
   /* Tombol Memo berwarna menurut keadaan: kuning bergaris putus = belum dinaikkan; selebihnya sama dengan warna status memo. */
   function kartuTombol(d) {
     if (d.memoId) return '<button type="button" class="pill memo ' + stKartu(d.memoStatus) + '" data-act="memobuka" data-d="' + esc(d.id) + '">' + C.ic('memo') + 'Memo</button>';
