@@ -423,19 +423,28 @@ function renderLogin(){
   var ki=$('kode');if(ki&&S.paket.apiUrl)ki.focus({preventScroll:true});
 }
 
+var indLoop=0;
+/** Tombol tambah di dalam dock melebar atau menyempit selama animasi, sehingga posisi tab bergeser; penanda tab aktif mengikuti sampai tata letak berhenti bergerak. */
+function trackInd(ms){var t0=Date.now(),id=++indLoop;(function f(){if(id!==indLoop)return;moveInd();if(Date.now()-t0<ms)requestAnimationFrame(f)})()}
 function setDock(){
+  var addBerubah=false;
   var el=$('dock'),show=!!(S.paket&&S.user&&(canEdit()||isPJ()));
   if(show){
     var t=isPJ()?[['form','Temuan'],['perbaikan','Perbaikan']]:isAdmin()?[['form','Temuan'],['verif','Verifikasi'],['perbaikan','Perbaikan'],['rekap','Rekap'],['kelola','Kelola']]:[['form','Temuan'],['verif','Verifikasi'],['rekap','Rekap']];
     if(M_&&M_.punyaTab(S.user))t.push(['memo','Memo']);   // QC MK, QC PJ, dan PJ
     var add=canEdit();
-    var keys=t.map(function(x){return x[0]}).join(',');
+    var keys=t.map(function(x){return x[0]}).join(',')+(add?'+':'');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
       var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan'||x[0]==='memo')?'<i class="bdg" hidden></i>':'')+'</button>'});
+      if(add)bt.push('<button type="button" class="dockadd" data-act="tambah" aria-label="Tambah temuan">'+ic('plus')+'</button>');
       el.innerHTML='<span class="ind"></span>'+bt.join('');
     }
+    var wasNoadd=el.classList.contains('noadd');
+    el.classList.toggle('wadd',add);
     el.classList.toggle('padat',t.length>=6);
+    var ad=el.querySelector('.dockadd');
+    if(ad){var vis=S.view==='form';el.classList.toggle('noadd',!vis);ad.tabIndex=vis?0:-1;ad.setAttribute('aria-hidden',vis?'false':'true');addBerubah=wasNoadd!==!vis}
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(bt){
       var bg=bt.querySelector('.bdg');if(!bg)return;
       var vk=bt.getAttribute('data-v'),pj=vk==='perbaikan',mm=vk==='memo',n=mm?(M_?M_.jumlahPerlu():0):pj?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);
@@ -451,13 +460,12 @@ function setDock(){
     });
   }
   el.hidden=!show;document.body.classList.toggle('hasdock',show);
-  var fab=$('fab');
-  if(fab){var vis=show&&canEdit()&&S.view==='form';fab.classList.toggle('on',vis);fab.tabIndex=vis?0:-1;fab.setAttribute('aria-hidden',vis?'false':'true')}
-  if(show)moveInd();
+  if(show){moveInd();if(addBerubah)trackInd(560)}
 }
 function moveInd(){
   var el=$('dock'),b=el.querySelector('button.on'),ind=el.querySelector('.ind');
   if(!b||!ind||!b.offsetWidth)return;
+  el.style.setProperty('--dadd',b.offsetHeight+'px');
   ind.style.width=b.offsetWidth+'px';ind.style.height=b.offsetHeight+'px';
   ind.style.transform='translate('+b.offsetLeft+'px,'+b.offsetTop+'px)';
   if(!el.classList.contains('anim'))requestAnimationFrame(function(){el.classList.add('anim')});

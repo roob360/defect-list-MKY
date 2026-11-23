@@ -95,19 +95,26 @@
   .pill.rej{ background:var(--red-fill); color:var(--red-text); }
   .pill.wait{ background:transparent; color:var(--label2); box-shadow:inset 0 0 0 1.5px var(--label3); }
   .pill svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-  /* Tombol tambah temuan melayang di luar dock (hanya di tab Temuan): dock tidak berubah lebar, jadi penanda tab aktif selalu tepat. */
-  .fab{ position:fixed; right:16px; bottom:calc(env(safe-area-inset-bottom,0px) + 88px); z-index:31; width:56px; height:56px; padding:0; border:0; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    background:var(--prominent); color:#fff; box-shadow:0 6px 18px color-mix(in srgb,var(--prominent) 55%,transparent); cursor:pointer; opacity:0; transform:scale(.3); pointer-events:none; }
-  .fab.on{ opacity:1; transform:none; pointer-events:auto; }
-  html:not(.hemat) .fab{ transition:opacity .25s, transform .38s cubic-bezier(.34,1.4,.64,1); }
-  .fab svg{ width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
-  .fab:active{ opacity:.85; }
-  body:not(.hasdock) .fab{ display:none; }
+  .dock.wadd{ max-width:calc(100vw - 16px); gap:2px; }
+  .dock.wadd button:not(.dockadd){ min-width:56px; padding-left:6px; padding-right:6px; }
+  .dock .dockadd{ flex:none; min-width:0; width:var(--dadd,52px); max-width:var(--dadd,52px); height:var(--dadd,52px); padding:0; align-self:center; justify-content:center; margin:0 0 0 4px; overflow:hidden; border-radius:50%; background:var(--prominent); color:#fff; box-shadow:0 4px 14px color-mix(in srgb,var(--prominent) 55%,transparent); }
+  .dock.noadd .dockadd{ max-width:0; margin-left:-2px; opacity:0; transform:scale(.3); box-shadow:none; pointer-events:none; }
+  html:not(.hemat) .dock .dockadd{ transition:max-width .42s cubic-bezier(.3,.9,.3,1), margin .42s cubic-bezier(.3,.9,.3,1), opacity .25s, transform .42s cubic-bezier(.34,1.4,.64,1); }
+  .dock .dockadd svg{ width:24px; height:24px; stroke-width:2.8; }
+  /* Layar sempit (Android 360 px): lima tab Admin + tombol tambah harus muat; tab menyusut, teks mengecil. */
+  @media (max-width:400px){
+    .dock.wadd{ padding:4px; gap:0; width:calc(100vw - 16px); }
+    .dock.wadd button:not(.dockadd){ flex:1 1 0; min-width:0; padding:7px 1px 6px; font-size:clamp(9.5px,2.9vw,11px); letter-spacing:-.1px; }
+    .dock.wadd .dockadd{ margin-left:2px; }
+  }
+  .dock .dockadd:active{ opacity:.85; }
   /* Admin punya enam tab: pada layar sempit hanya tab aktif yang memakai label, sisanya ikon saja. */
-  @media (max-width:480px){
-    .dock.padat{ padding:4px; gap:2px; max-width:calc(100vw - 16px); }
-    .dock.padat button:not(.on){ min-width:0; flex:0 0 auto; padding:9px 13px; }
-    .dock.padat button:not(.on) > span:not(.bdg){ display:none; }
+  @media (max-width:560px){
+    .dock.padat{ padding:4px; gap:2px; width:calc(100vw - 16px); max-width:calc(100vw - 16px); }
+    .dock.padat button:not(.dockadd){ flex:0 0 auto; min-width:0; padding:8px 11px; }
+    .dock.padat button:not(.on):not(.dockadd) > span:not(.bdg){ display:none; }
+    .dock.padat button.on{ flex:1 1 auto; }
+    .dock.padat .dockadd{ margin-left:2px; padding:0; }
   }
   .btn svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
   .spin{ width:18px; height:18px; border-radius:50%; flex:none; border:2.5px solid #ffffff55; border-top-color:#fff; animation:spin .8s linear infinite; }
@@ -1019,7 +1026,6 @@
 <div class="wrap" id="app"></div>
 <div id="overlay"></div>
 <nav class="dock" id="dock" hidden aria-label="Menu utama"></nav>
-<button type="button" class="fab" id="fab" data-act="tambah" aria-label="Tambah temuan" tabindex="-1" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg></button>
 <input type="file" id="fGal" accept="image/*" multiple hidden>
 <input type="file" id="fCam" accept="image/*" capture="environment" hidden>
 <input type="file" id="fXls" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden>
