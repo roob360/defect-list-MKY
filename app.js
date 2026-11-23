@@ -152,7 +152,7 @@ var IDB={
 };
 /* Hapus data lokal milik satu paket (saat keluar), tanpa menyentuh paket lain. */
 function bersihLokal(pid){
-  lsDel('dl-user-'+pid);lsDel('dl-rooms-'+pid);lsDel('dl-reg-'+pid);lsDel('dl-sel');lsDel('dl-view');
+  lsDel('dl-user-'+pid);lsDel('dl-rooms-'+pid);lsDel('dl-reg-'+pid);lsDel('dl-sel');lsDel('dl-view');lsDel('dl-master-'+pid);lsDel('dl-lok');
   IDB.keys('kv').then(function(ks){ks.forEach(function(k){if(String(k).indexOf('def:'+pid+':')===0)IDB.del('kv',k)})});
   IDB.all('up').then(function(its){its.forEach(function(it){if(it.pid===pid)IDB.del('up',it.k)})});
 }
@@ -895,8 +895,8 @@ function rekapBentoHtml(){
   h+='<section class="bc s8"><div class="bch"><div class="cap">Per lokasi</div>'+(urut.length>8?'<button type="button" class="lnk" data-act="rkall">'+(S.rkAll?'Ringkas':'Lihat semua '+urut.length+' lokasi')+' &rsaquo;</button>':'')+'</div>'+
     '<table class="t rkt"><thead><tr><th>Lokasi</th><th>Total</th><th>Open</th><th>Proses</th><th>Close</th><th>%</th></tr></thead><tbody>'+
     (tampil.map(function(o){return '<tr><td>'+esc(o.g+' › '+o.l+' › '+o.r.nama)+'</td><td>'+o.r.total+'</td><td class="o">'+o.r.open+'</td><td class="p">'+o.r.proses+'</td><td class="c">'+o.r.close+'</td><td class="b">'+pct(o.r)+'</td></tr>'}).join('')||'<tr><td colspan="6">Belum ada temuan.</td></tr>')+'</tbody></table></section>';
-  h+='<section class="bc s12" id="rfsec">'+(S.all?rfDaftar(all,fg):muat)+'</section>';
   h+='<section class="bc s4"><div class="cap">Cetak dan unduh</div><button type="button" class="dl" data-act="xlsx"><b>Rekap Excel (datar)</b><span>.xlsx</span></button><button type="button" class="dl" data-act="pdfbidang"><b>PDF per gedung dan bidang</b><span>.pdf / .zip</span></button></section>';
+  h+='<section class="bc s12" id="rfsec">'+(S.all?rfDaftar(all,fg):muat)+'</section>';
   return h+'</div>';
 }
 
