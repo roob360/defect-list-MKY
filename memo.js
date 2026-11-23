@@ -464,8 +464,8 @@
 
   /* ---------- tab Memo (QC MK, QC PJ, dan PJ) ---------- */
 
-  function punyaTab(u) { return !!u && (u.peran === 'PJ' || (u.peran === 'MK' && u.qc === 'YA')); }
-  var TB = { semua: false };            // tab Memo: false = hanya yang menunggu Anda
+  function punyaTab(u) { return !!u && (u.peran === 'ADMIN' || u.peran === 'PJ' || (u.peran === 'MK' && u.qc === 'YA')); }
+  var TB = { semua: false, awal: false, st: '', bd: '', mw: '', ur: 'hari' };   // tab Memo: semua false = hanya yang menunggu Anda (Admin langsung melihat semua); st, bd, mw = filter; ur = urutan
   var SLOT_PENDEK = { MK1: 'Tahap I', PJ1: 'Tanda terima', MK2: 'Tahap II', PJ2: 'Tahap II' };
   function dots(x) { return '<div class="mdots" aria-label="Tanda tangan">' + [['MK1', 'MK I'], ['PJ1', 'PJ I'], ['MK2', 'MK II'], ['PJ2', 'PJ II']].map(function (s) { return '<span class="' + (x.ttd && x.ttd[s[0]] ? 'on' : '') + '">' + s[1] + '</span>'; }).join('') + '</div>'; }
   function hariTag(x) { return x.hari > 0 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? '<span class="tag hari' + (x.hari > 7 ? ' lama' : '') + '">' + x.hari + ' hari</span>' : ''; }
@@ -483,15 +483,33 @@
       '<div class="note"><b>' + esc(x.menunggu ? x.menunggu.teks : '') + '</b></div>' +
       '<div class="acts">' + tombol + '<button type="button" class="pill memo" data-act="memolihat" data-m="' + esc(x.id) + '">' + C.ic('memo') + 'Lihat</button></div></article>';
   }
+  var URUT_TAB = [['hari', 'Terlama menunggu'], ['baru', 'Terbaru'], ['no', 'Nomor']];
+  function urutTab(list) {
+    var f = TB.ur === 'baru' ? function (a, b) { return String(b.tglPengajuan || '').localeCompare(String(a.tglPengajuan || '')) || (a.hari || 0) - (b.hari || 0); }
+      : TB.ur === 'no' ? function (a, b) { var x = KUNCI_URUT.no(a), y = KUNCI_URUT.no(b); if (x === null && y === null) return 0; if (x === null) return 1; if (y === null) return -1; return x - y || String(a.kodeBidang).localeCompare(String(b.kodeBidang)); }
+      : function (a, b) { return (b.hari || 0) - (a.hari || 0); };
+    return list.slice().sort(f);
+  }
   function tabHtml() {
-    var h = '<div class="pagehead"><div class="cap">' + esc(C.S.paket.nama) + '</div><h1>Memo</h1></div>';
+    var h = '<div class="pagehead"><div class="cap">' + esc(C.S.paket.nama) + '</div><h1>Memo</h1></div>', admin = C.isAdmin();
     if (D.daftar === null) return h + (D.off ? '<div class="err">Server belum mendukung site memo.</div>' : C.skel('entries'));
-    var semua = D.daftar.filter(function (x) { return x.status !== 'BATAL'; }), ps = perlu(), tampil = (TB.semua ? semua : ps).slice().sort(function (a, b) { return (b.hari || 0) - (a.hari || 0); });
-    h += '<div class="banner" role="status"><span>' + ps.length + ' memo menunggu Anda</span><button type="button" data-act="memosegar2">Muat ulang</button></div>';
-    h += '<div class="chips" role="group" aria-label="Tampilan"><button type="button" class="chip' + (TB.semua ? '' : ' on') + '" data-act="memotabfilter" data-v="0">Perlu tindakan ' + ps.length + '</button><button type="button" class="chip' + (TB.semua ? ' on' : '') + '" data-act="memotabfilter" data-v="1">Semua memo ' + semua.length + '</button></div>';
+    if (admin && !TB.awal) { TB.awal = true; TB.semua = true; }   // Admin tidak punya antrean pribadi: langsung semua memo
+    var semua = D.daftar.filter(function (x) { return x.status !== 'BATAL'; }), ps = perlu(), dasar = admin || TB.semua ? semua : ps;
+    var cocok = function (x) { return (!TB.st || x.status === TB.st) && (!TB.bd || x.kodeBidang === TB.bd) && (!TB.mw || (x.menunggu && x.menunggu.orang === TB.mw && x.status !== 'CLOSE')); };
+    var tampil = urutTab(dasar.filter(cocok));
+    h += '<div class="banner" role="status"><span>' + (admin ? semua.length + ' memo' : ps.length + ' memo menunggu Anda') + '</span><button type="button" data-act="memosegar2">Muat ulang</button></div>';
+    if (!admin) h += '<div class="chips" role="group" aria-label="Tampilan"><button type="button" class="chip' + (TB.semua ? '' : ' on') + '" data-act="memotabfilter" data-v="0">Perlu tindakan ' + ps.length + '</button><button type="button" class="chip' + (TB.semua ? ' on' : '') + '" data-act="memotabfilter" data-v="1">Semua memo ' + semua.length + '</button></div>';
+    var grp = function (judul, k, items) {   // pil penyaring; ketuk lagi untuk mencabut
+      var ada = items.filter(function (o) { return o[2] > 0 || TB[k] === o[0]; });
+      return ada.length ? '<div class="chips tbf" role="group" aria-label="' + judul + '"><span class="rkhl">' + judul + '</span>' + ada.map(function (o) { return '<button type="button" class="chip' + (TB[k] === o[0] ? ' on' : '') + '" data-act="memotabf" data-k="' + k + '" data-v="' + esc(o[0]) + '" aria-pressed="' + (TB[k] === o[0]) + '">' + esc(o[1]) + ' ' + o[2] + '</button>'; }).join('') + '</div>' : '';
+    };
+    h += grp('Status', 'st', ST_URUT.map(function (st) { return [st, STAT[st], dasar.filter(function (x) { return x.status === st; }).length]; })) +
+      grp('Bidang', 'bd', BID_KODE.map(function (b) { return [b[0], b[0], dasar.filter(function (x) { return x.kodeBidang === b[0]; }).length]; })) +
+      grp('Menunggu', 'mw', ['QC MK', 'PJ', 'MK', 'QC PJ'].map(function (o) { return [o, o, dasar.filter(function (x) { return x.status !== 'CLOSE' && x.menunggu && x.menunggu.orang === o; }).length]; })) +
+      '<div class="chips tbf" role="group" aria-label="Urutan"><span class="rkhl">Urutan</span>' + URUT_TAB.map(function (o) { return '<button type="button" class="chip' + (TB.ur === o[0] ? ' on' : '') + '" data-act="memotabur" data-v="' + o[0] + '" aria-pressed="' + (TB.ur === o[0]) + '">' + o[1] + '</button>'; }).join('') + '</div>';
     h += legenda();
-    if (!tampil.length) return h + '<div class="empty">' + (TB.semua ? 'Belum ada site memo.' : 'Tidak ada memo yang menunggu Anda.') + '</div>';
-    return h + '<div class="entgrid">' + tampil.map(kartuMemo).join('') + '</div>';
+    if (!tampil.length) return h + '<div class="empty">' + (TB.st || TB.bd || TB.mw ? 'Tidak ada memo yang cocok dengan filter.' : admin || TB.semua ? 'Belum ada site memo.' : 'Tidak ada memo yang menunggu Anda.') + '</div>';
+    return h + '<div class="cap" style="margin:6px 4px">' + tampil.length + ' memo</div><div class="entgrid">' + tampil.map(kartuMemo).join('') + '</div>';
   }
   /* Satu ketuk dari kartu: langsung mengesahkan. Akun QC yang belum punya tanda tangan diarahkan ke layar tanda tangan. */
   async function sahkanCepat(memoId, slot) {
@@ -509,7 +527,9 @@
 
   /* ---------- Rekap > Memo (Admin dan MK) ---------- */
 
-  var RK = { bd: '', st: '', mw: '', lama: 0, ur: '', ud: 1 };   // ur: kolom urutan (kosong = urutan bawaan: yang berjalan dulu, terlama di atas), ud: 1 naik atau -1 turun
+  function ukHal() { try { var v = parseInt(localStorage.getItem('dl-rkn'), 10); return [0, 10, 20, 50, 100].indexOf(v) >= 0 ? v : 20; } catch (e) { return 20; } }
+  var RK = { bd: '', st: '', mw: '', lama: 0, hb: '', n: ukHal(), ur: '', ud: 1 };   // n: jumlah baris daftar (0 = semua); hb: kelompok lama menunggu (indeks LAMA_BKT)
+  var LAMA_BKT = [['0 sampai 3 hari', 0, 3], ['4 sampai 7 hari', 4, 7], ['8 sampai 14 hari', 8, 14], ['Lebih dari 14 hari', 15, 99999]];   // ur: kolom urutan (kosong = urutan bawaan: yang berjalan dulu, terlama di atas), ud: 1 naik atau -1 turun
   var BID_KODE = [['ARS', 'Arsitektur'], ['STR', 'Struktur'], ['MEEP', 'MEEP'], ['INF', 'Infrastruktur'], ['LSC', 'Lansekap'], ['HSE', 'HSE'], ['BGH', 'BGH']];
   var ST_URUT = ['MENUNGGU TTD MK', 'TERBIT', 'TINDAK LANJUT', 'PEMERIKSAAN II', 'PERALIHAN', 'CLOSE'];
   function simpanMode(v) { try { localStorage.setItem('dl-rekap', v); } catch (e) { } }
@@ -548,9 +568,23 @@
   }
   function rekapFilter() {
     var all = (D.daftar || []).filter(function (x) { return C.isAdmin() || x.status !== 'BATAL'; });
-    var hasil = all.filter(function (x) { return (!RK.bd || x.kodeBidang === RK.bd) && (!RK.st || x.status === RK.st) && (!RK.mw || (x.menunggu && x.menunggu.orang === RK.mw)) && (!RK.lama || x.hari > 7); })
+    var hasil = all.filter(function (x) { return (!RK.bd || x.kodeBidang === RK.bd) && (!RK.st || x.status === RK.st) && (!RK.mw || (x.menunggu && x.menunggu.orang === RK.mw)) && (!RK.lama || x.hari > 7) && (RK.hb === '' || (x.status !== 'CLOSE' && x.status !== 'BATAL' && x.hari >= LAMA_BKT[+RK.hb][1] && x.hari <= LAMA_BKT[+RK.hb][2])); })
       .sort(function (a, b) { var sa = (a.status === 'CLOSE' || a.status === 'BATAL') ? 1 : 0, sb = (b.status === 'CLOSE' || b.status === 'BATAL') ? 1 : 0; return sa - sb || (b.hari || 0) - (a.hari || 0); });
     return urutkan(hasil);
+  }
+  /* Filter aktif tampil sebagai pil yang bisa diketuk untuk dicabut; menyaring dilakukan lewat kartu di atas daftar. */
+  function filterBar() {
+    var a = [];
+    if (RK.bd) a.push(['bd', RK.bd, 'Bidang ' + RK.bd]);
+    if (RK.st) a.push(['st', RK.st, 'Status ' + (STAT[RK.st] || RK.st)]);
+    if (RK.mw) a.push(['mw', RK.mw, 'Menunggu ' + RK.mw]);
+    if (RK.lama) a.push(['lama', '1', 'Lebih dari 7 hari']);
+    if (RK.hb !== '') a.push(['hb', RK.hb, LAMA_BKT[+RK.hb][0]]);
+    if (!a.length) return '<div class="rknote" style="padding:0 4px 8px">Ketuk kartu di atas untuk menyaring daftar.</div>';
+    return '<div class="chips rkaktif" role="group" aria-label="Filter aktif">' + a.map(function (c) { return '<button type="button" class="chip on" data-act="memorkfilter" data-k="' + c[0] + '" data-v="' + esc(c[1]) + '" aria-label="Cabut filter ' + esc(c[2]) + '">' + esc(c[2]) + ' &times;</button>'; }).join('') + '<button type="button" class="chip" data-act="memorkclear">Hapus semua</button></div>';
+  }
+  function halBar() {
+    return '<div class="chips rkhal" role="group" aria-label="Jumlah baris"><span class="rkhl">Tampilkan</span>' + [10, 20, 50, 100, 0].map(function (n) { return '<button type="button" class="chip' + (RK.n === n ? ' on' : '') + '" data-act="memorkn" data-v="' + n + '" aria-pressed="' + (RK.n === n) + '">' + (n || 'Semua') + '</button>'; }).join('') + '</div>';
   }
   function rekapHtml() {
     var h = '<div class="pagehead"><div class="cap">' + esc(C.S.paket.nama) + '</div><h1>Rekap memo</h1></div>';
@@ -560,21 +594,16 @@
     var tot = aktif.length, close = n('CLOSE'), draf = n('MENUNGGU TTD MK'), jalan = aktif.filter(function (x) { return x.status !== 'CLOSE'; }), pc = function (v) { return tot ? v / tot * 100 : 0; };
     h += '<section class="group mprog"><div class="mpt"><b>' + Math.round(pc(close)) + '%</b><span><strong>selesai (Close)</strong>' + close + ' dari ' + tot + ' memo</span></div>' +
       '<div class="mstk"><i style="width:' + pc(close) + '%;background:var(--green)"></i><i style="width:' + pc(tot - close - draf) + '%;background:var(--orange)"></i><i style="width:' + pc(draf) + '%;background:var(--red)"></i></div></section>';
-    h += '<div class="mkpis">' + [['Total', tot, ''], ['Menunggu TTD MK', draf, 'o'], ['Terbit', n('TERBIT'), ''], ['Tindak lanjut', n('TINDAK LANJUT'), 'p'], ['Pemeriksaan II', n('PEMERIKSAAN II'), 'p'], ['Peralihan', n('PERALIHAN'), 'p'], ['Close', close, 'c']].map(function (k) { return '<div class="mk ' + k[2] + '"><b>' + k[1] + '</b><span>' + k[0] + '</span></div>'; }).join('') + '</div>';
+    h += '<div class="mkpis">' + [['Total', tot, '', 'memorkclear', '', false], ['Menunggu TTD MK', draf, 'o', 'memorkfilter', 'MENUNGGU TTD MK', RK.st === 'MENUNGGU TTD MK'], ['Terbit', n('TERBIT'), '', 'memorkfilter', 'TERBIT', RK.st === 'TERBIT'], ['Tindak lanjut', n('TINDAK LANJUT'), 'p', 'memorkfilter', 'TINDAK LANJUT', RK.st === 'TINDAK LANJUT'], ['Pemeriksaan II', n('PEMERIKSAAN II'), 'p', 'memorkfilter', 'PEMERIKSAAN II', RK.st === 'PEMERIKSAAN II'], ['Peralihan', n('PERALIHAN'), 'p', 'memorkfilter', 'PERALIHAN', RK.st === 'PERALIHAN'], ['Close', close, 'c', 'memorkfilter', 'CLOSE', RK.st === 'CLOSE']].concat(C.isAdmin() ? [['Dibatalkan', all.length - tot, '', 'memorkfilter', 'BATAL', RK.st === 'BATAL']] : []).map(function (k) { return '<div class="mk lnk ' + k[2] + (k[5] ? ' on' : '') + '" role="button" tabindex="0" data-act="' + k[3] + '" data-k="st" data-v="' + k[4] + '"><b>' + k[1] + '</b><span>' + k[0] + '</span></div>'; }).join('') + '</div>';
     var lama7 = jalan.filter(function (x) { return x.hari > 7; }).length, mpr = function (n2, t, cls, k, v) { return n2 ? '<button type="button" class="matt ' + cls + '" data-act="memorkfilter" data-k="' + k + '" data-v="' + v + '"><span>' + n2 + ' ' + t + '</span><span class="cv">&rsaquo;</span></button>' : ''; };
     var att = mpr(lama7, 'memo lebih dari 7 hari belum bergerak', 'r', 'lama', '1') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'QC MK'; }).length, 'menunggu tanda tangan QC MK', 'o', 'mw', 'QC MK') +
       mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'PJ'; }).length, 'menunggu tindak lanjut PJ', 'o', 'mw', 'PJ') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'MK'; }).length, 'menunggu verifikasi MK', 'n', 'mw', 'MK') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'QC PJ'; }).length, 'menunggu tanda tangan QC PJ', 'n', 'mw', 'QC PJ');
     h += '<section class="group"><div class="sh">Perlu perhatian</div><div style="padding:0 16px 14px">' + (att || '<div class="rknote">Tidak ada memo yang perlu perhatian.</div>') + '</div></section>';
     h += '<section class="group"><div class="sh">Per bidang</div><div class="tw"><table class="t"><thead><tr><th>Bidang</th><th>Total</th><th>Berjalan</th><th>Close</th></tr></thead><tbody>' +
-      BID_KODE.map(function (b) { var l = aktif.filter(function (x) { return x.kodeBidang === b[0]; }), cl = l.filter(function (x) { return x.status === 'CLOSE'; }).length; return '<tr><td>' + esc(b[1]) + '</td><td>' + l.length + '</td><td>' + (l.length - cl) + '</td><td>' + cl + '</td></tr>'; }).join('') + '</tbody></table></div></section>';
-    var opt = function (arr, cur, semua) { return '<option value="">' + semua + '</option>' + arr.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join(''); };
-    h += '<section class="group"><div class="list"><div class="two"><label class="row"><span class="lbl">Bidang</span><select data-rk="bd">' + opt(BID_KODE, RK.bd, 'Semua') + '</select></label>' +
-      '<label class="row"><span class="lbl">Status</span><select data-rk="st">' + opt(ST_URUT.concat(C.isAdmin() ? ['BATAL'] : []).map(function (s) { return [s, STAT[s]]; }), RK.st, 'Semua') + '</select></label></div>' +
-      '<div class="two"><label class="row"><span class="lbl">Menunggu</span><select data-rk="mw">' + opt([['QC MK', 'QC MK'], ['PJ', 'PJ'], ['MK', 'MK'], ['QC PJ', 'QC PJ']], RK.mw, 'Semua') + '</select></label>' +
-      '<label class="mchk big" style="margin:6px 12px"><input type="checkbox" data-rk="lama"' + (RK.lama ? ' checked' : '') + '><span>Lebih dari 7 hari</span></label></div></div></section>';
-    var v = rekapFilter();
-    h += legenda() + '<div class="cap" style="margin:6px 4px">' + v.length + ' dari ' + all.length + ' memo</div>';
-    h += v.length ? '<div class="mlis">' + v.map(function (x) {
+      BID_KODE.map(function (b) { var l = aktif.filter(function (x) { return x.kodeBidang === b[0]; }), cl = l.filter(function (x) { return x.status === 'CLOSE'; }).length; return '<tr class="lnkrow' + (RK.bd === b[0] ? ' on' : '') + '" role="button" tabindex="0" data-act="memorkfilter" data-k="bd" data-v="' + b[0] + '"><td>' + esc(b[1]) + '</td><td>' + l.length + '</td><td>' + (l.length - cl) + '</td><td>' + cl + '</td></tr>'; }).join('') + '</tbody></table></div></section>';
+    var v = rekapFilter(), tampil = RK.n ? v.slice(0, RK.n) : v;
+    h += filterBar() + legenda() + '<div class="cap" style="margin:6px 4px">Menampilkan ' + tampil.length + ' dari ' + v.length + ' memo' + (v.length !== all.length ? ' (total ' + all.length + ')' : '') + '</div>' + halBar();
+    h += v.length ? '<div class="mlis">' + tampil.map(function (x) {
       return '<button type="button" class="mli" data-act="memolihat" data-m="' + esc(x.id) + '"><div><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b><span>' + esc((x.kodeBidang ? x.kodeBidang + ' · ' : '') + (x.kegiatan || x.lokasi)) + '</span><span>' + esc(lokasiTeks(x)) + '</span>' + dots(x) +
         (x.menunggu && x.status !== 'CLOSE' && x.status !== 'BATAL' ? '<em>' + esc(x.menunggu.teks) + '</em>' : '') + '</div><div class="mr"><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span>' + hariTag(x) + '</div></button>';
     }).join('') + '</div>' : '<div class="empty">Tidak ada memo yang cocok.</div>';
@@ -600,17 +629,15 @@
       '<div class="stk"><i style="width:' + p(close) + '%;background:var(--green)"></i><i style="width:' + p(berjalan) + '%;background:var(--orange)"></i><i style="width:' + p(draf) + '%;background:var(--red)"></i></div>' +
       '<div class="tiles"><div class="tl o"><b>' + draf + '</b><span>Menunggu TTD MK</span></div><div class="tl p"><b>' + berjalan + '</b><span>Berjalan</span></div><div class="tl c"><b>' + close + '</b><span>Close</span></div></div></section>';
     var bc = BID_KODE.map(function (b) { var l = aktif.filter(function (x) { return x.kodeBidang === b[0]; }); return { k: b[0], n: l.length, c: l.filter(function (x) { return x.status === 'CLOSE'; }).length }; }), mx = maks(bc.map(function (x) { return x.n; }));
-    h += '<section class="bc s3"><div class="cap">Per bidang</div>' + bc.map(function (x) { return '<div class="rkrow lb"><b>' + x.k + '</b>' + bar(x.n / mx * 100) + '<span>' + x.c + '/' + x.n + '</span></div>'; }).join('') + '<div class="rknote">Close dari total memo</div></section>';
+    h += '<section class="bc s3"><div class="cap">Per bidang</div>' + bc.map(function (x) { return '<button type="button" class="rkrow lb lnkrow' + (RK.bd === x.k ? ' on' : '') + '" data-act="memorkfilter" data-k="bd" data-v="' + x.k + '"><b>' + x.k + '</b>' + bar(x.n / mx * 100) + '<span>' + x.c + '/' + x.n + '</span></button>'; }).join('') + '<div class="rknote">Close dari total memo. Ketuk untuk menyaring</div></section>';
     var lama7 = jalan.filter(function (x) { return x.hari > 7; }).length;
     h += '<section class="bc s3 hi"><div class="cap">Lebih dari 7 hari</div><b class="huge">' + lama7 + '</b><p>memo berjalan yang belum bergerak lebih dari seminggu</p><button type="button" class="pill" data-act="memorkfilter" data-k="lama" data-v="1">Lihat daftarnya &rsaquo;</button></section>';
     var siapa = ['QC MK', 'PJ', 'MK', 'QC PJ'].map(function (o) { return { o: o, n: jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === o; }).length }; }), mxs = maks(siapa.map(function (x) { return x.n; }));
-    h += '<section class="bc s4"><div class="cap">Menunggu siapa</div>' + siapa.map(function (x) { return '<button type="button" class="rkrow lb lnkrow' + (RK.mw === x.o ? ' on' : '') + '" data-act="memorkfilter" data-k="mw" data-v="' + (RK.mw === x.o ? '' : x.o) + '"><b>' + x.o + '</b>' + bar(x.n / mxs * 100, 'orange') + '<span>' + x.n + '</span></button>'; }).join('') + '<div class="rknote">Ketuk untuk menyaring daftar</div></section>';
-    h += '<section class="bc s4"><div class="cap">Alur status</div>' + ST_URUT.map(function (s) { var c = n(s); return '<button type="button" class="rkrow lb lnkrow' + (RK.st === s ? ' on' : '') + '" data-act="memorkfilter" data-k="st" data-v="' + (RK.st === s ? '' : s) + '"><b>' + esc(STAT[s]) + '</b>' + bar(p(c), s === 'CLOSE' ? 'green' : 'blue') + '<span>' + c + '</span></button>'; }).join('') + '</section>';
-    var bk = [['0 sampai 3 hari', 0, 3], ['4 sampai 7 hari', 4, 7], ['8 sampai 14 hari', 8, 14], ['Lebih dari 14 hari', 15, 99999]].map(function (b) { return { t: b[0], n: jalan.filter(function (x) { return x.hari >= b[1] && x.hari <= b[2]; }).length }; }), mxb = maks(bk.map(function (x) { return x.n; }));
-    h += '<section class="bc s4"><div class="cap">Lama menunggu</div>' + bk.map(function (x, i) { return '<div class="rkrow lb"><b>' + x.t + '</b>' + bar(x.n / mxb * 100, i > 1 ? 'red' : 'blue') + '<span>' + x.n + '</span></div>'; }).join('') + '<div class="rknote">Memo yang belum Close</div></section>';
-    var v = rekapFilter(), opt = function (arr, cur, semua) { return '<option value="">' + semua + '</option>' + arr.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join(''); };
-    var fil = '<div class="bfil"><select data-rk="bd" aria-label="Bidang">' + opt(BID_KODE, RK.bd, 'Semua bidang') + '</select><select data-rk="st" aria-label="Status">' + opt(ST_URUT.concat(C.isAdmin() ? ['BATAL'] : []).map(function (s) { return [s, STAT[s]]; }), RK.st, 'Semua status') + '</select>' +
-      '<select data-rk="mw" aria-label="Menunggu">' + opt([['QC MK', 'QC MK'], ['PJ', 'PJ'], ['MK', 'MK'], ['QC PJ', 'QC PJ']], RK.mw, 'Menunggu siapa pun') + '</select><label class="bchk"><input type="checkbox" data-rk="lama"' + (RK.lama ? ' checked' : '') + '>Lebih dari 7 hari</label></div>';
+    h += '<section class="bc s4"><div class="cap">Menunggu siapa</div>' + siapa.map(function (x) { return '<button type="button" class="rkrow lb lnkrow' + (RK.mw === x.o ? ' on' : '') + '" data-act="memorkfilter" data-k="mw" data-v="' + x.o + '"><b>' + x.o + '</b>' + bar(x.n / mxs * 100, 'orange') + '<span>' + x.n + '</span></button>'; }).join('') + '<div class="rknote">Ketuk untuk menyaring daftar</div></section>';
+    h += '<section class="bc s4"><div class="cap">Alur status</div>' + ST_URUT.concat(C.isAdmin() ? ['BATAL'] : []).map(function (s) { var c = s === 'BATAL' ? all.length - tot : n(s); return '<button type="button" class="rkrow lb lnkrow' + (RK.st === s ? ' on' : '') + '" data-act="memorkfilter" data-k="st" data-v="' + s + '"><b>' + esc(STAT[s] || s) + '</b>' + bar(p(c), s === 'CLOSE' ? 'green' : s === 'BATAL' ? 'red' : 'blue') + '<span>' + c + '</span></button>'; }).join('') + '</section>';
+    var bk = LAMA_BKT.map(function (b) { return { t: b[0], n: jalan.filter(function (x) { return x.hari >= b[1] && x.hari <= b[2]; }).length }; }), mxb = maks(bk.map(function (x) { return x.n; }));
+    h += '<section class="bc s4"><div class="cap">Lama menunggu</div>' + bk.map(function (x, i) { return '<button type="button" class="rkrow lb lnkrow' + (RK.hb === String(i) ? ' on' : '') + '" data-act="memorkfilter" data-k="hb" data-v="' + i + '"><b>' + x.t + '</b>' + bar(x.n / mxb * 100, i > 1 ? 'red' : 'blue') + '<span>' + x.n + '</span></button>'; }).join('') + '<div class="rknote">Memo yang belum Close. Ketuk untuk menyaring</div></section>';
+    var v = rekapFilter(), tampil = RK.n ? v.slice(0, RK.n) : v, fil = filterBar() + halBar();
     var td = function (x, s) { return '<td class="ttdc' + (x.tgl && x.tgl[s] ? ' on' : '') + '">' + (x.tgl && x.tgl[s] ? tgl2(x.tgl[s]) : '&ndash;') + '</td>'; };
     /* Kolom pratinjau dan unduh: Open = memo sebagaimana diterbitkan (sampai tanda tangan MK Tahap I, nomor sudah keluar); Close = memo lengkap setelah semua selesai. */
     var pdfSel = function (x, j) {
@@ -619,12 +646,12 @@
       var b = function (a, t) { return '<button type="button" class="pill pdfb" data-act="memorkpdf" data-m="' + esc(x.id) + '" data-j="' + j + '" data-a="' + a + '">' + t + '</button>'; };
       return '<td class="pdfc">' + b('lihat', 'Lihat') + b('unduh', 'Unduh') + '</td>';
     };
-    var baris = v.map(function (x) {
+    var baris = tampil.map(function (x) {
       return '<tr data-act="memolihat" data-m="' + esc(x.id) + '"><td><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b></td><td>' + esc(x.kodeBidang) + '</td><td>' + potong(x.kegiatan || x.lokasi, 'kg') + '</td><td>' + potong(lokasiTeks(x), 'lk') + '</td>' +
         '<td><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></td><td>' + potong(x.status === 'CLOSE' || x.status === 'BATAL' ? '' : (x.menunggu ? x.menunggu.teks : ''), 'mn') + '</td>' + td(x, 'MK1') + td(x, 'PJ1') + td(x, 'MK2') + td(x, 'PJ2') +
         '<td class="hr' + (x.hari > 7 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? ' lama' : '') + '">' + (x.status === 'CLOSE' || x.status === 'BATAL' ? '' : x.hari) + '</td>' + pdfSel(x, 'before') + pdfSel(x, 'akhir') + '</tr>';
     }).join('');
-    h += '<section class="bc s12"><div class="bch"><div class="cap">Daftar memo (' + v.length + ' dari ' + all.length + ')</div>' + fil + '</div><div class="tw"><table class="t rkt mt"><thead><tr>' + th('no', 'No') + th('bd', 'Bid') + th('kg', 'Kegiatan') + th('lk', 'Lokasi') + th('st', 'Status') + '<th>Menunggu</th>' + th('mk1', 'MK I') + th('pj1', 'PJ I') + th('mk2', 'MK II') + th('pj2', 'PJ II') + th('hr', 'Hari') + '<th>Memo Open</th><th>Memo Close</th></tr></thead><tbody>' +
+    h += '<section class="bc s12"><div class="bch"><div class="cap">Daftar memo (menampilkan ' + tampil.length + ' dari ' + v.length + (v.length !== all.length ? ', total ' + all.length : '') + ')</div></div>' + fil + '<div class="tw"><table class="t rkt mt"><thead><tr>' + th('no', 'No') + th('bd', 'Bid') + th('kg', 'Kegiatan') + th('lk', 'Lokasi') + th('st', 'Status') + '<th>Menunggu</th>' + th('mk1', 'MK I') + th('pj1', 'PJ I') + th('mk2', 'MK II') + th('pj2', 'PJ II') + th('hr', 'Hari') + '<th>Memo Open</th><th>Memo Close</th></tr></thead><tbody>' +
       (baris || '<tr><td colspan="13">Tidak ada memo yang cocok.</td></tr>') + '</tbody></table></div></section></div>';
     return kepala(h);
   }
@@ -889,6 +916,8 @@
         return;
       }
       case 'memotabfilter': TB.semua = el.getAttribute('data-v') === '1'; return C.render();
+      case 'memotabf': { var tk = el.getAttribute('data-k'), tv = el.getAttribute('data-v'); TB[tk] = TB[tk] === tv ? '' : tv; return C.render(); }
+      case 'memotabur': TB.ur = el.getAttribute('data-v') || 'hari'; return C.render();
       case 'memosegar2': D.daftar = null; C.render(); return muatDaftar();
       case 'memosahcepat': return sahkanCepat(el.getAttribute('data-m'), el.getAttribute('data-s'));
       case 'memotindakcepat': {
@@ -918,7 +947,13 @@
         else { RK.ur = ''; RK.ud = 1; }
         return C.render();
       }
-      case 'memorkfilter': { var kk = el.getAttribute('data-k'); RK[kk] = kk === 'lama' ? 1 : el.getAttribute('data-v'); return C.render(); }
+      case 'memorkfilter': {   // ketuk kartu: pasang filter; ketuk lagi kartu yang sama: cabut
+        var kk = el.getAttribute('data-k'), nv = el.getAttribute('data-v');
+        if (kk === 'lama') RK.lama = RK.lama ? 0 : 1; else RK[kk] = RK[kk] === nv ? '' : nv;
+        return C.render();
+      }
+      case 'memorkclear': RK.bd = ''; RK.st = ''; RK.mw = ''; RK.lama = 0; RK.hb = ''; return C.render();
+      case 'memorkn': RK.n = parseInt(el.getAttribute('data-v'), 10) || 0; try { localStorage.setItem('dl-rkn', String(RK.n)); } catch (e) { } return C.render();
       case 'memoyakinya': return jalankanYakin();
       case 'memoyakinbatal': return m && m.r && C.openModal({ t: 'memo', r: m.r });
     }
