@@ -429,16 +429,13 @@ function setDock(){
     var t=isPJ()?[['form','Temuan'],['perbaikan','Perbaikan']]:isAdmin()?[['form','Temuan'],['verif','Verifikasi'],['perbaikan','Perbaikan'],['rekap','Rekap'],['kelola','Kelola']]:[['form','Temuan'],['verif','Verifikasi'],['rekap','Rekap']];
     if(M_&&M_.punyaTab(S.user))t.push(['memo','Memo']);   // QC MK, QC PJ, dan PJ
     var add=canEdit();
-    var keys=t.map(function(x){return x[0]}).join(',')+(add?'+':'');
+    var keys=t.map(function(x){return x[0]}).join(',');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
       var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan'||x[0]==='memo')?'<i class="bdg" hidden></i>':'')+'</button>'});
-      if(add)bt.push('<button type="button" class="dockadd" data-act="tambah" aria-label="Tambah temuan">'+ic('plus')+'</button>');
       el.innerHTML='<span class="ind"></span>'+bt.join('');
     }
-    el.classList.toggle('wadd',add);
-    var ad=el.querySelector('.dockadd');
-    if(ad){var vis=S.view==='form';el.classList.toggle('noadd',!vis);ad.tabIndex=vis?0:-1;ad.setAttribute('aria-hidden',vis?'false':'true')}
+    el.classList.toggle('padat',t.length>=6);
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(bt){
       var bg=bt.querySelector('.bdg');if(!bg)return;
       var vk=bt.getAttribute('data-v'),pj=vk==='perbaikan',mm=vk==='memo',n=mm?(M_?M_.jumlahPerlu():0):pj?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);
@@ -454,12 +451,13 @@ function setDock(){
     });
   }
   el.hidden=!show;document.body.classList.toggle('hasdock',show);
+  var fab=$('fab');
+  if(fab){var vis=show&&canEdit()&&S.view==='form';fab.classList.toggle('on',vis);fab.tabIndex=vis?0:-1;fab.setAttribute('aria-hidden',vis?'false':'true')}
   if(show)moveInd();
 }
 function moveInd(){
   var el=$('dock'),b=el.querySelector('button.on'),ind=el.querySelector('.ind');
   if(!b||!ind||!b.offsetWidth)return;
-  el.style.setProperty('--dadd',b.offsetHeight+'px');
   ind.style.width=b.offsetWidth+'px';ind.style.height=b.offsetHeight+'px';
   ind.style.transform='translate('+b.offsetLeft+'px,'+b.offsetTop+'px)';
   if(!el.classList.contains('anim'))requestAnimationFrame(function(){el.classList.add('anim')});
@@ -904,7 +902,7 @@ function rekapBentoHtml(){
 
 /* ----- kelola ----- */
 /* Kelola dibagi dalam lima tab: Ruangan (daftar, perlu dirapikan, tambah, nonaktif), Gedung dan lantai, Impor Excel, Isian, dan Lainnya (PDF massal, temuan terhapus). */
-var KL_TAB=[['ruang','Ruangan'],['gl','Gedung dan lantai'],['imp','Impor Excel'],['isian','Isian'],['lain','Lainnya']];
+var KL_TAB=[['ruang','Ruangan','gedung'],['gl','Gedung dan lantai','lapis'],['imp','Impor Excel','impor'],['isian','Isian','daftar'],['lain','Lainnya','titik']];
 var CHEV='<svg class="chev" viewBox="0 0 12 18" aria-hidden="true"><path d="M3 3l6 6-6 6"/></svg>';
 function klKunciMirip(n){return String(n).toLowerCase().replace(/\b(ruangan|ruang|rg)\b\.?/g,'').replace(/[^a-z0-9]/g,'').replace(/0+(\d)/g,'$1')}
 /** Ruangan yang perlu dirapikan: nama berisi posisi atau huruf tidak rapi, gedung atau lantai di luar daftar resmi, dan nama yang mirip ruangan lain di lantai yang sama. */
@@ -937,7 +935,7 @@ function klIsu(){
 }
 function klIsuHtml(){
   var is=klIsu();
-  if(!is.length)return '<section class="group kliss ok"><div class="klish static"><span>Semua nama ruangan sudah rapi</span></div></section>';
+  if(!is.length)return '<section class="group kliss ok"><div class="klish static"><svg class="ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Semua nama ruangan sudah rapi</span></div></section>';
   var buka=S.klIsuOpen!==false,tampil=S.klIsuAll?is:is.slice(0,10);
   var h='<section class="group kliss"><button type="button" class="klish" data-act="klisu" aria-expanded="'+buka+'"><span>Perlu dirapikan</span><b class="klbadge">'+is.length+'</b>'+CHEV+'</button>';
   if(buka){
@@ -987,10 +985,10 @@ function klTambahHtml(){
 }
 function klRuangHtml(){
   var h='<div class="klbar"><label class="sinp">'+ic('search')+'<input type="text" id="klq" placeholder="Cari ruangan, lantai, atau gedung" autocomplete="off" value="'+esc(S.klq||'')+'"></label></div>'+
-    '<div class="chips klact"><button type="button" class="chip'+(S.klTambah?' on':'')+'" data-act="kltambah" aria-pressed="'+!!S.klTambah+'">+ Tambah ruangan</button>'+
-    '<button type="button" class="chip" data-act="klsemua" data-v="1">Buka semua</button><button type="button" class="chip" data-act="klsemua" data-v="0">Tutup semua</button>'+
-    '<button type="button" class="chip'+(S.klNon?' on':'')+'" data-act="klnon" aria-pressed="'+!!S.klNon+'">Nonaktif'+(S.klNonList?' '+S.klNonList.length:'')+'</button>'+
-    '<button type="button" class="chip" data-act="klxls">Unduh Excel</button></div>';
+    '<div class="chips klact"><button type="button" class="chip ico'+(S.klTambah?' on':'')+'" data-act="kltambah" aria-pressed="'+!!S.klTambah+'">'+ic('plus')+'<span class="tx">Tambah</span></button>'+
+    '<button type="button" class="chip ico only" data-act="klsemua" data-v="1" aria-label="Buka semua gedung" title="Buka semua">'+ic('buka')+'</button><button type="button" class="chip ico only" data-act="klsemua" data-v="0" aria-label="Tutup semua gedung" title="Tutup semua">'+ic('tutup')+'</button>'+
+    '<button type="button" class="chip ico'+(S.klNon?' on':'')+'" data-act="klnon" aria-pressed="'+!!S.klNon+'" title="Ruangan nonaktif">'+ic('arsip')+'<span class="tx">Nonaktif'+(S.klNonList?' '+S.klNonList.length:'')+'</span></button>'+
+    '<button type="button" class="chip ico only" data-act="klxls" aria-label="Unduh daftar ruangan (Excel)" title="Unduh Excel">'+ic('excel')+'</button></div>';
   if(S.klTambah)h+=klTambahHtml();
   h+=klIsuHtml();
   if(S.klNon)h+=klNonHtml();
@@ -1038,7 +1036,7 @@ function kelolaHtml(){
   if(!S.roomsReady&&!S.rooms.length)return '<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Kelola</h1></div>'+skel('kelola');
   var tab=S.klTab;
   if(tab==='gl'&&!S.klMs&&!S.klMsBusy)klMuatMs();
-  var tabs='<div class="chips kltabs" role="tablist" aria-label="Bagian Kelola">'+KL_TAB.map(function(x){return '<button type="button" class="chip'+(tab===x[0]?' on':'')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-act="kltab" data-v="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>';
+  var tabs='<div class="chips kltabs" role="tablist" aria-label="Bagian Kelola">'+KL_TAB.map(function(x){return '<button type="button" class="chip ico'+(tab===x[0]?' on':'')+'" role="tab" aria-selected="'+(tab===x[0])+'" aria-label="'+x[1]+'" title="'+x[1]+'" data-act="kltab" data-v="'+x[0]+'">'+ic(x[2])+'<span class="tx">'+x[1]+'</span></button>'}).join('')+'</div>';
   var isi=tab==='gl'?klGlHtml():tab==='imp'?impHtml():tab==='isian'?regAdminHtml():tab==='lain'?klLainHtml():klRuangHtml();
   if(desk())return '<div class="bhead"><div><h1>Kelola</h1><div class="bsub">Ruangan, gedung dan lantai, impor, dan laporan massal &middot; '+esc(S.paket.nama)+'</div></div></div><div class="kwrap">'+tabs+isi+'</div>';
   return '<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Kelola</h1></div>'+tabs+isi;

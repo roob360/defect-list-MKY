@@ -95,19 +95,20 @@
   .pill.rej{ background:var(--red-fill); color:var(--red-text); }
   .pill.wait{ background:transparent; color:var(--label2); box-shadow:inset 0 0 0 1.5px var(--label3); }
   .pill svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-  .dock.wadd{ max-width:calc(100vw - 16px); gap:2px; }
-  .dock.wadd button:not(.dockadd){ min-width:56px; padding-left:6px; padding-right:6px; }
-  .dock .dockadd{ flex:none; min-width:0; width:var(--dadd,52px); max-width:var(--dadd,52px); height:var(--dadd,52px); padding:0; align-self:center; justify-content:center; margin:0 0 0 4px; overflow:hidden; border-radius:50%; background:var(--prominent); color:#fff; box-shadow:0 4px 14px color-mix(in srgb,var(--prominent) 55%,transparent); }
-  .dock.noadd .dockadd{ max-width:0; margin-left:-2px; opacity:0; transform:scale(.3); box-shadow:none; pointer-events:none; }
-  html:not(.hemat) .dock .dockadd{ transition:max-width .42s cubic-bezier(.3,.9,.3,1), margin .42s cubic-bezier(.3,.9,.3,1), opacity .25s, transform .42s cubic-bezier(.34,1.4,.64,1); }
-  .dock .dockadd svg{ width:24px; height:24px; stroke-width:2.8; }
-  /* Layar sempit (Android 360 px): lima tab Admin + tombol tambah harus muat; tab menyusut, teks mengecil. */
-  @media (max-width:400px){
-    .dock.wadd{ padding:4px; gap:0; width:calc(100vw - 16px); }
-    .dock.wadd button:not(.dockadd){ flex:1 1 0; min-width:0; padding:7px 1px 6px; font-size:clamp(9.5px,2.9vw,11px); letter-spacing:-.1px; }
-    .dock.wadd .dockadd{ margin-left:2px; }
+  /* Tombol tambah temuan melayang di luar dock (hanya di tab Temuan): dock tidak berubah lebar, jadi penanda tab aktif selalu tepat. */
+  .fab{ position:fixed; right:16px; bottom:calc(env(safe-area-inset-bottom,0px) + 88px); z-index:31; width:56px; height:56px; padding:0; border:0; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:var(--prominent); color:#fff; box-shadow:0 6px 18px color-mix(in srgb,var(--prominent) 55%,transparent); cursor:pointer; opacity:0; transform:scale(.3); pointer-events:none; }
+  .fab.on{ opacity:1; transform:none; pointer-events:auto; }
+  html:not(.hemat) .fab{ transition:opacity .25s, transform .38s cubic-bezier(.34,1.4,.64,1); }
+  .fab svg{ width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
+  .fab:active{ opacity:.85; }
+  body:not(.hasdock) .fab{ display:none; }
+  /* Admin punya enam tab: pada layar sempit hanya tab aktif yang memakai label, sisanya ikon saja. */
+  @media (max-width:480px){
+    .dock.padat{ padding:4px; gap:2px; max-width:calc(100vw - 16px); }
+    .dock.padat button:not(.on){ min-width:0; flex:0 0 auto; padding:9px 13px; }
+    .dock.padat button:not(.on) > span:not(.bdg){ display:none; }
   }
-  .dock .dockadd:active{ opacity:.85; }
   .btn svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
   .spin{ width:18px; height:18px; border-radius:50%; flex:none; border:2.5px solid #ffffff55; border-top-color:#fff; animation:spin .8s linear infinite; }
   .spin.d{ border-color:var(--fill2); border-top-color:var(--blue-teks); width:26px; height:26px; }
@@ -788,6 +789,18 @@
   .rfrh[aria-expanded="true"] .chev{ transform:rotate(90deg); }
   .rfdet{ padding:0 10px 10px; border-top:1px solid var(--sep); }
   @media (max-width:640px){ .rfrh{ flex-wrap:wrap; } .rftg{ order:3; width:100%; justify-content:flex-start; padding-left:40px; } .rfrh .chev{ display:none; } }
+  .chip.ico{ display:inline-flex; align-items:center; gap:6px; }
+  .chip.ico svg{ flex:none; width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .chip.ico.only{ padding:0 10px; } .chip.ico .aqn{ font-size:12px; }
+  .urutbar{ display:inline-flex; gap:6px; }
+  .mfpanel{ display:grid; grid-template-columns:1fr; gap:12px; margin:0 0 12px; padding:14px; border-radius:16px; background:var(--gbg2); box-shadow:inset 0 0 0 1px var(--sep); }
+  .mfh{ display:flex; align-items:center; gap:6px; margin:0 0 6px; font-size:12px; font-weight:600; color:var(--label2); text-transform:uppercase; letter-spacing:.03em; }
+  .mfh svg{ width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .mfc{ display:flex; flex-wrap:wrap; gap:6px; }
+  .mfc .chip{ height:32px; padding:0 12px; font-size:13px; }
+  .kltabs{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; } .kltabs::-webkit-scrollbar{ display:none; }
+  @media (max-width:560px){ .kltabs .chip.ico:not(.on) .tx, .urutbar .chip.ico:not(.on) .tx{ display:none; } .kltabs .chip.ico:not(.on), .urutbar .chip.ico:not(.on){ padding:0 11px; } }
+  .klish svg.ok{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; flex:none; }
   .kltabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
   .kwrap{ max-width:980px; }
   .klbar{ margin:0 0 10px; } .klact{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
@@ -834,7 +847,8 @@
   .rkt.mt td.hr{ text-align:right; font-weight:600; }
   .rkt.mt td.hr.lama{ color:var(--red-text); }
   .rkt.mt td.pdfc{ white-space:nowrap; color:var(--label2); }
-  .rkt.mt .pdfb{ font-size:11px; padding:3px 9px; margin-right:4px; min-height:0; }
+  .rkt.mt .pdfb{ width:30px; height:30px; min-width:0; min-height:0; padding:0; margin-right:4px; }
+  .rkt.mt .pdfb svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
   @media (min-width:1100px){ .s12{ grid-column:span 12; } }
   /* warna status memo */
   .tag.m-belum{ background:transparent; box-shadow:inset 0 0 0 1.5px #d4a017; color:#8a6500; }
@@ -949,6 +963,21 @@
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></symbol>
+  <symbol id="i-mata" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-unduh" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M4.5 19.5h15"/></symbol>
+  <symbol id="i-jam" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-tanggal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+  <symbol id="i-nomor" viewBox="0 0 24 24"><path d="M9.5 4L8 20M16 4l-1.5 16M4.5 9h15M4 15h15"/></symbol>
+  <symbol id="i-gedung" viewBox="0 0 24 24"><path d="M5 20V5.5A1.5 1.5 0 016.5 4h7A1.5 1.5 0 0115 5.5V20M15 10h2.5a1.5 1.5 0 011.5 1.5V20M3 20h18M8.5 8h3M8.5 12h3M8.5 16h3"/></symbol>
+  <symbol id="i-lapis" viewBox="0 0 24 24"><path d="M12 4l8.5 4.5L12 13 3.5 8.5 12 4zM3.5 12.5L12 17l8.5-4.5M3.5 16.5L12 21l8.5-4.5"/></symbol>
+  <symbol id="i-daftar" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r="1"/><circle cx="4.8" cy="12" r="1"/><circle cx="4.8" cy="17.5" r="1"/></symbol>
+  <symbol id="i-titik" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></symbol>
+  <symbol id="i-arsip" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1.5"/><path d="M5 9v9a2 2 0 002 2h10a2 2 0 002-2V9M10 13h4"/></symbol>
+  <symbol id="i-buka" viewBox="0 0 24 24"><path d="M6.5 5.5l5.5 5 5.5-5M6.5 13l5.5 5 5.5-5"/></symbol>
+  <symbol id="i-tutup" viewBox="0 0 24 24"><path d="M6.5 11l5.5-5 5.5 5M6.5 18.5l5.5-5 5.5 5"/></symbol>
+  <symbol id="i-orang" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.5-5.5 7-5.5s6.2 1.9 7 5.5"/></symbol>
+  <symbol id="i-urut" viewBox="0 0 24 24"><path d="M8 4v16M4.5 16.5L8 20l3.5-3.5M16 20V4M12.5 7.5L16 4l3.5 3.5"/></symbol>
+  <symbol id="i-impor" viewBox="0 0 24 24"><path d="M12 16V4M7.5 8.5L12 4l4.5 4.5M4.5 15v3a2 2 0 002 2h11a2 2 0 002-2v-3"/></symbol>
   <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3.6h7l4.6 4.6v11.2A1.6 1.6 0 0117 21H7a1.6 1.6 0 01-1.6-1.6V5.2A1.6 1.6 0 017 3.6z"/><path d="M14 3.6V8.4h4.6"/><path d="M8.8 13.6h6.4M8.8 16.8h4"/><circle class="kdot" cx="15.6" cy="17" r="1.1"/></symbol>
   <symbol id="i-memo" viewBox="0 0 24 24"><path d="M6.4 3.6h8.2l3.6 3.6v12.2a1.4 1.4 0 01-1.4 1.4H6.4A1.4 1.4 0 015 19.4V5A1.4 1.4 0 016.4 3.6z"/><path d="M14.4 3.8v3.6h3.6"/><path d="M8.4 11.4h7.2M8.4 14.4h7.2M8.4 17.4h4.2"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></symbol>
@@ -990,6 +1019,7 @@
 <div class="wrap" id="app"></div>
 <div id="overlay"></div>
 <nav class="dock" id="dock" hidden aria-label="Menu utama"></nav>
+<button type="button" class="fab" id="fab" data-act="tambah" aria-label="Tambah temuan" tabindex="-1" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg></button>
 <input type="file" id="fGal" accept="image/*" multiple hidden>
 <input type="file" id="fCam" accept="image/*" capture="environment" hidden>
 <input type="file" id="fXls" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden>
