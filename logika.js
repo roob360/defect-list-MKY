@@ -158,7 +158,86 @@
     return m ? { jenis: m[1], nomor: m[2].toUpperCase(), ragu: false } : { jenis: s, nomor: '', ragu: /\d/.test(s) };
   }
 
+  /* ---------- aturan nama lokasi (Gedung, Lantai, Ruangan) ----------
+   * Nama dirapikan otomatis (huruf besar-kecil, spasi, format lantai) dan dicek sebelum disimpan, supaya master tidak berantakan.
+   * Hasil: { ok:true, val } atau { ok:false, err }. Hanya dipakai untuk nama BARU; nama lama yang sudah terdaftar tidak diperiksa. */
+
+  /** Singkatan yang tetap huruf kapital semua. Tambahkan di sini bila ada singkatan baru di proyek. */
+  var SINGKATAN = ['LVMDP', 'MVMDP', 'MDP', 'SDP', 'LVDB', 'MVDB', 'DB', 'MCC', 'AHU', 'FCU', 'VAV', 'UPS', 'ATS', 'AMF', 'CCTV', 'MATV', 'BAS', 'BMS', 'FAP', 'WC', 'AC', 'VIP', 'IT', 'CCR',
+    'PLN', 'PDAM', 'STP', 'GWT', 'RWT', 'TPS', 'ATM', 'OB', 'HVAC', 'AV', 'KWH', 'LV', 'MV', 'HV', 'LG', 'GF', 'UG', 'KY', 'MK', 'MA', 'PK', 'IKN', 'MEP', 'MEEP', 'HSE', 'BGH', 'SLF', 'R'];
+  var KATA_KECIL = ['dan', 'di', 'ke', 'dari', 'atau', 'untuk', 'yang', 'dengan', 'pada'];
+  var ROMAWI = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  /** Kata penunjuk posisi: nama lokasi hanya menyebut jenis tempatnya, posisi detail ditulis di temuan. */
+  var POSISI_SELALU = ['dekat', 'sebelah', 'samping', 'seberang', 'antara', 'menuju', 'arah', 'sekitar', 'hadapan'];
+  var POSISI_LALU = ['depan', 'belakang', 'atas', 'bawah', 'kiri', 'kanan'];   // ditolak bila diikuti kata lain ("Koridor Depan Ruang LVMDP"); "Lobi Depan" sah
+
+  /** Setiap kata diawali huruf besar, singkatan tetap kapital, campuran huruf dan angka (B1, 2A, T1A) kapital semua. */
+  function kapital(s) {
+    var first = true;
+    return String(s).split(/([\s\/()\-,.]+)/).map(function (w) {
+      if (!w || /^[\s\/()\-,.]+$/.test(w)) return w;
+      var lo = w.toLowerCase(), up = w.toUpperCase(), r;
+      if (/\d/.test(w)) r = up;
+      else if (SINGKATAN.indexOf(up) >= 0 || ROMAWI.indexOf(up) >= 0 || w.length === 1) r = up;
+      else if (!first && KATA_KECIL.indexOf(lo) >= 0) r = lo;
+      else r = lo.charAt(0).toUpperCase() + lo.slice(1);
+      first = false;
+      return r;
+    }).join('');
+  }
+
+  function namaGedung(s) {
+    var v = rapi(s);
+    if (!v) return { ok: false, err: 'Nama gedung wajib diisi.' };
+    if (v.length > 40) return { ok: false, err: 'Nama gedung maksimal 40 karakter.' };
+    return { ok: true, val: kapital(v) };
+  }
+
+  /** Lantai dibakukan: "lt 2" dan "2" jadi "Lantai 2"; Basement jadi "Lantai B1", "Lantai B2"; "Split level Elv.37500" jadi "Lantai Split Level" (elevasinya saran Lokasi detail). */
+  function namaLantai(s) {
+    var v = rapi(s), m;
+    if (!v) return { ok: false, err: 'Nama lantai wajib diisi.' };
+    if (v.length > 40) return { ok: false, err: 'Nama lantai maksimal 40 karakter.' };
+    if ((m = /\b(?:elv|elevasi|el)\.?\s*([+\-]?\d[\d.,]*)/i.exec(v))) {
+      var angka = m[1].replace(/,/g, '.').replace(/\.$/, ''), neg = angka.charAt(0) === '-', abs = angka.replace(/^[+\-]/, '');
+      if (/^\d{5,}$/.test(abs)) abs = abs.slice(0, -3) + '.' + abs.slice(-3);   // 37500 -> 37.500 (milimeter)
+      if (!/^\d+(\.\d+)?$/.test(abs)) return { ok: false, err: 'Elevasi tidak terbaca. Contoh: Elv. 37.500' };
+      var elv = 'Elv. ' + (neg ? '-' : '') + parseFloat(abs).toFixed(3);
+      // "Split level Elv.37.500": lantainya Split Level; elevasinya jadi saran Lokasi detail (detail)
+      if (/split/i.test(v)) return { ok: true, val: 'Lantai Split Level', detail: elv };
+      return { ok: true, val: elv };
+    }
+    if (/^(?:lantai\s+|lt\.?\s*)?split(?:\s*-?\s*level)?$/i.test(v)) return { ok: true, val: 'Lantai Split Level', detail: '' };
+    var pre = '(?:lantai|lt\\.?|level|floor)?\\s*';
+    if ((m = new RegExp('^' + pre + '(?:basement|bsmt)\\s*-?\\s*(\\d*)$', 'i').exec(v)) || (m = new RegExp('^' + pre + 'b\\s*-?\\s*(\\d+)$', 'i').exec(v)))
+      return { ok: true, val: 'Lantai B' + (parseInt(m[1], 10) || 1) };
+    if ((m = new RegExp('^' + pre + '(\\d+)$', 'i').exec(v))) return { ok: true, val: 'Lantai ' + parseInt(m[1], 10) };
+    if ((m = new RegExp('^' + pre + '(?:gf|ground(?:\\s+floor)?|dasar)$', 'i').exec(v))) return { ok: true, val: 'Lantai GF' };
+    if ((m = new RegExp('^' + pre + '(lg|ug)\\s*-?\\s*(\\d*)$', 'i').exec(v))) return { ok: true, val: 'Lantai ' + m[1].toUpperCase() + (m[2] ? ' ' + parseInt(m[2], 10) : '') };
+    if ((m = new RegExp('^' + pre + '(?:atap|roof)$', 'i').exec(v))) return { ok: true, val: 'Lantai Atap' };
+    if ((m = new RegExp('^' + pre + 'roof\\s*-?\\s*top$', 'i').exec(v))) return { ok: true, val: 'Lantai Roof Top' };
+    return { ok: true, val: kapital(v.replace(/^lt\.?\s+/i, 'Lantai ')) };
+  }
+  /** Kunci pembanding lantai: dua penulisan yang menjadi nama baku sama dianggap lantai yang sama ("Lt 2" = "Lantai 2"). */
+  function kunciLantai(s) { var r = namaLantai(s); return kunci(r.ok ? r.val : s); }
+
+  /** Nama ruangan hanya jenis tempatnya ("Koridor", "Ruang Rapat 2"); posisi detail ("depan ruang LVMDP") tidak boleh masuk nama. */
+  function namaRuangan(s) {
+    var v = rapi(s);
+    if (!v) return { ok: false, err: 'Nama ruangan wajib diisi.' };
+    if (v.length > 40) return { ok: false, err: 'Nama ruangan terlalu panjang (maksimal 40 huruf). Tulis jenis ruangnya saja, mis. "Koridor"; posisi detail tulis di temuan.' };
+    var kata = v.toLowerCase().split(/[\s,()]+/).filter(Boolean), salah = '';
+    kata.forEach(function (w, i) {
+      if (salah) return;
+      if (POSISI_SELALU.indexOf(w) >= 0 || (i === 0 && (w === 'di' || w === 'ke'))) salah = w;
+      else if (POSISI_LALU.indexOf(w) >= 0 && i < kata.length - 1) salah = w;
+    });
+    if (salah) return { ok: false, err: 'Nama ruangan memuat posisi ("' + salah + '"). Tulis jenis ruangnya saja, mis. "Koridor"; posisi detail tulis di temuan.' };
+    return { ok: true, val: kapital(v) };
+  }
+
   root.LOGIKA = {
+    namaGedung: namaGedung, namaLantai: namaLantai, namaRuangan: namaRuangan, kunciLantai: kunciLantai, kapital: kapital,
     rapi: rapi, kunci: kunci, kelompok: kelompok, kode: kode,
     bandingAlami: bandingAlami, bandingNama: bandingNama, jarak: jarak,
     cocok: cocok, tambah: tambah, pakai: pakai, chips: chips,
