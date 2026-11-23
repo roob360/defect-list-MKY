@@ -900,7 +900,7 @@ function kelolaHtml(){
       h+='<div class="note" style="padding-left:var(--margin);font-weight:600;padding-top:10px">'+esc(g.nama)+' / '+esc(l.nama)+'</div><div class="list">';
       l.ruangan.forEach(function(r){
         h+='<div class="row" style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0;overflow-wrap:anywhere">'+esc(r.nama)+'<span class="note" style="display:block;padding:2px 0 0">'+esc(g.nama)+' &middot; '+esc(l.nama)+' &middot; '+r.total+' temuan</span></span>'+
-          (r.bidang?'':'<button type="button" class="pill" data-act="ubahroom" data-r="'+esc(r.id)+'">Ubah</button>')+'<button type="button" class="pill bad" data-act="delroom" data-r="'+esc(r.id)+'">Nonaktifkan</button></div>';
+          '<button type="button" class="pill" data-act="ubahroom" data-r="'+esc(r.id)+'">Ubah</button>'+'<button type="button" class="pill bad" data-act="delroom" data-r="'+esc(r.id)+'">Nonaktifkan</button></div>';
       });
       h+='</div>';
     });
@@ -1025,7 +1025,7 @@ function modalHtml(){
     return '<div class="ov"><div class="sheet" role="dialog" aria-label="Ubah ruangan"><h2>Ubah ruangan</h2><section class="group"><div class="list">'+
       '<label class="row"><span class="lbl">Gedung</span><input type="text" id="rG" value="'+esc(m.r.gedung)+'"></label>'+
       '<label class="row"><span class="lbl">Lantai</span><input type="text" id="rL" value="'+esc(m.r.lantai)+'"></label>'+
-      '<label class="row"><span class="lbl">Ruangan</span><input type="text" id="rN" value="'+esc(m.r.nama)+'"></label>'+
+      '<label class="row"><span class="lbl">Ruangan</span><input type="text" id="rN" value="'+esc(m.r.nama)+'"'+(m.r.bidang?' readonly':'')+'></label>'+
       '<label class="row"><span class="lbl">Lokasi detail</span><input type="text" id="rD" maxlength="120" placeholder="Opsional, mis. depan ruang LVMDP"></label></div></section>'+
       '<div class="note">Isi Lokasi detail bila nama lama memuat posisi. Teksnya ditambahkan ke Lokasi detail semua temuan ruangan ini. Bila nama baru sudah ada, ruangan digabung ke sana.</div>'+
       '<div class="gap"><button type="button" class="btn" data-act="rsimpan">Simpan</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div></div>';
@@ -2402,7 +2402,7 @@ async function onClick(ev){
     case 'rsimpan': {
       var rm=S.modal.r,g=$('rG').value,l=$('rL').value,n=$('rN').value,dt=$('rD').value;
       var kk=LOGIKA.kunci(g)+'|'+LOGIKA.kunciLantai(l)+'|'+LOGIKA.kunci(n);
-      var sama=S.rooms.filter(function(x){return x.id!==rm.id&&!x.bidang&&LOGIKA.kunci(x.gedung)+'|'+LOGIKA.kunciLantai(x.lantai)+'|'+LOGIKA.kunci(x.nama)===kk})[0];
+      var sama=S.rooms.filter(function(x){return x.id!==rm.id&&LOGIKA.kunci(x.gedung)+'|'+LOGIKA.kunciLantai(x.lantai)+'|'+LOGIKA.kunci(x.nama)===kk})[0];
       if(sama)return openModal({t:'gabung',r:rm,g:sama.gedung,l:sama.lantai,n:sama.nama,d:dt,gd:g,gl:l,gn:n});
       closeModal();
       var r5=await work('Menyimpan...',function(){return api('ruangan_ubah',{id:rm.id,gedung:g,lantai:l,ruangan:n,detail:dt})});
