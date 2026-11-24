@@ -26,7 +26,7 @@
     --blue:#0088ff; --blue-teks:#0066cc; --blue-fill:#e5f1ff; --purple-teks:#5b21b6; --purple-fill:#ede9fe; --red:#ff383c; --green:#34c759; --orange:#ff8d28;
     --green-text:#1f7a35; --red-text:#c4161a; --orange-text:#a85200;
     --red-fill:#ff383c1f; --green-fill:#34c7591f; --orange-fill:#ff8d281f;
-    --seg-sel:#ffffff; --sh-seg:0 2px 20px #0000000f; --dock:#ffffffa6; --lens:#78788033; --dockfx:0 10px 32px #00000024, inset 0 0 0 .5px #0000001a, inset 0 1px 0 #ffffffcc;
+    --seg-sel:#ffffff; --sh-seg:0 2px 20px #0000000f; --dock:#ffffffcc; --lens:#78788033; --dockfx:0 10px 32px #00000024, inset 0 0 0 .5px #0000001a, inset 0 1px 0 #ffffffcc;
     --mat:#ffffffd6; --blur:blur(30px) saturate(140%);
     --float:0 8px 30px #0000001f;
     --red-solid:#cf2e2e; --gap:16px; --margin:16px; --row-h:52px; --ctl-lg:50px; --dockb:max(calc(env(safe-area-inset-bottom,0px) - 14px),10px); --dockh:62px;
@@ -259,9 +259,9 @@
   .thumb .mini{ padding:3px 8px; border:0; border-radius:var(--r-cap); background:#ffffffe6; color:#000; font:inherit; font-size:12px; cursor:pointer; }
   .sp{ width:20px; height:20px; border-radius:50%; flex:none; display:inline-block; border:2.5px solid var(--label3); border-top-color:var(--label1); animation:spin .8s linear infinite; }
   .upbar[hidden]{ display:none; }
-  .upbar{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--dockb) + var(--dockh) + 10px); z-index:29; display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--r-cap); background:var(--label1); color:var(--gbg1); font-size:13px; line-height:16px; box-shadow:var(--float); white-space:nowrap; }
-  .upbar button{ min-height:28px; padding:0 10px; border:0; border-radius:999px; background:var(--gbg1); color:var(--label1); font:inherit; font-size:13px; cursor:pointer; }
-  .upbar .sp{ width:14px; height:14px; border-width:2px; border-color:#ffffff55; border-top-color:var(--gbg1); }
+  .upbar{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--dockb) + var(--dockh) + 10px); z-index:29; display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--r-cap); background:var(--dock); -webkit-backdrop-filter:blur(28px) saturate(190%); backdrop-filter:blur(28px) saturate(190%); color:var(--label1); font-size:13px; line-height:16px; box-shadow:var(--dockfx); white-space:nowrap; }
+  .upbar button{ min-height:28px; padding:0 10px; border:0; border-radius:999px; background:var(--blue-fill); color:var(--blue-teks); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .upbar .sp{ width:14px; height:14px; border-width:2px; border-color:var(--fill3); border-top-color:var(--blue-teks); }
   .none{ min-height:64px; display:grid; place-items:center; border:1.5px dashed var(--label3); border-radius:var(--r-pop); font-size:13px; color:var(--label2); }
   .pbtn{ display:flex; gap:8px; padding-top:8px; flex-wrap:wrap; }
   .acts{ display:flex; flex-wrap:wrap; gap:8px; padding:14px var(--margin) 0; }
@@ -457,6 +457,13 @@
   .upbar .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; flex:none; background:var(--orange); }
   html:not(.hemat) .upbar .dot{ animation:dotDenyut 1.4s ease-in-out infinite; }
   @keyframes dotDenyut{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(.55); opacity:.45; } }
+  .zoom .fgagal{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:18px 24px; border:0; border-radius:16px; background:var(--dock); -webkit-backdrop-filter:blur(28px) saturate(190%); backdrop-filter:blur(28px) saturate(190%); color:var(--label1); font:inherit; cursor:pointer; }
+  .zoom .fgagal b{ font-size:15px; } .zoom .fgagal span{ font-size:13px; color:var(--label2); }
+  .thumb.gagal button{ position:relative; }
+  .thumb.gagal button::after{ content:'Foto belum termuat'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:6px; text-align:center; font-size:12px; font-weight:600; color:var(--label2); }
+  .verinfo{ display:flex; align-items:center; justify-content:center; gap:6px; padding:18px 0 calc(18px + env(safe-area-inset-bottom,0px)); font-size:12px; color:var(--label3,var(--label2)); }
+  .verinfo .vdot{ width:7px; height:7px; border-radius:50%; background:var(--green); }
+  .verinfo .vdot.off{ background:var(--orange); }
   .upbar .tcek{ display:inline-block; width:18px; height:18px; flex:none; color:var(--green); }
   .upbar .tcek svg{ width:100%; height:100%; display:block; }
   html:not(.hemat) .upbar .tcek path{ stroke-dasharray:30; stroke-dashoffset:30; animation:ak-gambar .3s .05s ease-out forwards; }

@@ -119,10 +119,23 @@ document.addEventListener('error',function(ev){
   if(n===0){im.src='https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w'+w;return}
   if(n===1&&S.paket&&S.kode){
     FOTO_ANTRE=FOTO_ANTRE.then(function(){return api('foto_data',{ids:[id],w:w})}).then(function(r){
-      var d=r&&r[0]&&r[0].data;if(d){S.pv[id]=d;im.src=d}
-    }).catch(function(){});
+      var d=r&&r[0]&&r[0].data;if(d){S.pv[id]=d;im.src=d}else fotoGagal(im,id);
+    }).catch(function(){fotoGagal(im,id)});
+    return;
   }
+  fotoGagal(im,id);
 },true);
+/** Semua cadangan gagal: penampil penuh menampilkan pesan dengan tombol coba lagi; thumbnail diberi penanda (mengetuknya membuka penampil, yang mencoba ulang). */
+function fotoGagal(im,id){
+  var zm=im.closest&&im.closest('.zoom');
+  if(zm){
+    if(zm.querySelector('.fgagal'))return;
+    im.style.display='none';
+    var d=document.createElement('button');d.type='button';d.className='fgagal';d.setAttribute('data-act','fotocoba');d.setAttribute('data-id',id);
+    d.innerHTML='<b>Foto belum bisa dimuat</b><span>Ketuk untuk coba lagi</span>';
+    zm.insertBefore(d,im.nextSibling);
+  }else{var th=im.closest&&im.closest('.thumb');if(th)th.classList.add('gagal')}
+}
 
 /* Penyimpanan lokal (IndexedDB): antrean foto dan cache daftar temuan. Bila tidak tersedia, semuanya diam-diam dilewati. */
 var IDB={
@@ -323,7 +336,7 @@ async function loadAll(){
 /* ---------- tampilan ---------- */
 function setHead(){
   var pr=$('bProf'),k=S.user?'u':'g';
-  if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);var mj=(S.user&&M_)?M_.jumlahPerlu():0;pr.innerHTML=S.user?'<span>'+esc(String(S.user.nama||S.user.peran).trim().charAt(0).toUpperCase())+'</span>'+(mj?'<i class="pbdg" aria-hidden="true">'+(mj>9?'9+':mj)+'</i>':''):ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'');pr.setAttribute('aria-label',S.user?'Pengaturan, '+S.user.nama+' ('+S.user.peran+')'+(mj?', '+mj+' memo perlu tindakan':''):'Pengaturan');pr.title=S.user?S.user.nama+' · '+S.user.peran:'Pengaturan';pr.parentNode.classList.toggle('in',!!S.user)}
+  if(pr.getAttribute('data-k')!==k||S.user){pr.setAttribute('data-k',k);var mj=(S.user&&M_&&!(canEdit()||isPJ()?(M_.punyaTab(S.user)&&!isAdmin()):false))?M_.jumlahPerlu():0;pr.innerHTML=S.user?'<span>'+esc(String(S.user.nama||S.user.peran).trim().charAt(0).toUpperCase())+'</span>'+(mj?'<i class="pbdg" aria-hidden="true">'+(mj>9?'9+':mj)+'</i>':''):ic('gear');pr.className='prof'+(S.user?' role '+String(S.user.peran).toLowerCase():'');pr.setAttribute('aria-label',S.user?'Pengaturan, '+S.user.nama+' ('+S.user.peran+')'+(mj?', '+mj+' memo perlu tindakan':''):'Pengaturan');pr.title=S.user?S.user.nama+' · '+S.user.peran:'Pengaturan';pr.parentNode.classList.toggle('in',!!S.user)}
   $('bBack').hidden=!(S.paket&&!S.user);
 }
 /* Skeleton: memakai kelas asli (pagehead, locbar, summary, sbar, chips, entry, phs, acts, kpis, bgrid) tanpa pembungkus,
@@ -426,7 +439,7 @@ function renderPick(){
   PAKET_LIST.forEach(function(p){
     h+='<button type="button" class="pkcard" data-act="paket" data-id="'+esc(p.id)+'"><span class="t"><b>'+esc(p.nama)+'</b><span>'+esc(p.ringkas||p.label)+'</span></span><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
   });
-  app.innerHTML=h+'</div></section></div>';
+  app.innerHTML=h+'</div></section></div>'+verHtml();verIsi();
 }
 function renderLogin(){
   var p=S.paket;
@@ -442,10 +455,18 @@ function renderLogin(){
     if(S.loginErr)h+=S.loginNet?'<div class="errbox" role="alert">'+esc(S.loginErr)+'</div>':'<div class="err" role="alert" style="padding:0 4px 14px">'+esc(S.loginErr)+'</div>';
     h+='<button type="button" class="btn rect akbtn'+an+'" style="--m:11" id="bMasuk" data-act="masuk"><span class="ak-label">'+(S.loginNet&&S.loginErr?'Coba lagi':'Masuk')+'</span><span class="ak-spin"></span><svg class="ak-centang" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></div>';
   }
-  app.innerHTML=h+'</div>';
+  app.innerHTML=h+'</div>'+verHtml();verIsi();
   var ki=$('kode');if(ki&&S.paket.apiUrl)ki.focus({preventScroll:true});
 }
 
+/** Versi aplikasi dan status koneksi di layar pemilih paket dan masuk. Nomor versi dibaca dari nama cache service worker (defect-list-vNNN). */
+function verHtml(){return '<div class="verinfo" role="status"></div>'}
+function verIsi(){
+  var el=app.querySelector('.verinfo');if(!el)return;
+  var on=navigator.onLine!==false,pasang=function(v){el.innerHTML=(v?'Versi '+esc(v)+' &middot; ':'')+'<span class="vdot'+(on?'':' off')+'" aria-hidden="true"></span>'+(on?'Terhubung':'Tidak ada sinyal')};
+  pasang('');
+  if(window.caches&&caches.keys)caches.keys().then(function(ks){var v='';ks.forEach(function(k){var m=/^defect-list-v(\d+)$/.exec(k);if(m&&Number(m[1])>Number(v||0))v=m[1]});if(v&&app.contains(el))pasang(v)}).catch(function(){});
+}
 var indLoop=0;
 var LAIN=[['verif','Verifikasi'],['perbaikan','Perbaikan'],['memo','Memo']];   // isi tab Lainnya (Admin); tombol di dock membuka yang terakhir dipakai
 function lainBar(){
@@ -2619,7 +2640,8 @@ async function onClick(ev){
     case 'muat': return loadDefects(S.sel.r,true);
     case 'tambah': return openForm(null);
     case 'edit': return openForm(findDefect(id));
-    case 'zoom': return openZoom(thumb(el.getAttribute('data-f'),1024));
+    case 'fotocoba': {var fid=el.getAttribute('data-id'),zi=el.parentNode.querySelector('img');FOTO_COBA[fid]=0;el.remove();if(zi){zi.style.display='';zi.src=thumb(fid,1024)}return}
+    case 'zoom': FOTO_COBA[el.getAttribute('data-f')]=0;return openZoom(thumb(el.getAttribute('data-f'),1024));
     case 'zoomx': return closeZoom();
     case 'mzoom': readForm();return openZoom(S.modal.f.files[+el.getAttribute('data-i')]);
     case 'foto': {
