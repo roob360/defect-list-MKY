@@ -999,14 +999,14 @@ function klTambahHtml(){
 }
 function klRuangHtml(){
   var T=tree(),nr=0;T.forEach(function(g){g.lantai.forEach(function(l){nr+=l.ruangan.length})});
-  var h='<div class="klbar"><label class="sinp">'+ic('search')+'<input type="text" id="klq" placeholder="Cari ruangan, lantai, atau gedung" autocomplete="off" value="'+esc(S.klq||'')+'"></label></div>'+
+  var h='<div class="klside"><div class="klbar"><label class="sinp">'+ic('search')+'<input type="text" id="klq" placeholder="Cari ruangan, lantai, atau gedung" autocomplete="off" value="'+esc(S.klq||'')+'"></label></div>'+
     '<div class="klact"><button type="button" class="btn klplus'+(S.klTambah?' sec':'')+'" data-act="kltambah" aria-pressed="'+!!S.klTambah+'">'+ic(S.klTambah?'x':'plus')+(S.klTambah?'Tutup':'Tambah')+'</button>'+
     '<button type="button" class="btn sec klsek'+(S.klNon?' on':'')+'" data-act="klnon" aria-pressed="'+!!S.klNon+'">'+ic('arsip')+'Nonaktif'+(S.klNonList?' '+S.klNonList.length:'')+'</button>'+
     '<button type="button" class="btn sec klsek" data-act="klxls">'+ic('excel')+'Excel</button></div>';
   if(S.klTambah)h+=klTambahHtml();
   h+=klIsuHtml();
   if(S.klNon)h+=klNonHtml();
-  return h+'<div class="aqcnt klcnt"><span>'+T.length+' gedung &middot; '+nr+' ruangan</span><span class="klln"><button type="button" class="aqreset" data-act="klsemua" data-v="1">Buka semua</button><button type="button" class="aqreset" data-act="klsemua" data-v="0">Tutup semua</button></span></div><div id="kllist">'+klListHtml()+'</div>';
+  return h+'</div><div class="klmain"><div class="aqcnt klcnt"><span>'+T.length+' gedung &middot; '+nr+' ruangan</span><span class="klln"><button type="button" class="aqreset" data-act="klsemua" data-v="1">Buka semua</button><button type="button" class="aqreset" data-act="klsemua" data-v="0">Tutup semua</button></span></div><div id="kllist">'+klListHtml()+'</div></div>';
 }
 function klGlHtml(){
   var ms=S.klMs;
@@ -1052,7 +1052,7 @@ function kelolaHtml(){
   if(tab==='gl'&&!S.klMs&&!S.klMsBusy)klMuatMs();
   var tabs='<div class="seg kltabs" role="tablist" aria-label="Bagian Kelola">'+KL_TAB.map(function(x){return '<button type="button" class="'+(tab===x[0]?'on':'')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-act="kltab" data-v="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>';
   var isi=tab==='gl'?klGlHtml():tab==='imp'?impHtml():tab==='isian'?regAdminHtml():tab==='lain'?klLainHtml():klRuangHtml();
-  if(desk())return '<div class="bhead"><div><h1>Kelola</h1><div class="bsub">Ruangan, gedung dan lantai, impor, dan laporan massal &middot; '+esc(S.paket.nama)+'</div></div></div><div class="kwrap">'+tabs+isi+'</div>';
+  if(desk())return '<div class="bhead"><div><h1>Kelola</h1><div class="bsub">Ruangan, gedung dan lantai, impor, dan laporan massal &middot; '+esc(S.paket.nama)+'</div></div></div><div class="kwrap k-'+tab+'">'+tabs+isi+'</div>';
   return '<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Kelola</h1></div>'+tabs+isi;
 }
 async function klMuatMs(){

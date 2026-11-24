@@ -856,6 +856,20 @@
   .klbad{ margin:0 16px 8px; font-size:13px; } .klbad summary{ cursor:pointer; color:var(--red-text); } .klbad ul{ margin:6px 0 0 18px; padding:0; }
   .klimpa{ padding:0 16px 12px; }
   @media (max-width:520px){ .klr{ flex-wrap:wrap; } .klc{ order:2; } .kla{ order:3; width:100%; justify-content:flex-start; } .klglh{ flex-wrap:wrap; } }
+  /* Kelola di desktop lebar: Ruangan dua kolom (kontrol kiri, daftar gedung kanan); Gedung dan lantai berupa kartu berdampingan. Mobile tidak berubah. */
+  @media (min-width:1100px){
+    body.bento .kwrap{ max-width:none; }
+    body.bento .kwrap .kltabs{ max-width:560px; }
+    body.bento .kwrap.k-ruang{ display:grid; grid-template-columns:minmax(320px,380px) minmax(0,1fr); column-gap:24px; align-items:start; }
+    body.bento .kwrap.k-ruang > .kltabs{ grid-column:1 / -1; }
+    body.bento .kwrap.k-ruang .klside, body.bento .kwrap.k-ruang .klmain{ min-width:0; }
+    body.bento .kwrap.k-ruang .klside{ position:sticky; top:16px; }
+    body.bento .kwrap.k-ruang .klact{ flex-wrap:wrap; } body.bento .kwrap.k-ruang .klact .klplus{ flex:1 1 100%; }
+    body.bento .kwrap.k-ruang .klact .klsek{ flex:1 1 0; justify-content:center; }
+    body.bento .kwrap.k-gl{ display:grid; grid-template-columns:repeat(auto-fill,minmax(440px,1fr)); gap:16px; align-items:start; }
+    body.bento .kwrap.k-gl > .kltabs{ grid-column:1 / -1; margin-bottom:0; }
+    body.bento .kwrap.k-gl > .group{ margin:0; }
+  }
   .mk.lnk{ cursor:pointer; } .mk.lnk.on{ background:var(--blue-fill); outline:2px solid var(--blue); }
   .t tr.lnkrow{ cursor:pointer; } .t tr.lnkrow.on td{ background:var(--blue-fill); }
   .rkaktif, .rkhal, .tbf{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0 0 10px; }
