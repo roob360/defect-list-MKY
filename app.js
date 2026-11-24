@@ -112,7 +112,7 @@ function api(aksi,p){
    coba URL Drive lama, lalu ambil lewat server (foto_data) sebagai data URL. Diproses satu per satu. */
 var FOTO_COBA={},FOTO_ANTRE=Promise.resolve();
 document.addEventListener('error',function(ev){
-  var im=ev.target;if(!im||im.tagName!=='IMG'||!im.src||im.src.indexOf('data:')===0)return;
+  var im=ev.target;if(!im||im.tagName!=='IMG'||!im.src||im.src.indexOf('data:')===0||im.classList.contains('zprev'))return;
   var m=/googleusercontent\.com\/d\/([^=\/?]+)=|thumbnail\?id=([^&]+)/.exec(im.src);if(!m)return;
   var id=decodeURIComponent(m[1]||m[2]),w=im.closest&&im.closest('.zoom')?1024:400,n=FOTO_COBA[id]||0;
   FOTO_COBA[id]=n+1;
@@ -130,7 +130,7 @@ function fotoGagal(im,id){
   var zm=im.closest&&im.closest('.zoom');
   if(zm){
     if(zm.querySelector('.fgagal'))return;
-    im.style.display='none';
+    im.style.display='none';var zv=zm.querySelector('.zprev');if(zv)zv.remove();
     var d=document.createElement('button');d.type='button';d.className='fgagal';d.setAttribute('data-act','fotocoba');d.setAttribute('data-id',id);
     d.innerHTML='<b>Foto belum bisa dimuat</b><span>Ketuk untuk coba lagi</span>';
     zm.insertBefore(d,im.nextSibling);
@@ -294,6 +294,47 @@ function petunjukPasang(){
   if(PROMPT_PASANG){lsSet('dl-pasang','1');toastAksi('Pasang aplikasi di layar utama agar lebih cepat dibuka.','Pasang',function(){var p=PROMPT_PASANG;PROMPT_PASANG=null;try{p.prompt()}catch(e){}});return}
   if(/iPhone|iPad|iPod/.test(navigator.userAgent)){lsSet('dl-pasang','1');toast('Untuk memasang: ketuk Bagikan, lalu Tambah ke Layar Utama.')}
 }
+/** Penampil foto penuh: cubit untuk zoom, ketuk dua kali untuk memperbesar atau mengembalikan, geser saat diperbesar, seret ke bawah untuk menutup (roda tetikus untuk zoom di komputer). */
+(function(){
+  var ps={},s=1,tx=0,ty=0,d0=0,s0=1,tapT=0,gerak=0,img=null,sx=0,sy=0;
+  function ov(){return img&&img.closest('.ov.zoom')}
+  function ap(snap){if(!img)return;img.style.transition=snap?'transform .22s cubic-bezier(.3,.9,.3,1)':'none';img.style.transform='translate('+tx+'px,'+ty+'px) scale('+s+')';var o=ov();if(o)o.style.background=s===1&&ty>0?'rgba(0,0,0,'+Math.max(.2,.9*(1-ty/420))+')':''}
+  function jarak(){var k=Object.keys(ps);if(k.length<2)return 0;var a=ps[k[0]],b=ps[k[1]];return Math.hypot(a.x-b.x,a.y-b.y)}
+  function batas(){if(s<=1){tx=0;if(ty<0)ty=0;return}var w=img.clientWidth*(s-1)/2,h=img.clientHeight*(s-1)/2;tx=Math.max(-w,Math.min(w,tx));ty=Math.max(-h,Math.min(h,ty))}
+  document.addEventListener('pointerdown',function(e){
+    var im=e.target.closest&&e.target.closest('.ov.zoom img');if(!im)return;
+    if(img!==im){img=im;s=1;tx=ty=0;ps={}}
+    ps[e.pointerId]={x:e.clientX,y:e.clientY};gerak=0;sx=e.clientX;sy=e.clientY;
+    try{im.setPointerCapture(e.pointerId)}catch(x){}
+    if(Object.keys(ps).length===2){d0=jarak();s0=s}
+  });
+  document.addEventListener('pointermove',function(e){
+    if(!img||!ps[e.pointerId])return;
+    var p=ps[e.pointerId],dx=e.clientX-p.x,dy=e.clientY-p.y;ps[e.pointerId]={x:e.clientX,y:e.clientY};
+    gerak=Math.max(gerak,Math.hypot(e.clientX-sx,e.clientY-sy));
+    if(Object.keys(ps).length>=2){if(d0)s=Math.max(1,Math.min(5,s0*jarak()/d0))}
+    else{tx+=dx;ty+=dy}
+    batas();ap(false);
+  });
+  function lepas(e){
+    if(!img||!ps[e.pointerId])return;
+    delete ps[e.pointerId];
+    if(Object.keys(ps).length)return;
+    var tap=gerak<8,now=Date.now();
+    if(tap&&now-tapT<320){tapT=0;if(s>1.05){s=1;tx=ty=0}else s=2.5;batas();ap(true);return}
+    if(tap)tapT=now;
+    if(s<1.05){
+      if(ty>110){closeZoom();return}
+      s=1;tx=ty=0;ap(true);
+    }
+  }
+  document.addEventListener('pointerup',lepas);document.addEventListener('pointercancel',lepas);
+  document.addEventListener('wheel',function(e){
+    var im=e.target.closest&&e.target.closest('.ov.zoom img');if(!im)return;
+    e.preventDefault();if(img!==im){img=im;s=1;tx=ty=0;ps={}}
+    s=Math.max(1,Math.min(5,s*(e.deltaY<0?1.15:1/1.15)));if(s<1.02){s=1;tx=ty=0}batas();ap(false);
+  },{passive:false});
+})();
 /** Tekan lama tombol tambah (+) di dock: langsung membuka form dengan kamera, satu langkah lebih sedikit saat mencatat di lapangan. */
 (function(){
   var tm=0,lp=false;
@@ -1289,7 +1330,9 @@ var ovTm=0;
 function renderOverlay(){
   var h='';
   if(S.busy)h='<div class="ov mid" style="z-index:90"><div class="sheet"><div class="busy"><div class="spin d"></div><span>'+esc(S.busy)+'</span></div>'+(S.zipRun?'<button type="button" class="btn sec" data-act="zipbatal" style="margin-top:10px">Batal</button>':'')+'</div></div>';
-  else if(S.zoom)h='<div class="ov zoom" data-act="zoomx"><img alt="Foto" referrerpolicy="no-referrer" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button>'+'</div>';
+  else if(S.zoom){
+    var zp=/=w1024$/.test(S.zoom)?S.zoom.replace(/=w1024$/,'=w400'):'';   // pratinjau buram dari thumbnail yang sudah ada, sampai foto tajam termuat
+    h='<div class="ov zoom'+(zp?' lm':'')+'" data-act="zoomx">'+(zp?'<img class="zprev" alt="" referrerpolicy="no-referrer" src="'+esc(zp)+'">':'')+'<img'+(zp?' class="zmain"':'')+' alt="Foto" referrerpolicy="no-referrer" src="'+esc(S.zoom)+'"><button type="button" class="btn-ic" data-act="zoomx" aria-label="Tutup">'+ic('x')+'</button>'+'</div>';}
   else if(S.file&&desk()){
     var ext=(String(S.file.name).split('.').pop()||'').toUpperCase(),kb=S.file.size/1024,uk=kb>=1024?(kb/1024).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(kb))+' KB',pdf=ext==='PDF';
     h='<div class="ov mid"><div class="sheet gap fileok" role="dialog" aria-label="File siap"><span class="okc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><h2>File siap</h2><div class="note c">Dibuat di komputer ini, tanpa unggah ke server</div>'+
@@ -3058,6 +3101,7 @@ document.addEventListener('keydown',function(e){
 });
 /* Pengganti onload/onerror inline pada thumbnail (tahap capture, karena load/error tidak menggelembung). */
 document.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.thumb')){t.style.opacity='';t.classList.add('in');t.closest('.thumb').classList.add('ok')}},true);   // opacity dibersihkan: foto cadangan yang berhasil dimuat tidak boleh tetap redup
+document.addEventListener('load',function(e){var t=e.target;if(t&&t.tagName==='IMG'&&t.classList.contains('zmain')){var o=t.closest('.ov.zoom');if(o)o.classList.add('ld')}},true);
 document.addEventListener('error',function(e){var t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.thumb')){t.classList.add('in');t.style.opacity=.25;var th=t.closest('.thumb');setTimeout(function(){th.classList.add('ok')},6000)}},true);   // kilau berhenti setelah cadangan foto sempat mencoba
 
 async function tambahRuangan(){

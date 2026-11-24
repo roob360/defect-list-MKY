@@ -296,6 +296,11 @@
   .busy{ display:flex; align-items:center; gap:14px; justify-content:center; padding:10px 0; font-weight:600; }
   .zoom{ background:#000000e6; align-items:center; }
   .zoom img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .zoom .zprev{ position:absolute; max-width:100%; max-height:100%; object-fit:contain; filter:blur(14px); transform:scale(1.03); pointer-events:none; }
+  .zoom img.zmain{ opacity:0; }
+  .zoom.ld img.zmain{ opacity:1; } .zoom.ld .zprev{ display:none; }
+  html:not(.hemat) .zoom img.zmain{ transition:opacity .28s ease-out; }
+  #overlay .ov.zoom img{ touch-action:none; -webkit-user-drag:none; user-select:none; will-change:transform; }
   .zoom .zcoret{ position:absolute; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 24px); width:auto; padding:0 22px; background:#ffffff33; color:#fff; }
   .zoom .btn-ic{ position:absolute; top:calc(env(safe-area-inset-top,0px) + 12px); right:12px; background:#ffffff33; color:#fff; }
   .toast{ position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 22px); transform:translateX(-50%); z-index:80; max-width:min(92vw,460px);
