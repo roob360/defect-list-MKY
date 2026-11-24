@@ -412,6 +412,15 @@ function aksiPintas(){
 }
 /** Lencana angka di ikon aplikasi terpasang (jumlah yang perlu tindakan, sama dengan angka di dock). Dihapus saat keluar. */
 var BADGE_N=-1;
+/** Lencana angka di ikon baru tampil di banyak HP bila aplikasi punya izin notifikasi. Diminta sekali saja, hanya di aplikasi terpasang, dan hanya saat ada angka yang bisa ditampilkan. Tidak ada notifikasi push. */
+function mintaIzinLencana(){
+  try{
+    if(!window.Notification||Notification.permission!=='default'||lsGet('dl-izin'))return;
+    var mandiri=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;if(!mandiri)return;
+    lsSet('dl-izin','1');
+    toastAksi('Izinkan notifikasi agar angka yang perlu ditindak tampil di ikon aplikasi.','Izinkan',function(){try{Notification.requestPermission().then(function(){BADGE_N=-1;appBadge()})}catch(e){}});
+  }catch(e){}
+}
 function appBadge(){
   if(!navigator.setAppBadge)return;
   var n=0;
@@ -420,6 +429,7 @@ function appBadge(){
     n=isAdmin()?nV+nP+nM:isPJ()?nP+nM:nV+nM;
   }
   if(n===BADGE_N)return;BADGE_N=n;
+  if(n>0)mintaIzinLencana();
   try{(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(function(){})}catch(e){}
 }
 async function loadRooms(){
