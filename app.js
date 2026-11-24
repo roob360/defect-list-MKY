@@ -1073,6 +1073,7 @@ function kelolaHtml(){
   if(!S.roomsReady&&!S.rooms.length)return '<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Kelola</h1></div>'+skel('kelola');
   var tab=S.klTab;
   if(tab==='gl'&&!S.klMs&&!S.klMsBusy)klMuatMs();
+  if(tab==='isian'&&S.regOk&&S.reg&&!S.rg.pakai&&!S.rg.memuat&&!S.rg.gagal)rgMuatPakai();
   var tabs='<div class="seg kltabs" role="tablist" aria-label="Bagian Kelola">'+KL_TAB.map(function(x){return '<button type="button" class="'+(tab===x[0]?'on':'')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-act="kltab" data-v="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>';
   var isi=tab==='gl'?klGlHtml():tab==='imp'?impHtml():tab==='isian'?regAdminHtml():tab==='lain'?klLainHtml():klRuangHtml();
   if(desk())return '<div class="bhead"><div><h1>Kelola</h1><div class="bsub">Ruangan, gedung dan lantai, impor, dan laporan massal &middot; '+esc(S.paket.nama)+'</div></div></div><div class="kwrap k-'+tab+'">'+tabs+isi+'</div>';
@@ -1419,6 +1420,31 @@ window.addEventListener('popstate',function(){
 });
 
 /* ---------- perapian daftar isian (ADMIN, tab Kelola) ---------- */
+/** Ringkas daftar kode satu kelompok: "A sampai E" bila rapat, selain itu jumlah kodenya. */
+function rgRentang(kodes){
+  var n=kodes.map(function(c){return String(c.n)}).sort(L.bandingAlami);if(!n.length)return '';
+  var huruf=n.every(function(x){return /^[A-Z]$/.test(x)}),angka=n.every(function(x){return /^[0-9]+$/.test(x)});
+  if(huruf&&n[n.length-1].charCodeAt(0)-n[0].charCodeAt(0)===n.length-1)return n.length===1?n[0]:n[0]+' sampai '+n[n.length-1];
+  if(angka&&+n[n.length-1]-+n[0]===n.length-1)return n.length===1?n[0]:n[0]+' sampai '+n[n.length-1];
+  return n.length+' kode';
+}
+/** Contoh hasil penambahan grid, diperbarui langsung saat mengetik. */
+function rgPrevTeks(k,p,d,s){
+  k=L.rapi(k);
+  if(!k&&!d&&!s)return 'Contoh: T3-A, T3-B, T3-C';
+  if(!k)return 'Isi nama grid, misalnya T3.';
+  var ek=expansiKode(d,s);if(ek.err)return ek.err;
+  var nm=ek.kode.map(function(c){return k+p+c}),n=nm.length;
+  return 'Hasil: '+(n>6?nm.slice(0,5).join(', ')+', ... '+nm[n-1]:nm.join(', '))+' ('+n+' garis)';
+}
+function rgPrevSegar(){var el=$('rgPrev');if(!el)return;el.textContent=rgPrevTeks($('rgK').value,$('rgP').value,$('rgD').value,$('rgS').value)}
+document.addEventListener('input',function(e){var i=e.target&&e.target.id;if(i==='rgK'||i==='rgD'||i==='rgS')rgPrevSegar()});
+document.addEventListener('change',function(e){if(e.target&&e.target.id==='rgP')rgPrevSegar()});
+async function rgMuatPakai(){
+  S.rg.memuat=true;S.rg.gagal=false;
+  try{S.rg.pakai=await api('registri_pakai')}catch(e){S.rg.gagal=true}
+  S.rg.memuat=false;if(S.view==='kelola'&&S.klTab==='isian')render();
+}
 function rgArea(){
   var T=tree();if(!T.length)return '';
   if(!T.some(function(g){return g.nama===S.rg.area}))S.rg.area=T[0].nama;
@@ -1451,7 +1477,7 @@ function regAdminHtml(){
   if(!S.regOk||!S.reg)return h+'<div class="gf">Server belum mendukung daftar isian. Pasang Kode.gs terbaru lalu jalankan siapkan().</div></section>';
   var T=tree(),a=rgArea();
   h+='<div class="list"><label class="row"><span class="lbl">Area</span><select data-rg="area">'+T.map(function(g){return '<option value="'+esc(g.nama)+'"'+(g.nama===a?' selected':'')+'>'+esc(g.nama)+'</option>'}).join('')+'</select></label></div>';
-  if(!S.rg.pakai)return h+'<div class="gf">Kelompok grid dan Elemen terbentuk sendiri dari temuan. Di sini admin merapikan yang salah ketik.</div><div class="acts" style="padding-top:0;padding-bottom:14px"><button type="button" class="pill" data-act="rgmuat">Tampilkan daftar</button></div></section>';
+  if(!S.rg.pakai)return h+(S.rg.gagal?'<div class="gf">Daftar belum bisa dimuat.</div><div class="acts" style="padding-top:0;padding-bottom:14px"><button type="button" class="pill" data-act="rgmuat">Coba lagi</button></div>':'<div class="gf" role="status">Memuat daftar isian...</div>')+'</section>';
   var P=S.rg.pakai,ka=L.kunci(a);
   var kand=rgKandidat(a);
   if(kand.length){
@@ -1461,12 +1487,12 @@ function regAdminHtml(){
   }
   var kels=S.reg.kelompok.filter(function(e){return L.kunci(e.area)===ka}).sort(function(x,y){return L.bandingNama(x.k,y.k)});
   var tanpa=S.reg.kode.filter(function(e){return L.kunci(e.area)===ka&&e.k===''});
-  h+='<div class="note" style="font-weight:600;padding-top:12px">Kelompok grid</div><div class="list">';
-  if(!kels.length&&!tanpa.length)h+='<div class="gf">Belum ada. Terbentuk otomatis dari temuan, atau isi awal di bawah.</div>';
+  h+='<div class="note" style="font-weight:600;padding-top:12px">Grid yang sudah ada</div><div class="list">';
+  if(!kels.length&&!tanpa.length)h+='<div class="gf">Belum ada. Terbentuk otomatis dari temuan, atau tambahkan sekaligus di bawah.</div>';
   function kodeTags(k,list){return '<div class="meta" style="padding:8px 0 0">'+list.sort(function(x,y){return L.bandingAlami(x.n,y.n)}).map(function(c){var nn=P.kode[ka+'|'+k+'|'+c.n]||0;return '<button type="button" class="tag" style="border:0;cursor:pointer" data-act="rgatur" data-j="kode" data-k="'+esc(k)+'" data-n="'+esc(c.n)+'">'+esc(c.n)+' · '+nn+'</button>'}).join('')+'</div>'}
   kels.forEach(function(e){
     var n=P.kelompok[ka+'|'+e.k]||0,kodes=S.reg.kode.filter(function(x){return L.kunci(x.area)===ka&&x.k===e.k});
-    h+='<div class="row"><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0"><b>'+esc(e.k)+'</b> <span class="tag">'+(e.pem===''?'tanpa pemisah':'pemisah '+esc(e.pem))+'</span> <span class="tag">'+n+' temuan</span></span><button type="button" class="pill" data-act="rgatur" data-j="kelompok" data-k="'+esc(e.k)+'">Atur</button></div>'+kodeTags(e.k,kodes)+'</div>';
+    h+='<div class="row"><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0"><b>'+esc(e.k)+'</b> <span class="tag">'+(e.pem===''?'tanpa pemisah':'pemisah '+esc(e.pem))+'</span> <span class="tag">'+n+' temuan</span>'+(kodes.length?' <span class="tag">'+esc(rgRentang(kodes))+'</span>':'')+'</span><button type="button" class="pill" data-act="rgatur" data-j="kelompok" data-k="'+esc(e.k)+'">Atur</button></div>'+kodeTags(e.k,kodes)+'</div>';
   });
   if(tanpa.length)h+='<div class="row"><b>(tanpa kelompok)</b>'+kodeTags('',tanpa)+'</div>';
   h+='</div>';
@@ -1478,10 +1504,10 @@ function regAdminHtml(){
       return '<div class="row" style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0;overflow-wrap:anywhere"><b>'+esc(e.nama)+'</b> <span class="tag">'+n+' temuan</span>'+(e.mode?' <span class="tag">'+esc(e.mode)+'</span>':'')+'</span><button type="button" class="pill" data-act="rgatur" data-j="elemen" data-b="'+esc(b)+'" data-nama="'+esc(e.nama)+'">Atur</button></div>'}).join('')+'</div>';
   });
   if(adaEl)h+='<div class="note" style="font-weight:600;padding-top:12px">Elemen</div>'+hE;
-  h+='<div class="note" style="font-weight:600;padding-top:12px">Isi awal dari gambar kerja</div><div class="list">'+
+  h+='<div class="note" style="font-weight:600;padding-top:12px">Tambah grid</div><div class="note" style="padding-top:2px">Tulis nama sumbu pada gambar kerja, misalnya T3, lalu rentang kodenya (A sampai E atau 1 sampai 20). Semua garisnya ditambahkan sekaligus.</div><div class="list">'+
     '<div class="two"><label class="row"><span class="lbl">Kelompok</span><input type="text" id="rgK" placeholder="Mis. T3" autocomplete="off"></label><label class="row"><span class="lbl">Pemisah</span><select id="rgP"><option value="-">T3-C</option><option value=".">T3.C</option><option value="">T3C</option></select></label></div>'+
     '<div class="two"><label class="row"><span class="lbl">Kode dari</span><input type="text" id="rgD" placeholder="A atau 1" autocomplete="off"></label><label class="row"><span class="lbl">sampai</span><input type="text" id="rgS" placeholder="E atau 20" autocomplete="off"></label></div></div>'+
-    '<div class="acts" style="padding-top:12px;padding-bottom:14px"><button type="button" class="pill" data-act="rgseed">'+ic('plus')+'Tambahkan</button><button type="button" class="pill" data-act="rgmuat">'+ic('refresh')+'Muat ulang</button></div></section>';
+    '<div class="acts" style="padding-top:12px;padding-bottom:14px"><div class="note" id="rgPrev" role="status" style="width:100%;padding:0 0 8px">'+esc(rgPrevTeks('','-','',''))+'</div><button type="button" class="pill" data-act="rgseed">'+ic('plus')+'Tambahkan</button><button type="button" class="pill" data-act="rgmuat">'+ic('refresh')+'Muat ulang</button></div></section>';
   return h;
 }
 /** Jumlah temuan yang memakai entri m (dari hitungan pemakaian terakhir). */
@@ -2523,7 +2549,7 @@ async function onClick(ev){
     case 'msimpanlagi': return saveForm(true);
     case 'pdfbidang': {var sb=ensureSel(tree());var lb=lsGet('dl-bidang');openModal({t:'pdfbidang',g:sb?sb.g.nama:'',b:BIDANG.indexOf(lb)>=0?lb:BIDANG[0]});return}
     case 'pdfbidangya': {var pg=$('pbG').value,pb=$('pbB').value;lsSet('dl-bidang',pb);closeModal();return exportPdfBidang(pg,pb)}
-    case 'rgmuat': {var pk=await work('Memuat...',function(){return api('registri_pakai')});if(pk){S.rg.pakai=pk;render()}return}
+    case 'rgmuat': {S.rg.gagal=false;var pk=await work('Memuat...',function(){return api('registri_pakai')});if(pk){S.rg.pakai=pk;render()}return}
     case 'rgatur': {openModal({t:'rgatur',j:el.getAttribute('data-j'),area:rgArea(),k:el.getAttribute('data-k')||'',n:el.getAttribute('data-n')||'',bidang:el.getAttribute('data-b')||'',nama:el.getAttribute('data-nama')||''});return}
     case 'rgpem': {
       var mp=S.modal;closeModal();
@@ -2752,7 +2778,7 @@ document.addEventListener('click',onClick);
 document.addEventListener('change',function(e){
   if((e.target.id==='pbG'||e.target.id==='pbB')&&$('pbinfo')){var ti=pbInfo($('pbG').value,$('pbB').value);if(ti)$('pbinfo').textContent=ti;return}
   if(e.target.id==='rkG'){S.rkG=e.target.value;render();return}
-  if(e.target.getAttribute&&e.target.getAttribute('data-rg')==='area'){S.rg.area=e.target.value;S.rg.pakai=null;render();return}
+  if(e.target.getAttribute&&e.target.getAttribute('data-rg')==='area'){S.rg.area=e.target.value;render();return}
   if((e.target.id==='fG'||e.target.id==='fL')&&S.modal&&S.modal.t==='temuan'){
     fBaca();var fg=S.modal.f;fg.konfirmasiBaru=false;
     if(e.target.id==='fG'){
