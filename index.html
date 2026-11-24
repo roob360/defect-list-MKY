@@ -385,6 +385,18 @@
   .riw .rw div span{ display:block; font-size:13px; line-height:18px; color:var(--label2); }
   /* garis biru fokus hanya untuk navigasi papan ketik, bukan setelah klik atau fokus yang dikembalikan lewat skrip */
   html:not(.kbd) .eh.tap:focus, html:not(.kbd) .eh.tap:focus-visible, html:not(.kbd) [tabindex]:focus, html:not(.kbd) [role="button"]:focus{ outline:none; }
+  /* Kontras tinggi: teks sekunder dan garis pemisah lebih tegas */
+  html[data-kon="tinggi"]{ --label2:#2c2c2e; --label3:#48484a; --sep:#0000005c; --fill3:#76768033; }
+  @media (prefers-color-scheme:dark){ html[data-kon="tinggi"]:not([data-tema="terang"]){ --label2:#ffffffe6; --label3:#ffffffb3; --sep:#ffffff66; --fill3:#76768066; } }
+  html[data-tema="gelap"][data-kon="tinggi"]{ --label2:#ffffffe6; --label3:#ffffffb3; --sep:#ffffff66; --fill3:#76768066; }
+  /* Tur pertama kali masuk */
+  .tur{ position:fixed; inset:0; z-index:90; }
+  .tur .tspot{ position:fixed; box-shadow:0 0 0 9999px #000000a6; pointer-events:none; transition:left .25s ease, top .25s ease, width .25s ease, height .25s ease; }
+  .tur .tcard{ position:fixed; padding:16px 18px 14px; border-radius:20px; background:var(--gbg2); color:var(--label1); box-shadow:0 18px 50px #00000066; }
+  .tur .tn{ font-size:12px; color:var(--label2); font-weight:600; letter-spacing:.3px; }
+  .tur .tj{ display:block; font-size:19px; line-height:24px; margin:2px 0 4px; }
+  .tur .tt{ margin:0 0 12px; font-size:15px; line-height:21px; color:var(--label2); }
+  .tur .tb{ display:flex; gap:10px; } .tur .tb .btn{ min-height:44px; flex:1; }
   /* Pengaturan per bagian */
   .setb > .cap{ margin:0 4px 8px; }
   .setb > * + *{ margin-top:10px; }

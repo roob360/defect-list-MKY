@@ -71,6 +71,14 @@ function applyTema(){
   var dark=S.tema==='gelap'||(S.tema!=='terang'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
   var tc=document.getElementById('tc');if(tc)tc.setAttribute('content',dark?'#000000':'#f2f2f7');
 }
+/** Ukuran tampilan (Normal, Besar, Lebih besar) dan kontras tinggi (mengikuti pengaturan HP bila dipilih Sistem). */
+var FS_SKALA={normal:'',besar:'1.12',lebih:'1.25'};
+function applyTampilan(){
+  var r=document.documentElement;
+  r.style.zoom=FS_SKALA[S.fs]||'';
+  var tinggi=S.kon==='tinggi'||(S.kon!=='biasa'&&window.matchMedia&&matchMedia('(prefers-contrast: more)').matches);
+  if(tinggi)r.setAttribute('data-kon','tinggi');else r.removeAttribute('data-kon');
+}
 function bersihCache(){
   var p=[];
   try{if(navigator.serviceWorker)p.push(navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}))}catch(e){}
@@ -464,6 +472,58 @@ async function riwayatMuat(d){
     b2.innerHTML=riwayatHtml(l);s2.hidden=false;
   }catch(e){var s3=$('riw');if(s3)s3.hidden=true}
 }
+/** Tur singkat sekali per perangkat setelah masuk: sorot tombol utama sesuai peran. Tidak berjalan di browser otomatis (uji) kecuali dipaksa. */
+var TUR=null;
+function turLangkah(){
+  var L=[];
+  function add(sel,judul,teks){var e=document.querySelector(sel);if(e&&e.getBoundingClientRect().width>0)L.push({e:e,j:judul,t:teks})}
+  if(canEdit()){
+    add('#dock .dockadd','Catat temuan','Ketuk + untuk mencatat temuan baru. Di HP, kamera langsung terbuka. Tekan lama + untuk kamera kapan saja.');
+    add('#dock [data-v="rekap"]','Rekap','Ringkasan temuan per ruangan dan per bidang, juga unduhan Excel dan PDF.');
+    add('#dock [data-v="verif"]','Verifikasi','Temuan yang sudah punya foto After menunggu keputusan Anda di sini.');
+    add('#dock [data-v="lain"]','Lainnya','Verifikasi, Perbaikan, dan Memo ada di sini.');
+  }else{
+    add('#dock [data-v="form"]','Temuan','Daftar temuan yang perlu dilihat. Ketuk kartu untuk detail lengkap dan riwayatnya.');
+    add('#dock [data-v="perbaikan"]','Perbaikan','Temuan yang perlu Anda kerjakan: mulai perbaikan, lalu unggah foto After.');
+    add('#dock [data-v="memo"]','Memo','Site memo yang menunggu tindak lanjut Anda.');
+  }
+  add('#bProf','Pengaturan','Tema, ukuran tampilan, ganti paket, dan keluar ada di ikon akun.');
+  return L;
+}
+function turMulai(paksa){
+  if(TUR)return;
+  var uji=navigator.webdriver&&!lsGet('dl-tur-uji');
+  if(!paksa&&(uji||lsGet('dl-tur')==='1'))return;
+  if(!S.user||!S.paket||S.modal||S.zoom||S.file||S.busy)return;
+  var L=turLangkah();if(!L.length)return;
+  var el=document.createElement('div');el.className='tur';el.id='tur';el.setAttribute('role','dialog');el.setAttribute('aria-label','Panduan singkat');
+  el.innerHTML='<div class="tspot"></div><div class="tcard"><div class="tn"></div><b class="tj"></b><p class="tt"></p><div class="tb"><button type="button" class="btn sec" data-tur="lewati">Lewati</button><button type="button" class="btn" data-tur="lanjut">Lanjut</button></div></div>';
+  document.body.appendChild(el);
+  TUR={el:el,L:L,i:0};turTampil();
+}
+function turTampil(){
+  var T=TUR;if(!T)return;var st=T.L[T.i],e=st.e,el=T.el;
+  try{e.scrollIntoView({block:'nearest'})}catch(x){}
+  var r=e.getBoundingClientRect(),sp=el.querySelector('.tspot'),cd=el.querySelector('.tcard');
+  sp.style.left=(r.left-6)+'px';sp.style.top=(r.top-6)+'px';sp.style.width=(r.width+12)+'px';sp.style.height=(r.height+12)+'px';
+  sp.style.borderRadius=Math.min(r.height/2+6,26)+'px';
+  el.querySelector('.tn').textContent=(T.i+1)+' dari '+T.L.length;el.querySelector('.tj').textContent=st.j;el.querySelector('.tt').textContent=st.t;
+  el.querySelector('[data-tur="lanjut"]').textContent=T.i===T.L.length-1?'Selesai':'Lanjut';
+  var lebar=Math.min(320,window.innerWidth-32),kiri=Math.max(16,Math.min(window.innerWidth-lebar-16,r.left+r.width/2-lebar/2));
+  cd.style.width=lebar+'px';cd.style.left=kiri+'px';
+  var tinggi=cd.offsetHeight||170,atas=r.top-tinggi-16;
+  cd.style.top=(atas>=16?atas:Math.min(window.innerHeight-tinggi-16,r.bottom+16))+'px';
+}
+function turSelesai(){
+  if(!TUR)return;TUR.el.remove();TUR=null;lsSet('dl-tur','1');
+}
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest&&ev.target.closest('[data-tur]');if(!b||!TUR)return;
+  ev.stopPropagation();ev.preventDefault();
+  if(b.getAttribute('data-tur')==='lewati'||TUR.i>=TUR.L.length-1)return turSelesai();
+  TUR.i++;turTampil();
+},true);
+window.addEventListener('resize',function(){if(TUR)turTampil()});
 /** Riwayat pencarian: enam pencarian terakhir muncul sebagai chip saat kolom cari difokuskan dalam keadaan kosong. */
 (function(){
   var KEY='dl-riwayat';
@@ -1605,14 +1665,18 @@ function modalHtml(){
       [['sistem','Sistem'],['terang','Terang'],['gelap','Gelap']].map(function(o){return '<button type="button" data-act="tema" data-v="'+o[0]+'" class="ico'+(S.tema===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>';
     var anim='<div><div class="cap" style="margin:0 4px 8px">Animasi</div><div class="seg">'+
       [['sistem','Sistem'],['penuh','Penuh'],['hemat','Hemat']].map(function(o){return '<button type="button" data-act="anim" data-v="'+o[0]+'" class="ico'+(S.anim===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>';
+    var ukuran='<div><div class="cap" style="margin:0 4px 8px">Ukuran tampilan</div><div class="seg">'+
+      [['normal','Normal'],['besar','Besar'],['lebih','Lebih besar']].map(function(o){return '<button type="button" data-act="fs" data-v="'+o[0]+'" class="'+(S.fs===o[0]?'on':'')+'">'+o[1]+'</button>'}).join('')+'</div></div>';
+    var kontras='<div><div class="cap" style="margin:0 4px 8px">Kontras</div><div class="seg">'+
+      [['sistem','Sistem'],['biasa','Biasa'],['tinggi','Tinggi']].map(function(o){return '<button type="button" data-act="kon" data-v="'+o[0]+'" class="'+(S.kon===o[0]?'on':'')+'">'+o[1]+'</button>'}).join('')+'</div></div>';
     return '<div class="ov pop" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Pengaturan"><div class="grab" aria-hidden="true"></div><h2>Pengaturan</h2>'+
       '<section class="setb"><div class="cap">Akun</div>'+
       (us?'<div class="ucard"><span class="av" aria-hidden="true">'+esc((us.nama||'?').trim().charAt(0).toUpperCase())+'</span><div><b>'+esc(us.nama)+'</b><span>'+esc(us.peran)+' &middot; '+esc(S.paket.nama)+'</span></div></div>':'')+
       (M_?M_.setelanHtml():'')+
       (us?'<button type="button" class="btn sec" data-act="ganti">'+ic('swap')+'Ganti paket</button>':'')+'</section>'+
-      '<section class="setb"><div class="cap">Tampilan</div>'+tema+anim+'</section>'+
+      '<section class="setb"><div class="cap">Tampilan</div>'+tema+anim+ukuran+kontras+'</section>'+
       '<section class="setb"><div class="cap">Berkas dan data</div><button type="button" class="btn sec" data-act="bersih">'+ic('refresh')+'Bersihkan cache aplikasi</button></section>'+
-      '<section class="setb"><div class="cap">Tentang</div><div class="verrow"><span>Versi aplikasi</span><b>'+APP_VER+'</b></div><button type="button" class="btn sec" data-act="cekbaru">'+ic('refresh')+'Periksa pembaruan</button></section>'+
+      '<section class="setb"><div class="cap">Tentang</div><div class="verrow"><span>Versi aplikasi</span><b>'+APP_VER+'</b></div><button type="button" class="btn sec" data-act="cekbaru">'+ic('refresh')+'Periksa pembaruan</button><button type="button" class="btn sec" data-act="turulang">Lihat panduan singkat</button></section>'+
       (us?'<button type="button" class="btn bad" data-act="keluar">'+ic('out')+'Keluar</button>':'')+
       '</div></div>';
   }
@@ -2970,6 +3034,7 @@ async function onClick(ev){
     case 'ganti': resetHist(false);S.paket=null;S.user=null;S.kode='';S.loginErr='';S.modal=null;S.zoom=null;S.file=null;lsDel(STORE);renderOverlay();return render();
     case 'keluar': if((S.up&&S.up.length)||(DRAF&&DRAF.length)){return openModal({t:'keluarcek'})}keluar();return render();
     case 'keluarya': closeModal();keluar();return render();
+    case 'turulang': closeModal();setTimeout(function(){turMulai(true)},350);return;
     case 'cekbaru': (async function(){
       try{
         var rg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
@@ -3255,6 +3320,8 @@ async function onClick(ev){
     }
     case 'setelan': return openModal({t:'set'});
     case 'tema': S.tema=el.getAttribute('data-v');lsSet('dl-tema',S.tema);applyTema();return renderOverlay();
+    case 'fs': S.fs=el.getAttribute('data-v');lsSet('dl-fs',S.fs);applyTampilan();return renderOverlay();
+    case 'kon': S.kon=el.getAttribute('data-v');lsSet('dl-kon',S.kon);applyTampilan();return renderOverlay();
     case 'bersih': return bersihCache();
     case 'anim': S.anim=el.getAttribute('data-v');lsSet('dl-anim',S.anim);applyAnim();return renderOverlay();
     case 'muatsiap': S.siap=null;S.siapErr='';render();return loadSiap();
@@ -3478,7 +3545,7 @@ async function cobaMasuk(auto){
     if(r.ruangan){var s=ensureSel(tree());if(s&&S.view==='form')loadDefects(s.r.id,false)}
     else loadRooms();
     qPulihkan();drafMuat();if(M_)M_.muatDaftar();
-    aksiPintas();
+    aksiPintas();setTimeout(function(){turMulai(false)},1200);
   }catch(e){
     if(e&&e.server){
       if(/Kode tidak dikenal|nonaktif/i.test(e.message||'')){   // hanya kode yang benar-benar ditolak yang dihapus
@@ -4016,7 +4083,8 @@ async function exportZip(){
 (function start(){
   S.anim=({sistem:1,penuh:1,hemat:1})[lsGet('dl-anim')]?lsGet('dl-anim'):'sistem';applyAnim();
   S.tema=({sistem:1,terang:1,gelap:1})[lsGet('dl-tema')]?lsGet('dl-tema'):'sistem';
-  applyTema();
+  S.fs=({normal:1,besar:1,lebih:1})[lsGet('dl-fs')]?lsGet('dl-fs'):'normal';S.kon=({sistem:1,biasa:1,tinggi:1})[lsGet('dl-kon')]?lsGet('dl-kon'):'sistem';
+  applyTema();applyTampilan();
   try{var mq=window.matchMedia('(prefers-reduced-motion: reduce)');(mq.addEventListener?mq.addEventListener('change',applyAnim):mq.addListener(applyAnim))}catch(e){}
   if('serviceWorker' in navigator){try{
     var adaSw=!!navigator.serviceWorker.controller;
