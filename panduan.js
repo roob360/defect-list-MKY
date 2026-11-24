@@ -3,7 +3,6 @@
    dan disimpan di panduan/. Nomor merah pada gambar sama dengan nomor langkah di teks. */
 (function () {
   'use strict';
-  var KEY_POS = 'dl-pdn-pos', KEY_BACA = 'dl-pdn-baca';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function ls(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
@@ -154,60 +153,54 @@
     if (u && u.peran === 'ADMIN') k.mk = 1;
     return BAB.filter(function (b) { return b.untuk.some(function (x) { return k[x]; }); });
   }
-  function dibaca() { try { return JSON.parse(ls(KEY_BACA) || '{}'); } catch (e) { return {}; } }
 
-  var ST = null;   // { daftar, b, h }
+  var ST = null;   // { bab, u }
   function el() { return document.getElementById('panduan'); }
   function tutup() { var e = el(); if (e) e.remove(); ST = null; document.removeEventListener('keydown', tombol, true); }
-  function tombol(ev) { if (ev.key === 'Escape') { ev.stopPropagation(); tutup(); } }
-  function isi(h) {
-    var e = el();
-    if (!e) {
-      e = document.createElement('div'); e.id = 'panduan'; e.className = 'pdn'; e.setAttribute('role', 'dialog'); e.setAttribute('aria-modal', 'true'); e.setAttribute('aria-label', 'Panduan penggunaan');
-      document.body.appendChild(e);
-      e.addEventListener('click', klik);
-      document.addEventListener('keydown', tombol, true);
-    }
-    e.innerHTML = h; e.scrollTop = 0;
-    var sc = e.querySelector('.pdn-in'); if (sc) sc.scrollTop = 0;
+  function tombol(ev) { if (ev.key === 'Escape') { var z = document.querySelector('.pdn-zoom'); ev.stopPropagation(); if (z) z.remove(); else tutup(); } }
+  function labelKelas(u) {
+    if (!u) return '';
+    if (u.peran === 'ADMIN') return 'Admin';
+    if (u.peran === 'PJ') return u.qc === 'YA' ? 'QC PJ' : 'PJ';
+    if (u.qc === 'YA') return u.qcBidang === 'KOORD' ? 'Koordinator QC MK' : 'QC MK';
+    return 'MK';
   }
-  function daftarHtml() {
-    var bb = ST.bab, bc = dibaca();
-    return '<div class="pdn-bar"><b>Panduan</b><button type="button" class="pdn-x" data-p="tutup" aria-label="Tutup">&times;</button></div>' +
-      '<div class="pdn-in"><h1>Panduan penggunaan</h1><p class="pdn-sub">Pilih bab. Bab di bawah ini sesuai dengan akun Anda.</p><div class="pdn-list">' +
-      bb.map(function (b, i) {
-        var n = b.halaman.length, sudah = b.halaman.filter(function (_, j) { return bc[b.id + ':' + j]; }).length;
-        return '<button type="button" class="pdn-bab" data-p="bab" data-i="' + i + '"><span class="pdn-no">' + (i + 1) + '</span><span class="pdn-tx"><b>' + esc(b.judul) + '</b><small>' + esc(b.ringkas) + '</small></span><span class="pdn-pr">' + (sudah >= n ? '&#10003;' : sudah + '/' + n) + '</span></button>';
-      }).join('') + '</div></div>';
-  }
-  function halamanHtml() {
-    var b = ST.bab[ST.b], h = b.halaman[ST.h], n = b.halaman.length;
-    var bc = dibaca(); bc[b.id + ':' + ST.h] = 1; lsSet(KEY_BACA, JSON.stringify(bc)); lsSet(KEY_POS, b.id + ':' + ST.h);
-    var ada = n > 1;
-    var lanjut = ST.h < n - 1 ? { t: 'Berikutnya', p: 'maju' } : (ST.b < ST.bab.length - 1 ? { t: 'Bab berikutnya', p: 'babnext' } : { t: 'Selesai', p: 'daftar' });
-    return '<div class="pdn-bar"><button type="button" class="pdn-bk" data-p="daftar" aria-label="Daftar bab">&lsaquo; Daftar bab</button><button type="button" class="pdn-x" data-p="tutup" aria-label="Tutup">&times;</button></div>' +
-      '<div class="pdn-in"><div class="pdn-kr">Bab ' + (ST.b + 1) + ' &middot; ' + esc(b.judul) + (ada ? ' &middot; halaman ' + (ST.h + 1) + ' dari ' + n : '') + '</div>' +
-      '<h1>' + esc(h.judul) + '</h1>' + (h.intro ? '<p class="pdn-sub">' + esc(h.intro) + '</p>' : '') +
-      (h.img ? '<figure class="pdn-fig"><img src="panduan/' + esc(h.img) + '.jpg" alt="Tangkapan layar: ' + esc(h.judul) + '" loading="lazy" data-p="gambar"></figure>' : '') +
-      '<ol class="pdn-ls">' + h.langkah.map(function (l, i) { var b = h.tanpaNomor || !h.img; return '<li><span class="pdn-n' + (b ? ' pdn-b' : '') + '">' + (b ? '&bull;' : (i + 1)) + '</span><span>' + esc(l) + '</span></li>'; }).join('') + '</ol>' +
-      '<div class="pdn-nav"><button type="button" class="btn sec" data-p="mundur"' + (ST.h === 0 && ST.b === 0 ? ' disabled' : '') + '>Sebelumnya</button><button type="button" class="btn" data-p="' + lanjut.p + '">' + lanjut.t + '</button></div></div>';
+  /* Satu halaman panjang yang digulir: judul, daftar isi berupa chip, lalu tiap bab sebagai kartu berisi penjelasan, gambar, dan langkah bernomor. */
+  function dokumenHtml() {
+    var bb = ST.bab;
+    var h = '<div class="pdn-bar"><b>Panduan</b><button type="button" class="pdn-x" data-p="tutup" aria-label="Tutup">&times;</button></div>' +
+      '<div class="pdn-in"><div class="pdn-head"><div class="cap">Panduan &middot; ' + esc(labelKelas(ST.u)) + '</div><h1>Cara memakai aplikasi</h1>' +
+      '<p class="pdn-sub">Gulir untuk membaca semuanya, atau ketuk bab di bawah untuk langsung ke bagian itu. Isi panduan menyesuaikan akun Anda.</p></div>' +
+      '<div class="chips pdn-toc" role="group" aria-label="Daftar isi">' + bb.map(function (b) { return '<button type="button" class="chip" data-p="ke" data-id="' + esc(b.id) + '">' + esc(b.judul) + '</button>'; }).join('') + '</div>';
+    bb.forEach(function (b, i) {
+      h += '<section class="group pdn-sec" id="pdn-' + esc(b.id) + '"><div class="pdn-sh"><span class="pdn-no">' + (i + 1) + '</span><div><b>' + esc(b.judul) + '</b><small>' + esc(b.ringkas) + '</small></div></div>';
+      b.halaman.forEach(function (g) {
+        var tanpa = g.tanpaNomor || !g.img;
+        h += '<div class="pdn-pg"><h3>' + esc(g.judul) + '</h3>' + (g.intro ? '<p>' + esc(g.intro) + '</p>' : '') +
+          (g.img ? '<figure class="pdn-fig"><img src="panduan/' + esc(g.img) + '.jpg" alt="Tangkapan layar: ' + esc(g.judul) + '" width="390" height="844" loading="lazy" data-p="gambar"></figure>' : '') +
+          '<ol class="pdn-ls">' + g.langkah.map(function (l, k) { return '<li><span class="pdn-n' + (tanpa ? ' pdn-b' : '') + '">' + (tanpa ? '&bull;' : (k + 1)) + '</span><span>' + esc(l) + '</span></li>'; }).join('') + '</ol></div>';
+      });
+      h += '</section>';
+    });
+    return h + '</div>';
   }
   function klik(ev) {
     var t = ev.target.closest && ev.target.closest('[data-p]'); if (!t || !ST) return;
     ev.stopPropagation();
-    var p = t.getAttribute('data-p'), b = ST.bab[ST.b];
+    var p = t.getAttribute('data-p');
     if (p === 'tutup') return tutup();
-    if (p === 'daftar') { ST.daftar = true; return isi(daftarHtml()); }
-    if (p === 'bab') { ST.b = +t.getAttribute('data-i'); ST.h = 0; ST.daftar = false; return isi(halamanHtml()); }
-    if (p === 'maju') { ST.h++; return isi(halamanHtml()); }
-    if (p === 'babnext') { ST.b++; ST.h = 0; return isi(halamanHtml()); }
-    if (p === 'mundur') { if (ST.h > 0) ST.h--; else if (ST.b > 0) { ST.b--; ST.h = ST.bab[ST.b].halaman.length - 1; } return isi(halamanHtml()); }
-    if (p === 'gambar') { var im = t, ov = document.createElement('div'); ov.className = 'pdn-zoom'; ov.innerHTML = '<img src="' + im.src + '" alt="">'; ov.addEventListener('click', function () { ov.remove(); }); document.body.appendChild(ov); }
+    if (p === 'ke') { var sec = document.getElementById('pdn-' + t.getAttribute('data-id')); if (sec) sec.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
+    if (p === 'gambar') { var ov = document.createElement('div'); ov.className = 'pdn-zoom'; ov.innerHTML = '<img src="' + t.src + '" alt="">'; ov.addEventListener('click', function () { ov.remove(); }); document.body.appendChild(ov); }
   }
   function buka(u) {
     var bab = babUntuk(u); if (!bab.length) return;
-    ST = { bab: bab, b: 0, h: 0, daftar: true };
-    isi(daftarHtml());
+    ST = { bab: bab, u: u };
+    var e = el();
+    if (!e) {
+      e = document.createElement('div'); e.id = 'panduan'; e.className = 'pdn'; e.setAttribute('role', 'dialog'); e.setAttribute('aria-modal', 'true'); e.setAttribute('aria-label', 'Panduan penggunaan');
+      document.body.appendChild(e); e.addEventListener('click', klik); document.addEventListener('keydown', tombol, true);
+    }
+    e.innerHTML = dokumenHtml(); e.scrollTop = 0;
   }
   window.PANDUAN = { buka: buka, babUntuk: babUntuk, kelas: kelas, BAB: BAB };
 })();
