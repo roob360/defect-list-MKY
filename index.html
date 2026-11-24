@@ -326,8 +326,8 @@
   .tbar.min::before{ content:''; position:absolute; top:0; bottom:0; left:var(--margin); right:var(--margin); border-radius:24px; background:var(--dock); -webkit-backdrop-filter:var(--blur-glass); backdrop-filter:var(--blur-glass); box-shadow:var(--dockfx); z-index:-1; }
   .tbar.min .sbar, .tbar.min .chips{ padding-left:calc(var(--margin) + 6px); padding-right:calc(var(--margin) + 6px); }
   /* Desktop (1100 px ke atas): dock menjadi rel kaca vertikal di sisi kiri */
-  @media (min-width:1100px){
-    .dock{ left:20px; right:auto; margin:0; top:50%; bottom:auto; width:80px; max-width:none; height:auto; transform:translateY(calc((var(--rt,4) * 64px + 16px) / -2)); flex-direction:column; padding:8px 6px; border-radius:30px; }
+  @media (min-width:768px){
+    .dock{ left:12px; right:auto; margin:0; top:50%; bottom:auto; width:80px; max-width:none; height:auto; transform:translateY(calc((var(--rt,4) * 64px + 16px) / -2)); flex-direction:column; padding:8px 6px; border-radius:30px; }
     .dock button{ flex:none; width:100%; height:64px; }
     .dock .dockadd{ width:56px; max-width:56px; height:56px; margin:10px auto 2px; align-self:center; }
     .dock.noadd .dockadd{ height:0; max-height:0; margin:0 auto; opacity:0; transform:scale(.3); }
@@ -336,8 +336,8 @@
     .dock.mini button > span:not(.bdg){ max-height:14px; opacity:1; }
     html:not(.hemat) .dock{ transition:none; }
     .dock .bdg{ top:6px; left:calc(50% + 8px); }
-    body.hasdock .wrap, body.hasdock .pwrap{ padding-left:calc(var(--margin) + 96px); }
-    body.hasdock .pwrap::before{ left:calc(var(--margin) + 96px); }
+    body.hasdock .wrap, body.hasdock .pwrap{ padding-left:calc(var(--margin) + 88px); }
+    body.hasdock .pwrap::before{ left:calc(var(--margin) + 88px); }
     body.hasdock .wrap{ padding-bottom:60px; }
     body.hasdock .toast{ bottom:calc(env(safe-area-inset-bottom,0px) + 22px); }
     .upbar{ bottom:20px; }
@@ -784,7 +784,7 @@
   .banner{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 12px; padding:6px 6px 6px 14px; min-height:44px; border-radius:14px; background:var(--blue-fill); color:var(--blue-teks); font-size:14px; font-weight:600; }
   .banner button{ flex:none; min-height:44px; padding:0 12px; border:0; background:transparent; color:inherit; font:inherit; font-weight:700; cursor:pointer; }
   /* ---- Rekap bento: hanya desktop/tablet lebar. Mobile tidak berubah. ---- */
-  @media (min-width:1100px){
+  @media (min-width:768px){
     body.bento .wrap, body.bento .pwrap{ max-width:1440px; }
     body.bento .pwrap.in{ padding-top:calc(env(safe-area-inset-top,0px) + 22px); }
     .bhead{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:4px 50px 18px 0; }   /* tombol akun 10 px dari aksi, sejajar tengahnya */
@@ -1049,7 +1049,7 @@
   .klimpa{ padding:0 16px 12px; }
   @media (max-width:520px){ .klr{ flex-wrap:wrap; } .klc{ order:2; } .kla{ order:3; width:100%; justify-content:flex-start; } .klglh{ flex-wrap:wrap; } }
   /* Kelola di desktop lebar: Ruangan dua kolom (kontrol kiri, daftar gedung kanan); Gedung dan lantai berupa kartu berdampingan. Mobile tidak berubah. */
-  @media (min-width:1100px){
+  @media (min-width:768px){
     body.bento .kwrap{ max-width:none; }
     body.bento .kwrap .kltabs{ max-width:560px; }
     body.bento .kwrap.k-ruang{ display:grid; grid-template-columns:minmax(320px,380px) minmax(0,1fr); column-gap:24px; align-items:start; }
@@ -1084,7 +1084,7 @@
   .rkt.mt td.pdfc{ white-space:nowrap; color:var(--label2); }
   .rkt.mt .pdfb{ width:30px; height:30px; min-width:0; min-height:0; padding:0; margin-right:4px; }
   .rkt.mt .pdfb svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
-  @media (min-width:1100px){ .s12{ grid-column:span 12; } }
+  @media (min-width:768px){ .s12{ grid-column:span 12; } }
   /* warna status memo */
   .tag.m-belum{ background:transparent; box-shadow:inset 0 0 0 1.5px #d4a017; color:#8a6500; }
   .tag.m-draf{ background:var(--orange-fill); color:var(--orange-text); }
@@ -1188,6 +1188,15 @@
   /* daftar memo sempit: keterangan dipotong satu baris */
   .mli > div > span{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .mcard .eh .tx{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  /* Tablet (768 sampai 1099 px): tampilan desktop dengan kolom lebih sedikit */
+  @media (min-width:768px) and (max-width:1099px){
+    body.wide #elist, body.wide .entgrid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    body.wide #app > .locbar, body.wide #app > .sbar, body.wide #app > .summary, body.wide #app > .chips{ grid-column:span 12; }
+    .bgrid .s3, .bgrid .s4, .bgrid .s6{ grid-column:span 6; }
+    .bgrid .s8, .bgrid .s12{ grid-column:span 12; }
+    body.bento .kwrap.k-ruang{ grid-template-columns:minmax(250px,300px) minmax(0,1fr); column-gap:16px; }
+    .sheet.wz > .wzcols{ gap:20px; }
+  }
 </style>
 </head>
 <body>

@@ -1358,8 +1358,8 @@ function rekapHtml(){
   return h;
 }
 
-/* ----- Rekap bento (hanya desktop/tablet lebar, >= 1100 px; mobile memakai rekapHtml) ----- */
-var MQ_DESK=window.matchMedia('(min-width:1100px)');
+/* ----- Rekap bento (hanya desktop/tablet lebar, >= 768 px; mobile memakai rekapHtml) ----- */
+var MQ_DESK=window.matchMedia('(min-width:768px)');   // tampilan desktop mulai 768 px: tablet memakai tampilan desktop
 function desk(){return MQ_DESK.matches}
 if(MQ_DESK.addEventListener)MQ_DESK.addEventListener('change',function(){if(S.paket&&S.user&&S.view==='rekap')render()});
 function rkBar(p,w){return '<div class="rkbar"><i style="width:'+Math.max(0,Math.min(100,p))+'%;background:var(--'+(w||'blue')+')"></i></div>'}

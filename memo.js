@@ -517,15 +517,17 @@
     var h = '<div class="pagehead"><div class="cap">' + esc(C.S.paket.nama) + '</div><h1>Memo</h1></div>';
     if (D.daftar === null) return h + (D.off ? '<div class="err">Server belum mendukung site memo.</div>' : C.skel('entries'));
     var d = tabDasar(), admin = d.admin, semua = d.semua, ps = d.ps, dasar = d.dasar;
-    h += '<div class="banner" role="status"><span>' + (admin ? semua.length + ' memo' : ps.length + ' memo menunggu Anda') + '</span><button type="button" data-act="memosegar2">Muat ulang</button></div>';
-    if (!admin) h += '<div class="chips" role="group" aria-label="Tampilan"><button type="button" class="chip' + (TB.semua ? '' : ' on') + '" data-act="memotabfilter" data-v="0">Perlu tindakan ' + ps.length + '</button><button type="button" class="chip' + (TB.semua ? ' on' : '') + '" data-act="memotabfilter" data-v="1">Semua memo ' + semua.length + '</button></div>';
     var sel = function (k, lbl, pairs) {
       return '<label class="aqf"><span>' + lbl + '</span><select data-tb="' + k + '"><option value="">Semua</option>' + pairs.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === TB[k] ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('') + '</select></label>';
     };
     var nf = (TB.st ? 1 : 0) + (TB.bd ? 1 : 0) + (TB.mw ? 1 : 0);
-    h += '<div class="sbar"><label class="sinp">' + C.ic('search') + '<input type="text" id="mtq" data-tb-q="1" placeholder="Cari nomor, kegiatan, lokasi" autocomplete="off" value="' + esc(TB.q) + '"></label></div>' +
-      '<div class="aqtool"><button type="button" class="chip' + (TB.pn || nf ? ' on' : '') + '" data-act="memotabpn" aria-expanded="' + !!TB.pn + '" aria-controls="mfpanel">' + C.ic('filter') + 'Filter' + (nf ? ' <b class="aqn">' + nf + '</b>' : '') + '</button>' +
-      '<label class="chip aqso"><span>Urutan</span><select data-tb="ur" aria-label="Urutkan">' + URUT_TAB.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === TB.ur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label></div>';
+    var chips = admin ? '' : '<div class="chips stat" role="group" aria-label="Tampilan"><button type="button" class="chip' + (TB.semua ? '' : ' on') + '" data-act="memotabfilter" data-v="0">Perlu tindakan ' + ps.length + '</button><button type="button" class="chip' + (TB.semua ? ' on' : '') + '" data-act="memotabfilter" data-v="1">Semua memo ' + semua.length + '</button></div>';
+    // bilah alat yang sama dengan Verifikasi dan Perbaikan: judul kecil, kolom cari dengan Filter di dalamnya, menu titik tiga, chip tampilan
+    h += '<div class="tbar" id="tbar"><div class="sbar tb"><span class="mt" id="mtmt">' + (admin ? semua.length + ' memo' : ps.length + ' memo menunggu Anda') + '</span>' +
+      '<label class="sinp' + (TB.q || TB.qo ? ' open' : '') + '" data-act="memocari">' + C.ic('search') + '<input type="text" id="mtq" data-tb-q="1" placeholder="Cari memo" autocomplete="off" value="' + esc(TB.q) + '">' +
+      '<button type="button" class="fbtn' + (TB.pn || nf ? ' on' : '') + '" data-act="memotabpn" aria-expanded="' + !!TB.pn + '" aria-controls="mfpanel">Filter' + (nf ? ' &middot; ' + nf : '') + '</button></label>' +
+      '<button type="button" class="btn-sq ic" data-act="memotabmenu" aria-label="Menu aksi" aria-expanded="' + !!TB.mn + '">&#8943;</button></div>' + chips + '</div>';
+    if (TB.mn) h += '<div class="aqpanel" id="mmenu"><label class="aqf"><span>Urutan</span><select data-tb="ur" aria-label="Urutkan">' + URUT_TAB.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === TB.ur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label><button type="button" class="chip" data-act="memosegar2">Muat ulang</button></div>';
     if (TB.pn) h += '<div class="aqpanel" id="mfpanel">' + sel('st', 'Status', ST_URUT.map(function (st) { return [st, STAT[st]]; })) + sel('bd', 'Bidang', BID_KODE.map(function (b) { return [b[0], b[0]]; })) + sel('mw', 'Menunggu', ['QC MK', 'PJ', 'MK', 'QC PJ'].map(function (o) { return [o, o]; })) + '</div>';
     h += '<div class="aqcnt"><span id="mtcount">' + esc(tabHitung()) + '</span>' + (tabAktif() ? '<button type="button" class="aqreset" data-act="memotabclr">Atur ulang</button>' : '') + '</div>';
     return h + legenda() + '<div id="mtlist">' + tabIsi() + '</div>';
@@ -937,6 +939,8 @@
       case 'memotabfilter': TB.semua = el.getAttribute('data-v') === '1'; return C.render();
       case 'memotabf': { var tk = el.getAttribute('data-k'), tv = el.getAttribute('data-v'); TB[tk] = TB[tk] === tv ? '' : tv; return C.render(); }
       case 'memotabpn': TB.pn = !TB.pn; return C.render();
+      case 'memotabmenu': TB.mn = !TB.mn; return C.render();
+      case 'memocari': { var tb0 = document.getElementById('tbar'); if (tb0 && tb0.classList.contains('min') && !TB.qo) { TB.qo = true; C.render(); var qi = document.getElementById('mtq'); if (qi) qi.focus(); } return; }
       case 'memotabclr': TB.q = ''; TB.st = ''; TB.bd = ''; TB.mw = ''; return C.render();
       case 'memotabur': TB.ur = el.getAttribute('data-v') || 'hari'; return C.render();
       case 'memosegar2': D.daftar = null; C.render(); return muatDaftar();
