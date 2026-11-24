@@ -303,6 +303,9 @@
   .mact2 .btn:first-child:not(.sq){ flex:2 1 0; }
   .mact2 .btn.sq{ min-height:var(--ctl-lg); padding:0; }
   /* chip status satu baris: berbagi lebar, tidak terpotong di tepi layar */
+  .sheet .sh2{ position:sticky; top:-16px; z-index:6; display:flex; align-items:flex-start; gap:12px; margin:-16px calc(var(--margin) * -1) 4px; padding:16px var(--margin) 8px; background:var(--gbg1); }
+  .sheet .sh2 h2{ flex:1; min-width:0; margin:0; }
+  .sheet .sh2 .sx{ flex:none; margin-top:-1px; }
   .chips.stat{ gap:6px; }
   .chips.stat.ovf{ -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent); }
   .chips.stat .chip{ flex:1 0 auto; padding:0 8px; font-size:13px; text-align:center; }
@@ -455,6 +458,9 @@
   html:not(.hemat) #overlay.fx .ov{ animation:fadeIn .22s ease-out; }
   html:not(.hemat) #overlay.fx .ov:not(.mid):not(.zoom) .sheet{ animation:sheetUp .42s cubic-bezier(.3,.9,.3,1); }
   html:not(.hemat) #overlay.fx .ov.mid .sheet{ animation:popIn .36s cubic-bezier(.34,1.4,.64,1); }
+  @keyframes geserMasuk{ from{ transform:translateX(32px); opacity:0; } to{ transform:none; opacity:1; } }
+  html:not(.hemat) #overlay.fx.ganti .ov{ animation:none; }
+  html:not(.hemat) #overlay.fx.ganti .ov:not(.zoom) .sheet, html:not(.hemat) #overlay.fx.ganti .ov.mid .sheet{ animation:geserMasuk .28s var(--ease-out); }
   html:not(.hemat) #overlay.fx .ov.zoom img{ animation:popIn .32s cubic-bezier(.3,.9,.3,1); }
   html:not(.hemat) .toast.in{ animation:toastIn .4s cubic-bezier(.34,1.4,.64,1); }
   /* animasi batch 1: simpan berhasil, unggah foto, stepper, hapus (hanya transform dan opacity; mati di mode hemat) */

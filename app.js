@@ -611,6 +611,18 @@ function chipPudar(root){
     u();if(!c._pd){c._pd=1;c.addEventListener('scroll',u,{passive:true})}
   });
 }
+/** Satu pola menutup dialog: tombol X di sebelah judul, judul menempel di atas saat isi digulir. Dialog konfirmasi kecil (.mid) dan layar penuh yang sudah punya X tidak diubah. */
+function tombolX(root){
+  if(!S.modal)return;
+  Array.prototype.forEach.call(root.querySelectorAll('.ov:not(.mid):not(.zoom) .sheet:not(.wz)'),function(sh){
+    var h2=sh.querySelector(':scope > h2');if(!h2||h2.parentNode.classList.contains('sh2'))return;
+    if(sh.querySelector('[data-act="wtutup"], .btn-ic[data-act="mtutup"]'))return;
+    var w=document.createElement('div');w.className='sh2';
+    h2.parentNode.insertBefore(w,h2);w.appendChild(h2);
+    var b=document.createElement('button');b.type='button';b.className='btn-ic sx';b.setAttribute('data-act','mtutup');b.setAttribute('aria-label','Tutup');b.innerHTML=ic('x');
+    w.appendChild(b);
+  });
+}
 var LENS_POS={};
 function lensAll(root){
   var segs=root.querySelectorAll('.seg');
@@ -1415,11 +1427,11 @@ function renderOverlay(){
     aturDialog('',prev);if(M_)M_.sesudahOverlay();return;
   }
   clearTimeout(ovTm);
-  overlay.classList.toggle('fx',!!key&&key!==S.ovKey);S.ovKey=key;
+  overlay.classList.toggle('fx',!!key&&key!==S.ovKey);overlay.classList.toggle('ganti',!!key&&!!S.ovKey&&key!==S.ovKey&&key!=='busy'&&S.ovKey!=='busy');S.ovKey=key;   // dialog diganti dialog lain: geser masuk, bukan muncul dari bawah lagi
   overlay.innerHTML=h;
   aturDialog(key,prev);
   if(M_)M_.sesudahOverlay();
-  lensAll(overlay);noAuto(overlay);
+  lensAll(overlay);noAuto(overlay);tombolX(overlay);
 }
 /* Dialog: peran ARIA, fokus pindah ke dalam dialog saat dibuka dan kembali ke pemicu saat ditutup. */
 function aturDialog(key,prev){
