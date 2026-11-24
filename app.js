@@ -424,19 +424,24 @@ function renderLogin(){
 }
 
 var indLoop=0;
+var LAIN=[['verif','Verifikasi'],['perbaikan','Perbaikan'],['memo','Memo']];   // isi tab Lainnya (Admin); tombol di dock membuka yang terakhir dipakai
+function lainBar(){
+  var cnt={verif:S.siap?S.siap.length:0,perbaikan:S.perlu?S.perlu.length:0,memo:M_?M_.jumlahPerlu():0};
+  return '<div class="chips lainbar" role="tablist" aria-label="Bagian Lainnya">'+LAIN.map(function(x){return '<button type="button" class="chip ico'+(S.view===x[0]?' on':'')+'" role="tab" aria-selected="'+(S.view===x[0])+'" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span class="tx">'+x[1]+'</span>'+(cnt[x[0]]?' <b class="aqn">'+cnt[x[0]]+'</b>':'')+'</button>'}).join('')+'</div>';
+}
 /** Tombol tambah di dalam dock melebar atau menyempit selama animasi, sehingga posisi tab bergeser; penanda tab aktif mengikuti sampai tata letak berhenti bergerak. */
 function trackInd(ms){var t0=Date.now(),id=++indLoop;(function f(){if(id!==indLoop)return;moveInd();if(Date.now()-t0<ms)requestAnimationFrame(f)})()}
 function setDock(){
   var addBerubah=false;
   var el=$('dock'),show=!!(S.paket&&S.user&&(canEdit()||isPJ()));
   if(show){
-    var t=isPJ()?[['form','Temuan'],['perbaikan','Perbaikan']]:isAdmin()?[['form','Temuan'],['verif','Verifikasi'],['perbaikan','Perbaikan'],['rekap','Rekap'],['kelola','Kelola']]:[['form','Temuan'],['verif','Verifikasi'],['rekap','Rekap']];
-    if(M_&&M_.punyaTab(S.user))t.push(['memo','Memo']);   // QC MK, QC PJ, dan PJ
+    var t=isPJ()?[['form','Temuan'],['perbaikan','Perbaikan']]:isAdmin()?[['form','Temuan'],['rekap','Rekap'],['kelola','Kelola'],['lain','Lainnya']]:[['form','Temuan'],['verif','Verifikasi'],['rekap','Rekap']];
+    if(M_&&M_.punyaTab(S.user)&&!isAdmin())t.push(['memo','Memo']);   // QC MK, QC PJ, dan PJ; Admin memegang Memo di bawah tab Lainnya
     var add=canEdit();
     var keys=t.map(function(x){return x[0]}).join(',')+(add?'+':'');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
-      var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan'||x[0]==='memo')?'<i class="bdg" hidden></i>':'')+'</button>'});
+      var bt=t.map(function(x){return '<button type="button" data-act="tab" data-v="'+x[0]+'">'+ic(x[0]==='lain'?'titik':x[0])+'<span>'+x[1]+'</span>'+((x[0]==='verif'||x[0]==='perbaikan'||x[0]==='memo'||x[0]==='lain')?'<i class="bdg" hidden></i>':'')+'</button>'});
       if(add)bt.push('<button type="button" class="dockadd" data-act="tambah" aria-label="Tambah temuan">'+ic('plus')+'</button>');
       el.innerHTML='<span class="ind"></span>'+bt.join('');
     }
@@ -447,13 +452,13 @@ function setDock(){
     if(ad){var vis=S.view==='form';el.classList.toggle('noadd',!vis);ad.tabIndex=vis?0:-1;ad.setAttribute('aria-hidden',vis?'false':'true');addBerubah=wasNoadd!==!vis}
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(bt){
       var bg=bt.querySelector('.bdg');if(!bg)return;
-      var vk=bt.getAttribute('data-v'),pj=vk==='perbaikan',mm=vk==='memo',n=mm?(M_?M_.jumlahPerlu():0):pj?(S.perlu?S.perlu.length:0):(S.siap?S.siap.length:0);
+      var vk=bt.getAttribute('data-v'),pj=vk==='perbaikan',mm=vk==='memo',nV=S.siap?S.siap.length:0,nP=S.perlu?S.perlu.length:0,nM=M_?M_.jumlahPerlu():0,ln=vk==='lain',n=ln?nV+nP+nM:mm?nM:pj?nP:nV;
       var pn=bg._n;bg._n=n;
-      bg.textContent=n>99?'99+':n;bg.hidden=!n;bg.setAttribute('aria-label',n+(mm?' memo perlu tindakan':pj?' perlu dikerjakan':' menunggu verifikasi'));
+      bg.textContent=n>99?'99+':n;bg.hidden=!n;bg.setAttribute('aria-label',n+(ln?' perlu tindakan (verifikasi, perbaikan, memo)':mm?' memo perlu tindakan':pj?' perlu dikerjakan':' menunggu verifikasi'));
       if(n&&pn!==undefined&&pn!==n&&animOn()&&bg.animate)bg.animate([{transform:'scale(.4)'},{transform:'scale(1.3)',offset:.6},{transform:'none'}],{duration:300,easing:'ease-out'});   // lencana "pop" saat angkanya berubah
     });
     Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){
-      var on=b.getAttribute('data-v')===S.view;
+      var bv=b.getAttribute('data-v'),on=bv==='lain'?LAIN.some(function(x){return x[0]===S.view}):bv===S.view;
       if(on&&!b.classList.contains('on')&&el.classList.contains('anim')&&animOn()){var sv=b.querySelector('svg');if(sv&&sv.animate)sv.animate([{transform:'none'},{transform:'translateY(-6px) scale(1.18)',offset:.4},{transform:'translateY(0) scale(.96)',offset:.7},{transform:'none'}],{duration:340,easing:'ease-out'})}   // ikon tab memantul kecil
       b.classList.toggle('on',on);
       if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
@@ -474,6 +479,7 @@ window.addEventListener('resize',moveInd);window.addEventListener('load',moveInd
 function renderMain(){
   var h='';
   if(S.net)h+='<div class="err" role="status">'+esc(S.net)+'</div>';
+  if(isAdmin()&&S.paket&&S.user&&(S.view==='verif'||S.view==='perbaikan'||S.view==='memo'))h+=lainBar();
   if(S.view==='verif'&&canEdit())h+=verifHtml();
   else if(S.view==='perbaikan'&&(isPJ()||isAdmin()))h+=perbaikanHtml();
   else if(S.view==='memo'&&M_&&M_.punyaTab(S.user))h+=M_.tabHtml();
@@ -910,7 +916,7 @@ function rekapBentoHtml(){
 
 /* ----- kelola ----- */
 /* Kelola dibagi dalam lima tab: Ruangan (daftar, perlu dirapikan, tambah, nonaktif), Gedung dan lantai, Impor Excel, Isian, dan Lainnya (PDF massal, temuan terhapus). */
-var KL_TAB=[['ruang','Ruangan','gedung'],['gl','Gedung dan lantai','lapis'],['imp','Impor Excel','impor'],['isian','Isian','daftar'],['lain','Lainnya','titik']];
+var KL_TAB=[['ruang','Ruangan','gedung'],['gl','Gedung','lapis'],['imp','Impor','impor'],['isian','Isian','daftar'],['lain','Arsip','arsip']];   // Gedung = gedung dan lantai; Arsip = PDF massal dan temuan terhapus
 var CHEV='<svg class="chev" viewBox="0 0 12 18" aria-hidden="true"><path d="M3 3l6 6-6 6"/></svg>';
 function klKunciMirip(n){return String(n).toLowerCase().replace(/\b(ruangan|ruang|rg)\b\.?/g,'').replace(/[^a-z0-9]/g,'').replace(/0+(\d)/g,'$1')}
 /** Ruangan yang perlu dirapikan: nama berisi posisi atau huruf tidak rapi, gedung atau lantai di luar daftar resmi, dan nama yang mirip ruangan lain di lantai yang sama. */
@@ -992,15 +998,15 @@ function klTambahHtml(){
     '<div class="acts" style="padding-top:0;padding-bottom:14px"><button type="button" class="btn" data-act="addroom">Tambah</button></div></section>';
 }
 function klRuangHtml(){
+  var T=tree(),nr=0;T.forEach(function(g){g.lantai.forEach(function(l){nr+=l.ruangan.length})});
   var h='<div class="klbar"><label class="sinp">'+ic('search')+'<input type="text" id="klq" placeholder="Cari ruangan, lantai, atau gedung" autocomplete="off" value="'+esc(S.klq||'')+'"></label></div>'+
-    '<div class="chips klact"><button type="button" class="chip ico'+(S.klTambah?' on':'')+'" data-act="kltambah" aria-pressed="'+!!S.klTambah+'">'+ic('plus')+'<span class="tx">Tambah</span></button>'+
-    '<button type="button" class="chip ico only" data-act="klsemua" data-v="1" aria-label="Buka semua gedung" title="Buka semua">'+ic('buka')+'</button><button type="button" class="chip ico only" data-act="klsemua" data-v="0" aria-label="Tutup semua gedung" title="Tutup semua">'+ic('tutup')+'</button>'+
-    '<button type="button" class="chip ico'+(S.klNon?' on':'')+'" data-act="klnon" aria-pressed="'+!!S.klNon+'" title="Ruangan nonaktif">'+ic('arsip')+'<span class="tx">Nonaktif'+(S.klNonList?' '+S.klNonList.length:'')+'</span></button>'+
-    '<button type="button" class="chip ico only" data-act="klxls" aria-label="Unduh daftar ruangan (Excel)" title="Unduh Excel">'+ic('excel')+'</button></div>';
+    '<div class="klact"><button type="button" class="btn klplus'+(S.klTambah?' sec':'')+'" data-act="kltambah" aria-pressed="'+!!S.klTambah+'">'+ic(S.klTambah?'x':'plus')+(S.klTambah?'Tutup':'Tambah')+'</button>'+
+    '<button type="button" class="btn sec klsek'+(S.klNon?' on':'')+'" data-act="klnon" aria-pressed="'+!!S.klNon+'">'+ic('arsip')+'Nonaktif'+(S.klNonList?' '+S.klNonList.length:'')+'</button>'+
+    '<button type="button" class="btn sec klsek" data-act="klxls">'+ic('excel')+'Excel</button></div>';
   if(S.klTambah)h+=klTambahHtml();
   h+=klIsuHtml();
   if(S.klNon)h+=klNonHtml();
-  return h+'<div id="kllist">'+klListHtml()+'</div>';
+  return h+'<div class="aqcnt klcnt"><span>'+T.length+' gedung &middot; '+nr+' ruangan</span><span class="klln"><button type="button" class="aqreset" data-act="klsemua" data-v="1">Buka semua</button><button type="button" class="aqreset" data-act="klsemua" data-v="0">Tutup semua</button></span></div><div id="kllist">'+klListHtml()+'</div>';
 }
 function klGlHtml(){
   var ms=S.klMs;
@@ -1044,7 +1050,7 @@ function kelolaHtml(){
   if(!S.roomsReady&&!S.rooms.length)return '<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Kelola</h1></div>'+skel('kelola');
   var tab=S.klTab;
   if(tab==='gl'&&!S.klMs&&!S.klMsBusy)klMuatMs();
-  var tabs='<div class="chips kltabs" role="tablist" aria-label="Bagian Kelola">'+KL_TAB.map(function(x){return '<button type="button" class="chip ico'+(tab===x[0]?' on':'')+'" role="tab" aria-selected="'+(tab===x[0])+'" aria-label="'+x[1]+'" title="'+x[1]+'" data-act="kltab" data-v="'+x[0]+'">'+ic(x[2])+'<span class="tx">'+x[1]+'</span></button>'}).join('')+'</div>';
+  var tabs='<div class="seg kltabs" role="tablist" aria-label="Bagian Kelola">'+KL_TAB.map(function(x){return '<button type="button" class="'+(tab===x[0]?'on':'')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-act="kltab" data-v="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>';
   var isi=tab==='gl'?klGlHtml():tab==='imp'?impHtml():tab==='isian'?regAdminHtml():tab==='lain'?klLainHtml():klRuangHtml();
   if(desk())return '<div class="bhead"><div><h1>Kelola</h1><div class="bsub">Ruangan, gedung dan lantai, impor, dan laporan massal &middot; '+esc(S.paket.nama)+'</div></div></div><div class="kwrap">'+tabs+isi+'</div>';
   return '<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Kelola</h1></div>'+tabs+isi;
@@ -2394,7 +2400,7 @@ async function onClick(ev){
     case 'keluar': keluar();return render();
     case 'masuk': return masuk();
     case 'tab': {
-      var nv=el.getAttribute('data-v');if(nv===S.view)return;
+      var nv=el.getAttribute('data-v');if(nv==='lain'){if(LAIN.some(function(x){return x[0]===S.view}))return;nv=S.lain||'verif'}if(nv===S.view)return;if(nv==='verif'||nv==='perbaikan'||nv==='memo')S.lain=nv;
       if(nv==='form')hpopTop('view');else if(S.view==='form')hpush('view');
       S.view=nv;}
       lsSet('dl-view',S.view);if(S.view==='rekap'){S.all=null;S.allErr=false}render();
