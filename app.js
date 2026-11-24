@@ -1447,7 +1447,7 @@ function rgKandidat(a){
   return out;
 }
 function regAdminHtml(){
-  var h='<section class="group"><div class="sh">Daftar isian</div>';
+  var h='<section class="group'+(S.rg&&S.rg.pakai?' rgbuka':'')+'"><div class="sh">Daftar isian</div>';
   if(!S.regOk||!S.reg)return h+'<div class="gf">Server belum mendukung daftar isian. Pasang Kode.gs terbaru lalu jalankan siapkan().</div></section>';
   var T=tree(),a=rgArea();
   h+='<div class="list"><label class="row"><span class="lbl">Area</span><select data-rg="area">'+T.map(function(g){return '<option value="'+esc(g.nama)+'"'+(g.nama===a?' selected':'')+'>'+esc(g.nama)+'</option>'}).join('')+'</select></label></div>';

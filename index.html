@@ -875,6 +875,11 @@
     body.bento .kwrap.k-gl{ display:grid; grid-template-columns:repeat(auto-fill,minmax(440px,1fr)); gap:16px; align-items:start; }
     body.bento .kwrap.k-gl > .kltabs{ grid-column:1 / -1; margin-bottom:0; }
     body.bento .kwrap.k-gl > .group{ margin:0; }
+    body.bento .kwrap.k-lain{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+    body.bento .kwrap.k-lain > .kltabs{ grid-column:1 / -1; margin-bottom:0; }
+    body.bento .kwrap.k-lain > .group{ margin:0; }
+    body.bento .kwrap.k-isian > .group.rgbuka{ column-count:2; column-gap:40px; }
+    body.bento .kwrap.k-isian > .group.rgbuka > .sh, body.bento .kwrap.k-isian > .group.rgbuka > .note, body.bento .kwrap.k-isian > .group.rgbuka > .list{ break-inside:avoid; } body.bento .kwrap.k-isian > .group.rgbuka > .sh, body.bento .kwrap.k-isian > .group.rgbuka > .note{ break-after:avoid; }
   }
   .mk.lnk{ cursor:pointer; } .mk.lnk.on{ background:var(--blue-fill); outline:2px solid var(--blue); }
   .t tr.lnkrow{ cursor:pointer; } .t tr.lnkrow.on td{ background:var(--blue-fill); }
