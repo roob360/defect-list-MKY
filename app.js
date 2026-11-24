@@ -765,7 +765,7 @@ function renderLogin(){
 
 /** Versi aplikasi dan status koneksi di layar pemilih paket dan masuk.  */
 function verHtml(){return '<div class="verinfo" role="status"></div>'}
-var APP_VER='1.5';   // nomor versi yang dilihat pengguna; naikkan bersama CACHE di sw.js bila ada fitur baru
+var APP_VER='1.6';   // nomor versi yang dilihat pengguna; naikkan bersama CACHE di sw.js bila ada fitur baru
 function verIsi(){
   var el=app.querySelector('.verinfo');if(!el)return;
   var on=navigator.onLine!==false;
