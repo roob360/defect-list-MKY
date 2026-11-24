@@ -1,7 +1,7 @@
 // Service worker: cache tampilan saja. Data dan foto selalu diambil dari server.
 // Strategi stale-while-revalidate: tampilan langsung dari cache (cepat, juga saat sinyal lemah),
 // lalu diperbarui di belakang (selalu divalidasi ke server, bukan ke cache HTTP). Versi baru langsung memuat ulang halaman bila aman (lihat app.js).
-var CACHE = 'defect-list-v131';
+var CACHE = 'defect-list-v132';
 var SHELL = ['./', 'index.html', 'app.js', 'memo.js', 'memo-pdf.js', 'config.js', 'logika.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png',
   'logo/owner-oikn.png', 'logo/mk-kso.png', 'logo/pj-mapk.png', 'logo/pj-mkky.png'];
 

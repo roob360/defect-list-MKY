@@ -294,12 +294,52 @@ function petunjukPasang(){
   if(PROMPT_PASANG){lsSet('dl-pasang','1');toastAksi('Pasang aplikasi di layar utama agar lebih cepat dibuka.','Pasang',function(){var p=PROMPT_PASANG;PROMPT_PASANG=null;try{p.prompt()}catch(e){}});return}
   if(/iPhone|iPad|iPod/.test(navigator.userAgent)){lsSet('dl-pasang','1');toast('Untuk memasang: ketuk Bagikan, lalu Tambah ke Layar Utama.')}
 }
+/** Tekan lama tombol tambah (+) di dock: langsung membuka form dengan kamera, satu langkah lebih sedikit saat mencatat di lapangan. */
+(function(){
+  var tm=0,lp=false;
+  function batal(){clearTimeout(tm)}
+  document.addEventListener('pointerdown',function(e){
+    var b=e.target.closest&&e.target.closest('.dockadd');if(!b)return;
+    lp=false;batal();
+    tm=setTimeout(function(){
+      lp=true;try{if(navigator.vibrate)navigator.vibrate(15)}catch(x){}
+      openForm(null);
+      if(S.modal&&S.modal.f)pick(true,function(items){modalFotos(S.modal.f,items)});
+    },500);
+  });
+  document.addEventListener('pointerup',batal);document.addEventListener('pointercancel',batal);
+  document.addEventListener('click',function(e){if(lp&&e.target.closest&&e.target.closest('.dockadd')){e.stopPropagation();e.preventDefault();lp=false}},true);
+  document.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.dockadd'))e.preventDefault()});
+})();
+/** Pintasan di ikon aplikasi (manifest shortcuts): alamat ?aksi=tambah|verif|perbaikan|memo membuka bagian itu sekali setelah masuk. */
+var AKSI=(function(){try{var a=new URLSearchParams(location.search).get('aksi')||'';return /^(tambah|verif|perbaikan|memo)$/.test(a)?a:''}catch(e){return ''}})();
+function aksiPintas(){
+  if(!AKSI||!S.user)return;
+  var a=AKSI;AKSI='';
+  try{history.replaceState(null,'',location.pathname)}catch(e){}
+  if(a==='tambah'){if(canEdit())openForm(null);return}
+  var tab=document.querySelector('.lainbar [data-v="'+a+'"]')||document.querySelector('#dock [data-v="'+a+'"]');
+  if(!tab&&isAdmin()){S.lain=a;tab=document.querySelector('#dock [data-v="lain"]')}
+  if(tab)tab.click();
+}
+/** Lencana angka di ikon aplikasi terpasang (jumlah yang perlu tindakan, sama dengan angka di dock). Dihapus saat keluar. */
+var BADGE_N=-1;
+function appBadge(){
+  if(!navigator.setAppBadge)return;
+  var n=0;
+  if(S.paket&&S.user&&(canEdit()||isPJ())){
+    var nV=S.siap?S.siap.length:0,nP=S.perlu?S.perlu.length:0,nM=M_?M_.jumlahPerlu():0;
+    n=isAdmin()?nV+nP+nM:isPJ()?nP+nM:nV+nM;
+  }
+  if(n===BADGE_N)return;BADGE_N=n;
+  try{(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(function(){})}catch(e){}
+}
 async function loadRooms(){
   try{
     S.rooms=await api('ruangan');S.roomsReady=true;S.net='';
     if(!S.reg&&S.regOk!==false&&!S.regTry){S.regTry=true;muatRegistri()}
     lsSet('dl-rooms-'+S.paket.id,JSON.stringify(S.rooms));
-    petunjukPasang();
+    petunjukPasang();aksiPintas();
   }catch(e){
     if(e&&e.server){gagal(e);return}
     S.net='Tidak terhubung. Menampilkan data terakhir yang tersimpan.';
@@ -461,7 +501,7 @@ function renderLogin(){
 
 /** Versi aplikasi dan status koneksi di layar pemilih paket dan masuk.  */
 function verHtml(){return '<div class="verinfo" role="status"></div>'}
-var APP_VER='1.3';   // nomor versi yang dilihat pengguna; naikkan bersama CACHE di sw.js bila ada fitur baru
+var APP_VER='1.4';   // nomor versi yang dilihat pengguna; naikkan bersama CACHE di sw.js bila ada fitur baru
 function verIsi(){
   var el=app.querySelector('.verinfo');if(!el)return;
   var on=navigator.onLine!==false;
@@ -491,6 +531,7 @@ function lainBar(){
 /** Tombol tambah di dalam dock melebar atau menyempit selama animasi, sehingga posisi tab bergeser; penanda tab aktif mengikuti sampai tata letak berhenti bergerak. */
 function trackInd(ms){var t0=Date.now(),id=++indLoop;(function f(){if(id!==indLoop)return;moveInd();if(Date.now()-t0<ms)requestAnimationFrame(f)})()}
 function setDock(){
+  appBadge();
   var addBerubah=false;
   var el=$('dock'),show=!!(S.paket&&S.user&&(canEdit()||isPJ()));
   if(show){
@@ -3126,6 +3167,7 @@ async function cobaMasuk(auto){
     if(r.ruangan){var s=ensureSel(tree());if(s&&S.view==='form')loadDefects(s.r.id,false)}
     else loadRooms();
     qPulihkan();drafMuat();if(M_)M_.muatDaftar();
+    aksiPintas();
   }catch(e){
     if(e&&e.server){
       if(/Kode tidak dikenal|nonaktif/i.test(e.message||'')){   // hanya kode yang benar-benar ditolak yang dihapus

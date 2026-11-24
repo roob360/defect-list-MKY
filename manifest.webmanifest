@@ -9,6 +9,11 @@
   "display": "standalone",
   "background_color": "#f2f2f7",
   "theme_color": "#f2f2f7",
+  "shortcuts": [
+    { "name": "Tambah temuan", "short_name": "Tambah", "url": "./?aksi=tambah", "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Verifikasi", "short_name": "Verifikasi", "url": "./?aksi=verif", "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Perbaikan", "short_name": "Perbaikan", "url": "./?aksi=perbaikan", "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
