@@ -512,7 +512,7 @@ function render(){
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
   var key=!S.paket?'pick':!S.user?'login':S.view+(S.view==='form'?':'+S.sel.r:'');
   if(S.drawn!==key){S.drawn=key;S.cuPrev={};app.classList.remove('enter');void app.offsetWidth;app.classList.add('enter');if(S.user)window.scrollTo(0,SCR[key]||0)}
-  animHitung();tbarMin();lensAll(app);
+  animHitung();tbarMin();lensAll(app);noAuto(app);chipPudar(app);
 }
 /* Rekap: angka naik dari 0 (atau dari nilai sebelumnya bila berubah, mis. ganti gedung). Bar tumbuh lewat CSS. */
 function hitungKe(b,a,z,ms,suf){
@@ -596,6 +596,21 @@ function verIsi(){
   el.innerHTML='Versi '+APP_VER+' &middot; <span class="vdot'+(on?'':' off')+'" aria-hidden="true"></span>'+(on?'Terhubung':'Tidak ada sinyal');
 }
 /** Lensa bersama untuk kontrol segmen (.seg): satu penanda geser di belakang tombol aktif. Layar digambar ulang tiap perubahan, jadi posisi lama diingat per kontrol dan lensa baru meluncur dari sana. */
+/** Chrome Android menawarkan kata sandi, kartu, dan alamat tersimpan di atas papan ketik; kolom isian aplikasi ini tidak membutuhkannya. */
+function noAuto(root){
+  Array.prototype.forEach.call(root.querySelectorAll('input:not([autocomplete]), textarea:not([autocomplete])'),function(e){
+    var ty=(e.getAttribute('type')||'text').toLowerCase();
+    if(ty==='checkbox'||ty==='radio'||ty==='file'||ty==='button'||ty==='hidden')return;
+    e.setAttribute('autocomplete','off');
+  });
+}
+/** Baris chip yang lebih lebar dari layar (huruf besar): digulir mendatar dan diberi pudar di tepi yang masih tersembunyi, bukan terpotong mendadak. */
+function chipPudar(root){
+  Array.prototype.forEach.call(root.querySelectorAll('.chips.stat'),function(c){
+    function u(){c.classList.toggle('ovf',c.scrollWidth>c.clientWidth+2&&c.scrollLeft+c.clientWidth<c.scrollWidth-2)}
+    u();if(!c._pd){c._pd=1;c.addEventListener('scroll',u,{passive:true})}
+  });
+}
 var LENS_POS={};
 function lensAll(root){
   var segs=root.querySelectorAll('.seg');
@@ -1004,7 +1019,7 @@ function aqBarSemua(list,a,mode){
     '<label class="sinp'+(a.qo||a.q?' open':'')+'" data-act="aqcari">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari temuan" autocomplete="off" value="'+esc(a.q)+'">'+
     '<button type="button" class="fbtn'+(a.pn||n?' on':'')+'" data-act="aqpn" aria-expanded="'+(a.pn?'true':'false')+'" aria-controls="aqpanel">Filter'+(n?' &middot; '+n+'':'')+'</button></label>'+
     '<button type="button" class="btn-sq ic" data-act="aqmenu" aria-label="Menu aksi">&#8943;'+(nx-n?'<i class="dot" aria-hidden="true"></i>':'')+'</button></div>'+
-    (chips?'<div class="chips" role="group" aria-label="Status">'+chips+'</div>':'')+'</div>'+panel;
+    (chips?'<div class="chips stat" role="group" aria-label="Status">'+chips+'</div>':'')+'</div>'+panel;
 }
 var AQ_MENU={};
 function aqMenuRe(){if(S.modal&&S.modal.t==='aqmenu')renderOverlay()}
@@ -1404,7 +1419,7 @@ function renderOverlay(){
   overlay.innerHTML=h;
   aturDialog(key,prev);
   if(M_)M_.sesudahOverlay();
-  lensAll(overlay);
+  lensAll(overlay);noAuto(overlay);
 }
 /* Dialog: peran ARIA, fokus pindah ke dalam dialog saat dibuka dan kembali ke pemicu saat ditutup. */
 function aturDialog(key,prev){

@@ -296,6 +296,18 @@
   .busy{ display:flex; align-items:center; gap:14px; justify-content:center; padding:10px 0; font-weight:600; }
   .zoom{ background:#000000e6; align-items:center; }
   .zoom img{ max-width:100%; max-height:100%; object-fit:contain; }
+  /* Android: Roboto lebih lebar dan huruf sistem bisa diperbesar. Tombol tumbuh mengikuti isi, teks tidak pernah keluar dari tombol. */
+  .btn{ height:auto; min-height:var(--ctl-lg); padding-top:8px; padding-bottom:8px; line-height:20px; text-align:center; }
+  .pill{ height:auto; min-height:44px; padding-top:6px; padding-bottom:6px; line-height:20px; text-align:center; }
+  .mact2 .btn{ flex:1 1 0; min-width:0; padding-left:10px; padding-right:10px; }
+  .mact2 .btn:first-child:not(.sq){ flex:2 1 0; }
+  .mact2 .btn.sq{ min-height:var(--ctl-lg); padding:0; }
+  /* chip status satu baris: berbagi lebar, tidak terpotong di tepi layar */
+  .chips.stat{ gap:6px; }
+  .chips.stat.ovf{ -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent); }
+  .chips.stat .chip{ flex:1 0 auto; padding:0 8px; font-size:13px; text-align:center; }
+  /* baris pil Lainnya sejajar dengan ikon akun */
+  .chips.lainbar{ margin-top:23px; }
   #overlay .ov{ padding-bottom:var(--kb,0px); }
   html.kb #overlay .ov:not(.zoom) .sheet:not(.wz){ max-height:calc(100dvh - var(--kb,0px) - 16px); }
   /* bilah aksi menempel di dasar sheet panjang: Simpan selalu terjangkau tanpa menggulir */

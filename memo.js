@@ -210,7 +210,7 @@
     ['MK1', 'PJ1', 'MK2', 'PJ2'].forEach(function (s) {
       var t = r.ttd[s], b = r.bisa[s], x;
       if (t) x = '<div class="who"><span class="ck">' + C.ic('centang') + '</span><b>' + esc(t.nama) + '</b></div><span class="sub">' + esc(t.jabatan) + ' &middot; ' + esc(tglId(t.waktu)) + (t.pelaksana ? ' &middot; oleh ' + esc(t.pelaksana) : '') + '</span>' +
-        (r.cabut === s ? '<button type="button" class="pill bad cb" data-act="memocabut" data-s="' + s + '">Batalkan</button>' : '');
+        (r.cabut === s ? '<button type="button" class="pill bad" data-act="memocabut" data-s="' + s + '">Batalkan</button>' : '');
       else if (b && b.ok) {
         var sel = (b.kandidat && b.kandidat.length > 1) ? '<select id="mQid_' + s + '" class="mqid">' + b.kandidat.map(function (k) { return '<option value="' + esc(k.qid) + '">' + esc(k.nama) + '</option>'; }).join('') + '</select>' : '';
         var perluTtd = u && u.qc === 'YA' && !r.ttdSaya && !C.isAdmin();
