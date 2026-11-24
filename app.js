@@ -62,6 +62,7 @@ async function urungkanHapus(d){
 }
 function clean(s){return String(s).replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'')}
 function pct(c){return c.total?Math.round(c.close/c.total*100)+'%':'-'}
+function pctBar(c){if(!c.total)return '-';var p=Math.round(c.close/c.total*100);return '<span class="pc"><b>'+p+'%</b><span class="rkbar"><i style="width:'+p+'%;background:var(--green)"></i></span></span>'}
 function thumb(id,w){return 'https://lh3.googleusercontent.com/d/'+encodeURIComponent(id)+'=w'+(w||400)}
 function applyTema(){
   var r=document.documentElement;
@@ -1160,15 +1161,21 @@ function rekapHtml(){
   var kp=function(cls,n,t,st){return '<div class="kpi '+cls+' lnk'+(RF.st===st?' on':'')+'" role="button" tabindex="0" data-act="rfset" data-v="st|'+st+'"><b>'+n+'</b><span>'+t+'</span></div>'};
   h+='<div class="kpis">'+kp('o',tot.open,'Open','Open')+kp('p',tot.proses,'Proses','Dalam proses')+kp('c',tot.close,'Close','Close')+'</div>';
   tot={total:0,open:0,proses:0,close:0};
+  var nk=0;T.forEach(function(g){g.lantai.forEach(function(l){l.ruangan.forEach(function(r){if(!r.total)nk++})})});
+  if(nk)h+='<div class="rkkos"><button type="button" class="chip'+(S.rkKosong?' on':'')+'" data-act="rkkosong" aria-pressed="'+(!!S.rkKosong)+'">'+(S.rkKosong?'Sembunyikan':'Tampilkan')+' ruangan tanpa temuan ('+nk+')</button></div>';
   h+='<section class="group"><div class="tw"><table class="t"><thead><tr><th>'+esc(LBL_GAB.lokasi)+'</th><th>Total</th><th>Open</th><th>Proses</th><th>Close</th><th>%</th></tr></thead><tbody>';
   T.forEach(function(g){
     var gc={total:0,open:0,proses:0,close:0};
     g.lantai.forEach(function(l){l.ruangan.forEach(function(r){['total','open','proses','close'].forEach(function(k){gc[k]+=r[k]||0;tot[k]+=r[k]||0})})});
     h+='<tr class="g"><td>'+esc(g.nama)+'</td><td>'+gc.total+'</td><td>'+gc.open+'</td><td>'+gc.proses+'</td><td>'+gc.close+'</td><td>'+pct(gc)+'</td></tr>';
     g.lantai.forEach(function(l){
-      h+='<tr class="l"><td colspan="6">'+esc(l.nama)+'</td></tr>';
-      var nr=false;
-      l.ruangan.forEach(function(r){if(r.bidang&&!nr){nr=true;h+='<tr class="l"><td colspan="6">Non-ruangan</td></tr>'}h+='<tr><td>'+esc(r.nama)+'</td><td>'+r.total+'</td><td>'+r.open+'</td><td>'+r.proses+'</td><td>'+r.close+'</td><td>'+pct(r)+'</td></tr>'});
+      var rows='',nr=false;
+      l.ruangan.forEach(function(r){
+        if(!r.total&&!S.rkKosong)return;   // ruangan tanpa temuan disembunyikan kecuali diminta
+        if(r.bidang&&!nr){nr=true;rows+='<tr class="l"><td colspan="6">Non-ruangan</td></tr>'}
+        rows+='<tr><td>'+esc(r.nama)+'</td><td>'+r.total+'</td><td>'+r.open+'</td><td>'+r.proses+'</td><td>'+r.close+'</td><td>'+pctBar(r)+'</td></tr>';
+      });
+      if(rows)h+='<tr class="l"><td colspan="6">'+esc(l.nama)+'</td></tr>'+rows;
     });
   });
   h+='<tr class="tot"><td>Total</td><td>'+tot.total+'</td><td>'+tot.open+'</td><td>'+tot.proses+'</td><td>'+tot.close+'</td><td>'+pct(tot)+'</td></tr></tbody></table></div></section>';
@@ -3007,6 +3014,7 @@ async function onClick(ev){
     case 'pdf': return exportPdf();
     case 'xlsx': return exportXlsx();
     case 'rkall': S.rkAll=!S.rkAll;return render();
+    case 'rkkosong': S.rkKosong=!S.rkKosong;return render();
     case 'rfset': {var pv=String(el.getAttribute('data-v')||'').split('|'),rk0=pv[0],rv0=pv.slice(1).join('|');
       if(RF[rk0]===rv0)RF[rk0]='';else{RF[rk0]=rv0;if(rk0==='ak')RF.st='';if(rk0==='st')RF.ak=''}
       if(!S.all&&!S.allBusy){var okm=await work('Memuat semua temuan...',loadAll);if(!okm)return}
