@@ -466,7 +466,7 @@
   .zoom .fgagal b{ font-size:15px; } .zoom .fgagal span{ font-size:13px; color:var(--label2); }
   .thumb.gagal button{ position:relative; }
   .thumb.gagal button::after{ content:'Foto belum termuat'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:6px; text-align:center; font-size:12px; font-weight:600; color:var(--label2); }
-  .verinfo{ display:flex; align-items:center; justify-content:center; gap:6px; padding:18px 0 calc(18px + env(safe-area-inset-bottom,0px)); font-size:12px; color:var(--label3,var(--label2)); }
+  .verinfo{ position:fixed; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px)); font-size:12px; color:var(--label2); pointer-events:none; }
   .verinfo .vdot{ width:7px; height:7px; border-radius:50%; background:var(--green); }
   .verinfo .vdot.off{ background:var(--orange); }
   .upbar .tcek{ display:inline-block; width:18px; height:18px; flex:none; color:var(--green); }

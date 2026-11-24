@@ -459,13 +459,13 @@ function renderLogin(){
   var ki=$('kode');if(ki&&S.paket.apiUrl)ki.focus({preventScroll:true});
 }
 
-/** Versi aplikasi dan status koneksi di layar pemilih paket dan masuk. Nomor versi dibaca dari nama cache service worker (defect-list-vNNN). */
+/** Versi aplikasi dan status koneksi di layar pemilih paket dan masuk.  */
 function verHtml(){return '<div class="verinfo" role="status"></div>'}
+var APP_VER='1.3';   // nomor versi yang dilihat pengguna; naikkan bersama CACHE di sw.js bila ada fitur baru
 function verIsi(){
   var el=app.querySelector('.verinfo');if(!el)return;
-  var on=navigator.onLine!==false,pasang=function(v){el.innerHTML=(v?'Versi '+esc(v)+' &middot; ':'')+'<span class="vdot'+(on?'':' off')+'" aria-hidden="true"></span>'+(on?'Terhubung':'Tidak ada sinyal')};
-  pasang('');
-  if(window.caches&&caches.keys)caches.keys().then(function(ks){var v='';ks.forEach(function(k){var m=/^defect-list-v(\d+)$/.exec(k);if(m&&Number(m[1])>Number(v||0))v=m[1]});if(v&&app.contains(el))pasang(v)}).catch(function(){});
+  var on=navigator.onLine!==false;
+  el.innerHTML='Versi '+APP_VER+' &middot; <span class="vdot'+(on?'':' off')+'" aria-hidden="true"></span>'+(on?'Terhubung':'Tidak ada sinyal');
 }
 /** Lensa bersama untuk kontrol segmen (.seg): satu penanda geser di belakang tombol aktif. Layar digambar ulang tiap perubahan, jadi posisi lama diingat per kontrol dan lensa baru meluncur dari sana. */
 var LENS_POS={};
@@ -3665,7 +3665,20 @@ async function exportZip(){
   S.tema=({sistem:1,terang:1,gelap:1})[lsGet('dl-tema')]?lsGet('dl-tema'):'sistem';
   applyTema();
   try{var mq=window.matchMedia('(prefers-reduced-motion: reduce)');(mq.addEventListener?mq.addEventListener('change',applyAnim):mq.addListener(applyAnim))}catch(e){}
-  if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}}
+  if('serviceWorker' in navigator){try{
+    var adaSw=!!navigator.serviceWorker.controller;
+    // Versi baru siap: muat ulang sendiri bila tidak ada yang sedang dikerjakan; bila ada, tawarkan tombol Muat ulang.
+    navigator.serviceWorker.addEventListener('controllerchange',function(){
+      if(!adaSw){adaSw=true;return}
+      if(S.modal||S.zoom||S.file||S.busy||(S.up&&S.up.some(function(x){return x.st!=='err'})))toastAksi('Versi baru tersedia.','Muat ulang',function(){location.reload()});
+      else location.reload();
+    });
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      var cek=function(){try{reg.update()}catch(e){}};
+      document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')cek()});
+      setInterval(cek,30*60*1000);
+    }).catch(function(){});
+  }catch(e){}}
   var id=lsGet(STORE),p=PAKET_LIST.filter(function(x){return x.id===id})[0];
   if(p)pilihPaket(p.id);else render();
 })();
