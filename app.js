@@ -1039,7 +1039,7 @@ function aqBarSemua(list,a,mode){
     chips=[['','Semua',b.length],['Open','Open',cs('Open')],['Dalam proses','Proses',cs('Dalam proses')],['Close','Close',cs('Close')]].map(function(o){return '<button type="button" class="chip'+(a.st===o[0]?' on':'')+'" data-act="aqst" data-v="'+esc(o[0])+'" aria-pressed="'+(a.st===o[0]?'true':'false')+'">'+o[1]+' '+o[2]+'</button>'}).join('');
   }
   if(aqOn(a))chips+='<button type="button" class="chip reset" data-act="aqclr">Atur ulang</button>';
-  return '<div class="tbar" id="tbar"><div class="sbar tb"><span class="mt" id="aqmt">'+nm+' &middot; '+ca+'</span>'+
+  return '<div class="tbar" id="tbar"><div class="sbar tb"><span class="mt" id="aqmt">'+ca+' temuan</span>'+
     '<label class="sinp'+(a.qo||a.q?' open':'')+'" data-act="aqcari">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari temuan" autocomplete="off" value="'+esc(a.q)+'">'+
     '<button type="button" class="fbtn'+(a.pn||n?' on':'')+'" data-act="aqpn" aria-expanded="'+(a.pn?'true':'false')+'" aria-controls="aqpanel">Filter'+(n?' &middot; '+n+'':'')+'</button></label>'+
     '<button type="button" class="btn-sq ic" data-act="aqmenu" aria-label="Menu aksi">&#8943;'+(nx-n?'<i class="dot" aria-hidden="true"></i>':'')+'</button></div>'+
@@ -1078,7 +1078,7 @@ function aqSegar(){
   var verif=S.view==='verif',list=verif?S.siap:S.view==='form'?semuaList():S.perlu;if(!list)return;
   var a=AQ[S.view],el=$('aqlist');if(el)el.innerHTML=aqIsi(list,a,verif);
   var ct=$('aqcount');if(ct)ct.textContent=aqCount(list,a);
-  var mt=$('aqmt');if(mt)mt.innerHTML=(S.view==='form'?'Temuan':S.view==='perbaikan'?'Perbaikan':'Verifikasi')+' &middot; '+aqList(list,a).length;
+  var mt=$('aqmt');if(mt)mt.innerHTML=aqList(list,a).length+' temuan';
 }
 
 /* ----- tab Temuan: Per ruangan (awal) atau Semua ruangan dengan filter Gedung, Lantai, Bidang, Tingkat, Bermemo ----- */

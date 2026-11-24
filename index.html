@@ -309,15 +309,22 @@
   :root{ --hb:56px; }
   .pwrap{ position:fixed; height:calc(env(safe-area-inset-top,0px) + var(--hb)); padding:env(safe-area-inset-top,0px) var(--margin) 0; }
   .pwrap, .pwrap.in, body.bento .pwrap.in{ padding-top:env(safe-area-inset-top,0px) !important; }
-  .pwrap::before{ content:''; position:absolute; top:0; bottom:0; left:50%; width:100vw; transform:translateX(-50%); background:var(--dock); -webkit-backdrop-filter:var(--blur-glass); backdrop-filter:var(--blur-glass); box-shadow:inset 0 -.5px 0 var(--sep); opacity:0; pointer-events:none; z-index:-1; }
+  /* kapsul kaca melayang (seperti toast dan dock), bukan pita selebar layar */
+  .pwrap::before{ content:''; position:absolute; top:calc(env(safe-area-inset-top,0px) + 4px); bottom:4px; left:var(--margin); right:var(--margin); border-radius:var(--r-cap); background:var(--dock); -webkit-backdrop-filter:var(--blur-glass); backdrop-filter:var(--blur-glass); box-shadow:var(--dockfx); opacity:0; pointer-events:none; z-index:-1; }
   .pwrap.hs::before{ opacity:1; }
   html:not(.hemat) .pwrap::before{ transition:opacity .2s; }
-  .pwrap .ht{ flex:1; min-width:0; padding:0 12px 0 4px; font-size:17px; line-height:22px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; pointer-events:none; }
+  .pwrap .prof{ margin-right:4px; }
+  .pwrap .ht{ flex:1; min-width:0; padding:0 12px 0 20px; font-size:17px; line-height:22px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; pointer-events:none; }
   .pwrap.hs .ht{ opacity:1; }
   html:not(.hemat) .pwrap .ht{ transition:opacity .2s; }
   .wrap{ padding-top:calc(env(safe-area-inset-top,0px) + var(--hb)); }
   .tbar{ top:calc(env(safe-area-inset-top,0px) + var(--hb)) !important; }
-  .tbar .mt, .tbar.min .mt{ display:none !important; }
+  .tbar .mt{ display:none !important; }
+  .tbar.min .mt{ display:block !important; margin-right:auto; padding-left:6px; font-size:15px; font-weight:600; color:var(--label2); }
+  /* bilah alat yang runtuh: kapsul kaca kedua di bawah kapsul judul, selebar kolom kartu */
+  .tbar.min{ background:transparent !important; box-shadow:none !important; top:calc(env(safe-area-inset-top,0px) + var(--hb) + 2px) !important; }
+  .tbar.min::before{ content:''; position:absolute; top:0; bottom:0; left:var(--margin); right:var(--margin); border-radius:24px; background:var(--dock); -webkit-backdrop-filter:var(--blur-glass); backdrop-filter:var(--blur-glass); box-shadow:var(--dockfx); z-index:-1; }
+  .tbar.min .sbar, .tbar.min .chips{ padding-left:calc(var(--margin) + 6px); padding-right:calc(var(--margin) + 6px); }
   /* Desktop (1100 px ke atas): dock menjadi rel kaca vertikal di sisi kiri */
   @media (min-width:1100px){
     .dock{ left:20px; right:auto; margin:0; top:calc(env(safe-area-inset-top,0px) + 96px); bottom:auto; width:80px; max-width:none; height:auto; transform:none; flex-direction:column; padding:8px 6px; border-radius:30px; }
@@ -886,7 +893,7 @@
   .tbar .btn-sq.ic{ position:relative; }
   .btn-sq .dot{ position:absolute; top:9px; right:9px; width:8px; height:8px; border-radius:4px; background:var(--blue); }
   .chip.reset{ color:var(--blue-teks); }
-  .tbar.min{ box-shadow:0 1px 0 var(--sep); background:var(--dock); -webkit-backdrop-filter:var(--blur-glass); backdrop-filter:var(--blur-glass); }
+  .tbar.min{ box-shadow:none; }
   .tbar.min .mt{ display:block; }
   .tbar.min .sinp:not(.open){ display:contents; }
   .tbar.min .sinp:not(.open) input{ display:none; }
