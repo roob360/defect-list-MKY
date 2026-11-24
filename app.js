@@ -2573,16 +2573,18 @@ function fSatuHtml(m){
   h+='<!--S:btn--><button type="button" class="btn rect" data-act="msimpan">Simpan</button>'+(baru?'<button type="button" class="btn sec" data-act="msimpanlagi">Simpan &amp; tambah lagi di lokasi ini</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Batal</button>';
   return fSatuAtur(h+'</div></div>',baru,f);
 }
-/** Susunan form Tambah temuan "foto dulu": foto, bidang, lokasi, uraian; kolom lain di bagian Rincian yang bisa dibuka. Ubah temuan memakai susunan lama. */
+/** Susunan form Tambah temuan: semua isian tampil, disusun dalam bagian bernomor (foto, lokasi, temuan, rincian teknis, tanggal). Ubah temuan memakai susunan lama. */
 function fSatuAtur(h,baru,f){
   if(!baru)return h.replace(/<!--S:\w+-->/g,'');
   var p=h.split(/<!--S:(\w+)-->/),head=p[0],sec={},i;
   for(i=1;i<p.length;i+=2)sec[p[i]]=(sec[p[i]]||'')+p[i+1];
-  var buka=!!f.rinci,tail='</div></div>';
-  var btn=(sec.btn||'').replace(/<\/div><\/div>$/,'');
-  return head+(sec.foto||'')+(sec.bid||'')+(sec.lok||'')+(sec.ur||'')+
-    '<button type="button" class="rinbtn" data-act="wrinci" aria-expanded="'+buka+'"><span>Rincian <small>(tingkat, elemen, titik, tanggal)</small></span><svg class="chev" viewBox="0 0 12 18" style="transform:rotate('+(buka?'-90':'90')+'deg)"><path d="M3 2l6 7-6 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
-    (buka?'<div class="rinbody">'+(sec.detail||'')+(sec.sev||'')+(sec.elem||'')+(sec.tgl||'')+'</div>':'')+
+  var tail='</div></div>',btn=(sec.btn||'').replace(/<\/div><\/div>$/,'');
+  var sh=function(n,t,ket){return '<div class="fsh"><span class="n">'+n+'</span><div><b>'+t+'</b>'+(ket?'<small>'+ket+'</small>':'')+'</div></div>'};
+  return head+
+    sh(1,'Foto Before','Ambil foto kondisi temuan')+(sec.foto||'').replace(/<div class="cap">Foto Before<\/div>/,'')+
+    sh(2,'Lokasi','Bidang, ruangan, dan posisi tepat')+(sec.bid||'')+(sec.lok||'')+(sec.detail||'')+
+    sh(3,'Temuan','Tulis apa yang ditemukan dan seberapa parah')+(sec.ur||'').replace(/<div class="cap">Temuan<\/div>/,'')+(sec.sev||'')+
+    sh(4,'Rincian teknis','Elemen, titik, dan tanggal temuan')+(sec.elem||'')+(sec.tgl||'')+
     btn+tail;
 }
 /** Posisi tepat di dalam ruangan (teks bebas). Nama ruangan hanya jenis tempatnya; detail posisi ditulis di sini. */

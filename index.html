@@ -357,10 +357,11 @@
   .rkkos{ margin:0 0 10px; }
   /* Form Tambah temuan: bidang membungkus (semua terlihat), bagian Rincian bisa dibuka */
   .sheet.wz.satu .chips.wb{ flex-wrap:wrap; overflow:visible; }
-  .rinbtn{ display:flex; align-items:center; justify-content:space-between; width:100%; min-height:48px; margin:6px 0; padding:0 14px; border:0; border-radius:14px; background:var(--fill3); color:var(--label1); font:inherit; font-size:15px; font-weight:600; cursor:pointer; text-align:left; }
-  .rinbtn small{ font-weight:400; color:var(--label2); }
-  .rinbtn .chev{ width:10px; height:16px; flex:none; color:var(--label2); }
-  .rinbody{ margin:4px 0 10px; }
+  .fsh{ display:flex; align-items:center; gap:12px; margin:22px 0 10px; }
+  .fsh:first-of-type{ margin-top:10px; }
+  .fsh .n{ flex:none; width:28px; height:28px; border-radius:50%; background:var(--blue-fill); color:var(--blue-teks); font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .fsh b{ display:block; font-size:17px; line-height:22px; }
+  .fsh small{ display:block; font-size:13px; line-height:17px; color:var(--label2); }
   /* Kartu temuan berpusat pada foto: foto di atas, tag hanya status, tingkat, memo; sisanya teks kecil */
   .entry > .phs:first-child{ margin-top:0; }
   .entry > .phs + .eh{ margin-top:14px; }
