@@ -712,6 +712,7 @@ window.addEventListener('resize',moveInd);window.addEventListener('load',moveInd
     if(!D())return;
     var b=e.target.closest&&e.target.closest('#dock button:not(.dockadd)');if(!b)return;
     if(e.pointerType==='mouse'&&e.button!==0)return;
+    if(MQ_DESK.matches)return;   // rel vertikal di desktop: tanpa geser jari
     scrub={id:e.pointerId,x0:e.clientX,aktif:false,hot:b};
   },true);
   document.addEventListener('pointermove',function(e){
@@ -753,7 +754,7 @@ window.addEventListener('resize',moveInd);window.addEventListener('load',moveInd
     clearTimeout(tm);tm=setTimeout(function(){dock.classList.remove('sync')},500);
   }
   window.addEventListener('scroll',function(){
-    if(!D())return;
+    if(!D()||MQ_DESK.matches)return;
     var y=window.pageYOffset||0;if(y<0)return;
     var dy=y-lastY;lastY=y;
     if(dy*acc<0)acc=0;acc+=dy;
@@ -1490,7 +1491,7 @@ function modalHtml(){
       [['sistem','Sistem'],['terang','Terang'],['gelap','Gelap']].map(function(o){return '<button type="button" data-act="tema" data-v="'+o[0]+'" class="ico'+(S.tema===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>';
     var anim='<div><div class="cap" style="margin:0 4px 8px">Animasi</div><div class="seg">'+
       [['sistem','Sistem'],['penuh','Penuh'],['hemat','Hemat']].map(function(o){return '<button type="button" data-act="anim" data-v="'+o[0]+'" class="ico'+(S.anim===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>';
-    return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Pengaturan"><div class="grab" aria-hidden="true"></div><h2>Pengaturan</h2>'+
+    return '<div class="ov pop" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Pengaturan"><div class="grab" aria-hidden="true"></div><h2>Pengaturan</h2>'+
       '<section class="setb"><div class="cap">Akun</div>'+
       (us?'<div class="ucard"><span class="av" aria-hidden="true">'+esc((us.nama||'?').trim().charAt(0).toUpperCase())+'</span><div><b>'+esc(us.nama)+'</b><span>'+esc(us.peran)+' &middot; '+esc(S.paket.nama)+'</span></div></div>':'')+
       (M_?M_.setelanHtml():'')+
