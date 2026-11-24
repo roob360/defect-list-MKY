@@ -371,7 +371,7 @@ function render(){
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
   var key=!S.paket?'pick':!S.user?'login':S.view+(S.view==='form'?':'+S.sel.r:'');
   if(S.drawn!==key){S.drawn=key;S.cuPrev={};app.classList.remove('enter');void app.offsetWidth;app.classList.add('enter');if(S.user)window.scrollTo(0,SCR[key]||0)}
-  animHitung();
+  animHitung();tbarMin();
 }
 /* Rekap: angka naik dari 0 (atau dari nilai sebelumnya bila berubah, mis. ganti gedung). Bar tumbuh lewat CSS. */
 function hitungKe(b,a,z,ms,suf){
@@ -628,7 +628,7 @@ function formHtml(){
   var s=ensureSel(T),rid=s.r.id,list=S.defects[rid];
   if(S.flt.rid!==rid)S.flt={rid:rid,q:'',st:'',bd:'',tk:'',el:''};
   var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Temuan</h1>'+tmodeHtml()+'</div>';
-  if(S.semua)return h+semuaHtml();
+  if(S.semua){var l0=semuaList();if(l0)h=h.replace(/<div class="cap">[^<]*<\/div>/,'<div class="cap">'+aqCap(l0,AQ.form)+'</div>');return h+semuaHtml()}
   h+='<div class="locbar"><button type="button" class="btn-ic" data-act="nav" data-d="-1" aria-label="Ruangan sebelumnya">'+ic('prev')+'</button>'+
     '<button type="button" class="locbtn" data-act="lokpilih" aria-label="Pilih lokasi"><span class="lk">'+esc(s.g.nama)+' &rsaquo; '+esc(s.l.nama)+'</span><b>'+esc(s.r.nama)+'</b><svg class="chv" viewBox="0 0 12 18" aria-hidden="true"><path d="M2 7l4-4 4 4M2 11l4 4 4-4"/></svg></button>'+
     '<button type="button" class="btn-ic" data-act="nav" data-d="1" aria-label="Ruangan berikutnya">'+ic('next')+'</button></div>';
@@ -800,7 +800,9 @@ function aqIsi(list,a,verif){
   v.slice(0,lim||v.length).forEach(function(d,i){g+='<div class="ent"><div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+(verif?entryHtml(d,d.no||i+1,i,true):entryHtml(d,d.no||i+1,i))+'</div>'});
   return '<div class="entgrid">'+g+'</div>'+(lim&&v.length>lim?'<div class="acts" style="padding:12px 0"><button type="button" class="btn sec" data-act="aqlebih">Tampilkan lebih banyak ('+(v.length-lim)+' lagi)</button></div>':'');
 }
-function aqCount(list,a){return aqOn(a)?aqList(list,a).length+' dari '+list.length+' temuan':''}
+function aqBase(list){var tl=S.view==='perbaikan'?list.filter(function(d){return d.verifikasi==='Ditolak'}).length:0;return S.view==='verif'?list.length+' menunggu keputusan MK':S.view==='perbaikan'?list.length+' perlu dikerjakan'+(tl?' · '+tl+' ditolak MK':''):list.length+' temuan'}
+function aqCount(list,a){return aqOn(a)?aqList(list,a).length+' dari '+list.length+' temuan':aqBase(list)}
+function aqCap(list,a){return esc(S.paket.nama)+' &middot; <span id="aqcount" role="status">'+esc(aqCount(list,a))+'</span>'}
 function aqBar(list,a,perb,semua){return aqBarSemua(list,a,semua?'form':perb?'perbaikan':'verif')}
 /** Penyaring tab Temuan > Semua area: satu baris cari + PDF, satu baris tombol (Filter, Urutan, Bermemo, Temuan saya), panel filter bisa dilipat. */
 function aqBarSemua(list,a,mode){
@@ -823,19 +825,47 @@ function aqBarSemua(list,a,mode){
     n=(a.gd?1:0)+(a.lt?1:0)+(a.rg?1:0)+(a.bd?1:0)+(a.tk?1:0)+(cf&&a.st?1:0)+(cf&&a.ft?1:0)+((a.dr||a.sp)?1:0);
   var panel=a.pn?'<div class="aqpanel" id="aqpanel">'+sel('gd','Gedung',pr(gd))+sel('lt','Lantai',pr(lt))+sel('rg','Ruangan',pr(rg))+sel('bd','Bidang',pr(BIDANG))+sel('tk','Tingkat',pr(TINGKAT))+
     (cf?sel('st','Status',[['Open','Open'],['Dalam proses','Proses'],['Close','Close']])+sel('ft','Foto After',AQ_FOTO.slice(1)):'')+tgl('dr','Temuan dari')+tgl('sp','Temuan sampai')+'</div>':'';
-  return '<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari temuan" autocomplete="off" value="'+esc(a.q)+'"></label>'+
-    (mode==='form'?'<button type="button" class="btn-sq" data-act="pdfsemua" aria-label="Cetak PDF sesuai penyaring dan urutan" title="Cetak PDF sesuai penyaring dan urutan">'+ic('pdf')+' PDF</button>':'')+'</div>'+
-    '<div class="aqtool"><button type="button" class="chip'+(a.pn||n?' on':'')+'" data-act="aqpn" aria-expanded="'+(a.pn?'true':'false')+'" aria-controls="aqpanel">'+ic('filter')+'Filter'+(n?' <b class="aqn">'+n+'</b>':'')+'</button>'+
-    '<label class="chip aqso"><span>Urutan</span><select data-aq="so" aria-label="Urutkan">'+urut.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===(a.so||'')?' selected':'')+'>'+esc(x[1])+'</option>'}).join('')+'</select></label>'+
-    '<button type="button" class="chip'+(a.mm?' on':'')+'" data-act="aqmm" data-v="'+(a.mm?0:1)+'" aria-pressed="'+(a.mm?'true':'false')+'">Bermemo</button>'+
-    (mode==='perbaikan'?'<button type="button" class="chip'+(a.tl?' on':'')+'" data-act="aqtl" data-v="'+(a.tl?0:1)+'" aria-pressed="'+(a.tl?'true':'false')+'">Ditolak MK</button>':'')+
-    (canEdit()?'<button type="button" class="chip'+(a.sy?' on':'')+'" data-act="aqsy" data-v="'+(a.sy?0:1)+'" aria-pressed="'+(a.sy?'true':'false')+'">Temuan saya</button>':'')+'</div>'+
-    panel+'<div class="aqcnt"><span id="aqcount">'+esc(aqCount(list,a))+'</span>'+(aqOn(a)?'<button type="button" class="aqreset" data-act="aqclr">Atur ulang</button>':'')+'</div>';
+  AQ_MENU={mode:mode,urut:urut};
+  var nm=mode==='form'?'Temuan':mode==='perbaikan'?'Perbaikan':'Verifikasi',nx=n+(a.mm?1:0)+(a.sy?1:0)+(a.tl?1:0);
+  var ca=aqList(list,a).length;
+  var chips='';
+  if(cf){
+    var b=aqList(list,{q:a.q,gd:a.gd,lt:a.lt,bd:a.bd,tk:a.tk,tl:a.tl,mm:a.mm,sy:a.sy,rg:a.rg,st:'',ft:a.ft,dr:a.dr,sp:a.sp,so:'',pn:0,n:0});
+    var cs=function(s){return b.filter(function(d){return d.status===s}).length};
+    chips=[['','Semua',b.length],['Open','Open',cs('Open')],['Dalam proses','Proses',cs('Dalam proses')],['Close','Close',cs('Close')]].map(function(o){return '<button type="button" class="chip'+(a.st===o[0]?' on':'')+'" data-act="aqst" data-v="'+esc(o[0])+'" aria-pressed="'+(a.st===o[0]?'true':'false')+'">'+o[1]+' '+o[2]+'</button>'}).join('');
+  }
+  if(aqOn(a))chips+='<button type="button" class="chip reset" data-act="aqclr">Atur ulang</button>';
+  return '<div class="tbar" id="tbar"><div class="sbar tb"><span class="mt" id="aqmt">'+nm+' &middot; '+ca+'</span>'+
+    '<label class="sinp'+(a.qo||a.q?' open':'')+'" data-act="aqcari">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari temuan" autocomplete="off" value="'+esc(a.q)+'">'+
+    '<button type="button" class="fbtn'+(a.pn||n?' on':'')+'" data-act="aqpn" aria-expanded="'+(a.pn?'true':'false')+'" aria-controls="aqpanel">Filter'+(n?' &middot; '+n+'':'')+'</button></label>'+
+    '<button type="button" class="btn-sq ic" data-act="aqmenu" aria-label="Menu aksi">&#8943;'+(nx-n?'<i class="dot" aria-hidden="true"></i>':'')+'</button></div>'+
+    (chips?'<div class="chips" role="group" aria-label="Status">'+chips+'</div>':'')+'</div>'+panel;
 }
+var AQ_MENU={};
+function aqMenuRe(){if(S.modal&&S.modal.t==='aqmenu')renderOverlay()}
+function aqMenuHtml(){
+  var a=AQ[S.view];if(!a)return '';var mode=S.view==='form'?'form':S.view==='perbaikan'?'perbaikan':'verif',urut=AQ_MENU.urut||AQ_URUT;
+  var tg=function(act,v,lbl){return '<button type="button" class="row act" data-act="'+act+'" data-v="'+(v?0:1)+'" aria-pressed="'+(v?'true':'false')+'"><span>'+lbl+'</span>'+(v?'<span class="ck">&#10003;</span>':'')+'</button>'};
+  var us='<label class="row"><span class="lbl">Urutan</span><select data-aq="so" aria-label="Urutkan">'+urut.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===(a.so||'')?' selected':'')+'>'+esc(x[1])+'</option>'}).join('')+'</select></label>';
+  return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu"><div class="group kmenu"><div class="list">'+us+
+    tg('aqmm',a.mm,'Hanya yang bermemo')+(mode==='perbaikan'?tg('aqtl',a.tl,'Hanya yang ditolak MK'):'')+(canEdit()?tg('aqsy',a.sy,'Hanya temuan saya'):'')+
+    (mode==='form'?'<button type="button" class="row act" data-act="pdfsemua">PDF sesuai penyaring dan urutan</button>':'')+
+    '<button type="button" class="row act" data-act="'+(mode==='form'?'muatsemua':mode==='verif'?'muatsiap':'muatperlu')+'">Muat ulang</button></div></div>'+
+    '<button type="button" class="btn" data-act="mtutup">Selesai</button></div></div>';
+}
+var _tmin=false;
+function tbarMin(){
+  var t=$('tbar');if(!t)return;
+  var ph=document.querySelector('#app .pagehead'),b=ph?ph.getBoundingClientRect().bottom:0,m=_tmin?b<40:b<-4;
+  if(m!==_tmin){_tmin=m}
+  if(t.classList.contains('min')!==m)t.classList.toggle('min',m);
+}
+window.addEventListener('scroll',tbarMin,{passive:true});
 function aqSegar(){
   var verif=S.view==='verif',list=verif?S.siap:S.view==='form'?semuaList():S.perlu;if(!list)return;
   var a=AQ[S.view],el=$('aqlist');if(el)el.innerHTML=aqIsi(list,a,verif);
   var ct=$('aqcount');if(ct)ct.textContent=aqCount(list,a);
+  var mt=$('aqmt');if(mt)mt.innerHTML=(S.view==='form'?'Temuan':S.view==='perbaikan'?'Perbaikan':'Verifikasi')+' &middot; '+aqList(list,a).length;
 }
 
 /* ----- tab Temuan: Per ruangan (awal) atau Semua ruangan dengan filter Gedung, Lantai, Bidang, Tingkat, Bermemo ----- */
@@ -851,7 +881,7 @@ function semuaHtml(){
   if(S.allErr)return '<div class="err">Gagal memuat semua temuan.'+(typeof S.allErr==='string'?' '+esc(S.allErr):'')+'</div><button type="button" class="btn sec" data-act="muatsemua">Coba lagi</button>';
   var list=semuaList();if(!list)return skel('entries');
   var a=AQ.form;
-  return '<div class="banner" role="status"><span>'+list.length+' temuan di semua area</span><button type="button" data-act="muatsemua">Muat ulang</button></div>'+aqBar(list,a,false,true)+(M_?M_.legenda(list):'')+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';
+  return aqBar(list,a,false,true)+(M_?M_.legenda(list):'')+'<div id="aqlist">'+aqIsi(list,a,false)+'</div>';
 }
 
 /* ----- antrean verifikasi ----- */
@@ -859,7 +889,7 @@ function verifHtml(){
   var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Verifikasi</h1></div>';
   if(!S.siap&&S.siapErr)return h+'<div class="err">'+esc(S.siapErr)+'</div><button type="button" class="btn sec" data-act="muatsiap">Coba lagi</button>';
   if(!S.siap)return h+skel('entries');
-  h+='<div class="banner" role="status"><span>'+S.siap.length+' temuan menunggu keputusan MK</span><button type="button" data-act="muatsiap">Muat ulang</button></div>';
+  h=h.replace(/<div class="cap">[^<]*<\/div>/,'<div class="cap">'+aqCap(S.siap,AQ.verif)+'</div>');
   if(!S.siap.length)return h+'<div class="empty">Tidak ada temuan yang menunggu verifikasi.</div>';
   return h+aqBar(S.siap,AQ.verif,false)+'<div id="aqlist">'+aqIsi(S.siap,AQ.verif,true)+'</div>';
 }
@@ -870,7 +900,7 @@ function perbaikanHtml(){
   if(!S.perlu&&S.perluErr)return h+'<div class="err">'+esc(S.perluErr)+'</div><button type="button" class="btn sec" data-act="muatperlu">Coba lagi</button>';
   if(!S.perlu)return h+skel('entries');
   var tl=S.perlu.filter(function(d){return d.verifikasi==='Ditolak'}).length;
-  h+='<div class="banner" role="status"><span>'+S.perlu.length+' perlu dikerjakan'+(tl?' &middot; '+tl+' ditolak MK':'')+'</span><button type="button" data-act="muatperlu">Muat ulang</button></div>';
+  h=h.replace(/<div class="cap">[^<]*<\/div>/,'<div class="cap">'+aqCap(S.perlu,AQ.perbaikan)+'</div>');
   if(!S.perlu.length)return h+'<div class="empty">Semua temuan sudah dikerjakan. Tidak ada yang perlu di-close.</div>';
   return h+aqBar(S.perlu,AQ.perbaikan,true)+'<div id="aqlist">'+aqIsi(S.perlu,AQ.perbaikan,false)+'</div>';
 }
@@ -1264,6 +1294,7 @@ function modalHtml(){
   if(m.t==='lokpilih')return lokLembarHtml();
   if(m.t==='filter')return filterLembarHtml();
   if(m.t==='aksi')return aksiLembarHtml();
+  if(m.t==='aqmenu')return aqMenuHtml();
   if(m.t==='mirip'){
     var mp=m.mirip,lbm=labelBidang(m.f.bidang),tj=mp.jenis==='gedung'?lbm.area:lbm.level;
     return '<div class="ov mid"><div class="sheet gap" role="dialog" aria-label="Nama mirip"><h2>Sudah ada '+esc(mp.entri)+'</h2><div class="note" style="padding:0;overflow-wrap:anywhere">Anda mengetik "'+esc(mp.masuk)+'"'+(mp.jenis==='lantai'?' di '+esc(mp.gedung):'')+'. '+esc(tj)+' yang sudah ada: "'+esc(mp.entri)+'". Pakai yang sudah ada supaya tidak ganda.</div>'+
@@ -2469,7 +2500,7 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden)sega
     tarik=false;dy=0;
     if(sibuk||ev.touches.length!==1||!S.paket||!S.user||S.modal||S.zoom||S.file||S.busy)return;
     if((window.pageYOffset||0)>0)return;
-    var t=ev.target;if(t&&t.closest&&t.closest('#overlay,.ov,input,textarea,select,#dock'))return;
+    var t=ev.target;if(t&&t.closest&&(t.closest('#overlay,.ov,textarea,select,#dock')||(t.closest('input')&&(t.closest('input')===document.activeElement||!t.closest('.sinp')))))return;   // kolom cari yang belum fokus boleh dipakai menarik
     y0=ev.touches[0].clientY;x0=ev.touches[0].clientX;tarik=true;
   },{passive:true});
   document.addEventListener('touchmove',function(ev){
@@ -2791,14 +2822,17 @@ async function onClick(ev){
     case 'glnonya': {var gn=S.modal;closeModal();return glAktif(gn.k,gn.g,gn.l,false)}
     case 'fst': S.flt.st=el.getAttribute('data-v')||'';return refreshList();
     case 'aqclr': if(AQ[S.view]){var pn0=AQ[S.view].pn;AQ[S.view]=aqBaru();AQ[S.view].pn=pn0}return render();
+    case 'aqmenu': return openModal({t:'aqmenu'});
+    case 'aqst': if(AQ[S.view]){AQ[S.view].st=el.getAttribute('data-v')||'';AQ[S.view].n=60}return render();
+    case 'aqcari': {var tb0=$('tbar');if(AQ[S.view]&&tb0&&tb0.classList.contains('min')&&!AQ[S.view].qo){AQ[S.view].qo=1;render();var qi=$('aqq');if(qi)qi.focus()}return}
     case 'aqpn': if(AQ[S.view])AQ[S.view].pn=AQ[S.view].pn?0:1;return render();
     case 'pdfsemua': return exportPdfSemua();
-    case 'aqsy': if(AQ[S.view]){AQ[S.view].sy=el.getAttribute('data-v')==='1'?1:0;AQ[S.view].n=60}return render();
-    case 'aqmm': if(AQ[S.view]){AQ[S.view].mm=el.getAttribute('data-v')==='1'?1:0;AQ[S.view].n=60}return render();
+    case 'aqsy': if(AQ[S.view]){AQ[S.view].sy=el.getAttribute('data-v')==='1'?1:0;AQ[S.view].n=60}render();return aqMenuRe();
+    case 'aqmm': if(AQ[S.view]){AQ[S.view].mm=el.getAttribute('data-v')==='1'?1:0;AQ[S.view].n=60}render();return aqMenuRe();
     case 'aqlebih': if(AQ[S.view])AQ[S.view].n=(AQ[S.view].n||60)+60;return render();
     case 'muatsemua': S.all=null;S.allErr=false;S.allBusy=false;return render();
     case 'tmode': S.semua=el.getAttribute('data-v')==='semua';lsSet('dl-semua',S.semua?'1':'0');return render();
-    case 'aqtl': if(AQ[S.view])AQ[S.view].tl=el.getAttribute('data-v')==='1'?1:0;return render();
+    case 'aqtl': if(AQ[S.view])AQ[S.view].tl=el.getAttribute('data-v')==='1'?1:0;render();return aqMenuRe();
     case 'fclr': S.flt={rid:S.flt.rid,q:'',st:'',bd:'',tk:'',el:''};return render();
     case 'zipg': S.zipOff[el.getAttribute('data-g')]=!el.checked;return;
     case 'zipgo': return exportZip();
@@ -2877,7 +2911,7 @@ document.addEventListener('change',function(e){
   }
   var fk=e.target.getAttribute&&e.target.getAttribute('data-fil');if(fk){S.flt[fk]=e.target.value;refreshList();return}
   var ak=e.target.getAttribute&&e.target.getAttribute('data-aq');
-  if(ak&&AQ[S.view]){var aa=AQ[S.view];aa[ak]=e.target.value;if(ak==='gd')aa.lt='';aa.n=60;render();return}
+  if(ak&&AQ[S.view]){var aa=AQ[S.view];aa[ak]=e.target.value;if(ak==='gd')aa.lt='';aa.n=60;render();aqMenuRe();return}
   var k=e.target.getAttribute&&e.target.getAttribute('data-sel');if(!k)return;
   var T=tree(),v=e.target.value;
   if(k==='g'){S.sel={g:v,l:'',r:''}}else if(k==='l'){S.sel={g:S.sel.g,l:v,r:''}}else S.sel={g:S.sel.g,l:S.sel.l,r:v};
