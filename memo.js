@@ -220,7 +220,7 @@
     });
     h += '</div>';
     var aktif = d.status !== 'CLOSE' && d.status !== 'BATAL', utama = '';
-    if (r.bisaTindak && r.bisaTindak.ok && aktif) utama += '<button type="button" class="btn" data-act="memotindak">' + C.ic('ubah') + (d.tindakLanjut ? 'Ubah tindak lanjut' : 'Isi tindak lanjut') + '</button>';
+    if (r.bisaTindak && r.bisaTindak.ok && aktif) utama += '<button type="button" class="btn" data-act="memotindak">' + C.ic('tindak') + (d.tindakLanjut ? 'Ubah tindak lanjut' : 'Isi tindak lanjut') + '</button>';
     utama += '<button type="button" class="btn' + (utama ? ' sec' : '') + '" data-act="memopratinjau">' + C.ic('memo') + 'Pratinjau</button>';
     /* satu baris: aksi utama dan tombol "..." yang memuat PDF, arsip, ubah isian, batalkan, hapus */
     return h + '<div class="mact2">' + utama + '<button type="button" class="btn sec sq" data-act="memolainnya" aria-label="Aksi lain">&#8943;</button></div></div></div>';
@@ -473,7 +473,7 @@
   function kartuMemo(x) {
     var jml = (x.aksi || []).filter(function (a) { return a !== 'tindak'; }).length, tombol = '';
     (x.aksi || []).forEach(function (a) {
-      if (a === 'tindak') tombol += '<button type="button" class="pill start" data-act="memotindakcepat" data-m="' + esc(x.id) + '">' + C.ic('ubah') + 'Isi tindak lanjut</button>';
+      if (a === 'tindak') tombol += '<button type="button" class="pill start" data-act="memotindakcepat" data-m="' + esc(x.id) + '">' + C.ic('tindak') + 'Isi tindak lanjut</button>';
       else tombol += '<button type="button" class="pill go" data-act="memosahcepat" data-m="' + esc(x.id) + '" data-s="' + a + '">' + C.ic('centang') + 'Sahkan' + (jml > 1 ? ' ' + SLOT_PENDEK[a] : '') + '</button>';
     });
     if (jml) tombol += '<button type="button" class="pill" data-act="memopratinjaukartu" data-m="' + esc(x.id) + '">Pratinjau</button>';

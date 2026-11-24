@@ -1276,7 +1276,7 @@ function rekapBentoHtml(){
 
 /* ----- kelola ----- */
 /* Kelola dibagi dalam lima tab: Ruangan (daftar, perlu dirapikan, tambah, nonaktif), Gedung dan lantai, Impor Excel, Isian, dan Lainnya (PDF massal, temuan terhapus). */
-var KL_TAB=[['ruang','Ruangan','gedung'],['gl','Gedung','lapis'],['imp','Impor','impor'],['isian','Isian','daftar'],['lain','Arsip','arsip']];   // Gedung = gedung dan lantai; Arsip = PDF massal dan temuan terhapus
+var KL_TAB=[['ruang','Ruangan','ruang'],['gl','Gedung','lapis'],['imp','Impor','impor'],['isian','Isian','daftar'],['lain','Arsip','arsip']];   // Gedung = gedung dan lantai; Arsip = PDF massal dan temuan terhapus
 var CHEV='<svg class="chev" viewBox="0 0 12 18" aria-hidden="true"><path d="M3 3l6 6-6 6"/></svg>';
 function klKunciMirip(n){return String(n).toLowerCase().replace(/\b(ruangan|ruang|rg)\b\.?/g,'').replace(/[^a-z0-9]/g,'').replace(/0+(\d)/g,'$1')}
 /** Ruangan yang perlu dirapikan: nama berisi posisi atau huruf tidak rapi, gedung atau lantai di luar daftar resmi, dan nama yang mirip ruangan lain di lantai yang sama. */
@@ -1467,7 +1467,7 @@ function renderOverlay(){
   }
   else if(S.file)h='<div class="ov mid"><div class="sheet gap"><h2>File siap</h2><div class="note" style="padding:0 0 4px">'+esc(S.file.name)+'</div>'+
     '<a class="btn" id="dl" href="'+esc(S.file.url)+'" download="'+esc(S.file.name)+'">Unduh</a>'+
-    (S.file.canShare?'<button type="button" class="btn sec" data-act="bagi">Bagikan</button>':'')+
+    (S.file.canShare?'<button type="button" class="btn sec" data-act="bagi">'+ic('bagi')+'Bagikan</button>':'')+
     '<button type="button" class="btn sec" data-act="tutupfile">Tutup</button></div></div>';
   else if(S.modal)h=modalHtml();
   var key=S.busy?'busy':S.zoom?'zoom':S.file?'file':S.modal?'m'+S.modal.t:'',prev=S.ovKey;
@@ -2581,16 +2581,16 @@ function fSatuAtur(h,baru,f){
   var tail='</div></div>',btn=(sec.btn||'').replace(/<\/div><\/div>$/,'');
   var sh=function(n,t,ket){return '<div class="fsh"><span class="n">'+n+'</span><div><b>'+t+'</b>'+(ket?'<small>'+ket+'</small>':'')+'</div></div>'};
   return head+
-    sh(1,'Foto Before','Ambil foto kondisi temuan')+(sec.foto||'').replace(/<div class="cap">Foto Before<\/div>/,'')+
-    sh(2,'Lokasi','Bidang, ruangan, dan posisi tepat')+(sec.bid||'')+(sec.lok||'')+(sec.detail||'')+
-    sh(3,'Temuan','Tulis apa yang ditemukan dan seberapa parah')+(sec.ur||'').replace(/<div class="cap">Temuan<\/div>/,'')+(sec.sev||'')+
-    sh(4,'Rincian teknis','Elemen, titik, dan tanggal temuan')+(sec.elem||'')+(sec.tgl||'')+
+    sh(1,ic('fotoba')+'Foto Before','Ambil foto kondisi temuan')+(sec.foto||'').replace(/<div class="cap">Foto Before<\/div>/,'')+
+    sh(2,ic('lokasi')+'Lokasi','Bidang, ruangan, dan posisi tepat')+(sec.bid||'')+(sec.lok||'')+(sec.detail||'')+
+    sh(3,ic('form')+'Temuan','Tulis apa yang ditemukan dan seberapa parah')+(sec.ur||'').replace(/<div class="cap">Temuan<\/div>/,'')+(sec.sev||'')+
+    sh(4,ic('grid')+'Rincian teknis','Elemen, titik, dan tanggal temuan')+(sec.elem||'')+(sec.tgl||'')+
     btn+tail;
 }
 /** Posisi tepat di dalam ruangan (teks bebas). Nama ruangan hanya jenis tempatnya; detail posisi ditulis di sini. */
 function fDetailHtml(f){
   if(f.lama)return '';
-  return '<label class="row"><span class="lbl">Lokasi detail <small>(opsional)</small></span><input type="text" id="mL" maxlength="120" autocomplete="off" placeholder="Mis. depan ruang LVMDP, dekat tangga" value="'+esc(f.detail||'')+'"></label>';
+  return '<label class="row"><span class="lbl">'+ic('lokasi')+'Lokasi detail <small>(opsional)</small></span><input type="text" id="mL" maxlength="120" autocomplete="off" placeholder="Mis. depan ruang LVMDP, dekat tangga" value="'+esc(f.detail||'')+'"></label>';
 }
 function fHtml(m){
   if(m.f.satu)return fSatuHtml(m);
