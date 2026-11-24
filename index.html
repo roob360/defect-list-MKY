@@ -495,8 +495,8 @@
   .phs .none{ aspect-ratio:4/3; min-height:0; padding:6px; text-align:center; }
   /* Kartu ringkas dan seragam di semua layar: uraian 3 baris, tag 2 baris, catatan 2 baris, satu foto per sisi. Rincian lengkap di dialog detail. */
   .entry .eh .tx{ display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; cursor:pointer; min-height:calc(3 * 1lh); }
-  .entry .rm{ padding:2px var(--margin) 0 calc(var(--margin) + 22px); font-size:13px; line-height:18px; font-weight:600; color:var(--blue-teks); cursor:pointer; min-height:20px; }
-  .entry .rm.off{ visibility:hidden; pointer-events:none; }
+  .sheet .note.ur.pj:not(.open){ display:-webkit-box; -webkit-line-clamp:5; line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+  .rmb{ background:none; border:0; padding:0; font:inherit; font-size:14px; font-weight:600; color:var(--blue-teks); cursor:pointer; text-align:left; }
   .entry .meta{ max-height:62px; overflow:hidden; }
   .entry .note{ display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .entry .phs .thumb{ aspect-ratio:4/3; }
