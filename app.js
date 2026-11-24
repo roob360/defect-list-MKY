@@ -652,7 +652,7 @@ function formHtml(){
   if(desk())h+=staleN;
   if(!list.length)return h+'<div class="empty"><b>Belum ada temuan di ruangan ini.</b>'+(canEdit()?'<div class="acts" style="padding:12px 0 0;justify-content:center"><button type="button" class="pill go" data-act="tambah">'+ic('plus')+'Tambah temuan</button></div>':'')+'</div>';
   var f=S.flt,nf=(f.bd?1:0)+(f.tk?1:0)+(f.el?1:0);
-  h+='<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="fq" placeholder="Cari uraian, elemen, titik" autocomplete="off" value="'+esc(f.q)+'"></label>'+
+  h+='<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="fq" placeholder="Cari temuan" autocomplete="off" value="'+esc(f.q)+'"></label>'+
     '<button type="button" class="btn-sq" data-act="filterbuka">Filter'+(nf?' &middot; '+nf:'')+'</button><button type="button" class="btn-sq ic" data-act="menuaksi" aria-label="Menu aksi">&#8943;</button></div>';
   return h+filterHtml(list,c)+(M_?M_.legenda(list):'')+'<div id="elist">'+entriesHtml(list)+'</div>';
 }
@@ -823,7 +823,7 @@ function aqBarSemua(list,a,mode){
     n=(a.gd?1:0)+(a.lt?1:0)+(a.rg?1:0)+(a.bd?1:0)+(a.tk?1:0)+(cf&&a.st?1:0)+(cf&&a.ft?1:0)+((a.dr||a.sp)?1:0);
   var panel=a.pn?'<div class="aqpanel" id="aqpanel">'+sel('gd','Gedung',pr(gd))+sel('lt','Lantai',pr(lt))+sel('rg','Ruangan',pr(rg))+sel('bd','Bidang',pr(BIDANG))+sel('tk','Tingkat',pr(TINGKAT))+
     (cf?sel('st','Status',[['Open','Open'],['Dalam proses','Proses'],['Close','Close']])+sel('ft','Foto After',AQ_FOTO.slice(1)):'')+tgl('dr','Temuan dari')+tgl('sp','Temuan sampai')+'</div>':'';
-  return '<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari uraian, elemen, titik, ruangan" autocomplete="off" value="'+esc(a.q)+'"></label>'+
+  return '<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="aqq" placeholder="Cari temuan" autocomplete="off" value="'+esc(a.q)+'"></label>'+
     (mode==='form'?'<button type="button" class="btn-sq" data-act="pdfsemua" aria-label="Cetak PDF sesuai penyaring dan urutan" title="Cetak PDF sesuai penyaring dan urutan">'+ic('pdf')+' PDF</button>':'')+'</div>'+
     '<div class="aqtool"><button type="button" class="chip'+(a.pn||n?' on':'')+'" data-act="aqpn" aria-expanded="'+(a.pn?'true':'false')+'" aria-controls="aqpanel">'+ic('filter')+'Filter'+(n?' <b class="aqn">'+n+'</b>':'')+'</button>'+
     '<label class="chip aqso"><span>Urutan</span><select data-aq="so" aria-label="Urutkan">'+urut.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===(a.so||'')?' selected':'')+'>'+esc(x[1])+'</option>'}).join('')+'</select></label>'+
@@ -1178,6 +1178,7 @@ async function exportRuangan(){
 }
 
 /* ---------- overlay ---------- */
+var ovTm=0;
 function renderOverlay(){
   var h='';
   if(S.busy)h='<div class="ov mid" style="z-index:90"><div class="sheet"><div class="busy"><div class="spin d"></div><span>'+esc(S.busy)+'</span></div>'+(S.zipRun?'<button type="button" class="btn sec" data-act="zipbatal" style="margin-top:10px">Batal</button>':'')+'</div></div>';
@@ -1195,6 +1196,13 @@ function renderOverlay(){
     '<button type="button" class="btn sec" data-act="tutupfile">Tutup</button></div></div>';
   else if(S.modal)h=modalHtml();
   var key=S.busy?'busy':S.zoom?'zoom':S.file?'file':S.modal?'m'+S.modal.t:'',prev=S.ovKey;
+  if(!h&&prev&&(prev.charAt(0)==='m'||prev==='file')&&animOn()&&overlay.querySelector('.ov')){   // animasi keluar singkat
+    overlay.classList.remove('fx');S.ovKey='';
+    Array.prototype.forEach.call(overlay.querySelectorAll('.ov'),function(o){o.classList.add('out')});
+    clearTimeout(ovTm);ovTm=setTimeout(function(){if(!S.ovKey)overlay.innerHTML=''},170);
+    aturDialog('',prev);if(M_)M_.sesudahOverlay();return;
+  }
+  clearTimeout(ovTm);
   overlay.classList.toggle('fx',!!key&&key!==S.ovKey);S.ovKey=key;
   overlay.innerHTML=h;
   aturDialog(key,prev);

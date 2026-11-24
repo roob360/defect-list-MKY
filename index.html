@@ -29,7 +29,7 @@
     --seg-sel:#ffffff; --sh-seg:0 2px 20px #0000000f; --dock:#ffffffa6; --lens:#78788033; --dockfx:0 10px 32px #00000024, inset 0 0 0 .5px #0000001a, inset 0 1px 0 #ffffffcc;
     --mat:#ffffffd6; --blur:blur(30px) saturate(140%);
     --float:0 8px 30px #0000001f;
-    --gap:16px; --margin:16px; --row-h:52px; --ctl-lg:50px; --dockb:max(calc(env(safe-area-inset-bottom,0px) - 14px),10px); --dockh:62px;
+    --red-solid:#cf2e2e; --gap:16px; --margin:16px; --row-h:52px; --ctl-lg:50px; --dockb:max(calc(env(safe-area-inset-bottom,0px) - 14px),10px); --dockh:62px;
     --r-group:26px; --r-pop:13px; --r-cap:999px;
   }
   @media (prefers-color-scheme: dark){
@@ -167,6 +167,24 @@
   .dock.scrub .ind{ scale:1.06 1.08; }
   .dock.scrub button.on:not(.hot){ color:var(--label2); } .dock.scrub button.on:not(.hot) svg{ fill:none; }
   .dock button.hot{ color:var(--blue-teks); }
+  /* ---- Perbaikan dialog dan akun (2026-11-24) ---- */
+  html.hemat .ov{ -webkit-backdrop-filter:none; backdrop-filter:none; }
+  @media (min-width:900px){
+    .ov:not(.zoom){ align-items:center; padding:24px; }
+    .ov:not(.zoom) .sheet:not(.wz){ border-radius:28px; max-height:min(88vh,820px); padding-bottom:22px; }
+  }
+  @media (pointer:coarse){ .row textarea{ resize:none; } }
+  .ov.mid .btn.bad{ background:var(--red-solid); color:#fff; }
+  html:not(.hemat) .ov.out{ animation:ovOut .16s ease-in forwards; pointer-events:none; }
+  html:not(.hemat) .ov.out .sheet{ animation:sheetOut .16s ease-in forwards; }
+  @keyframes ovOut{ to{ opacity:0; } }
+  @keyframes sheetOut{ to{ transform:translateY(40px) scale(.98); opacity:0; } }
+  .btn-ic::after{ content:""; position:absolute; inset:-5px; border-radius:50%; }
+  .prof{ -webkit-backdrop-filter:blur(18px) saturate(180%); backdrop-filter:blur(18px) saturate(180%); box-shadow:0 4px 14px #0000002e, inset 0 0 0 .5px #ffffff2e, inset 0 1px 0 #ffffff33; }
+  .prof::after{ content:""; position:absolute; inset:-3px; border-radius:50%; }
+  .prof.role.admin{ background:color-mix(in srgb,var(--purple-fill) 80%,transparent); }
+  .prof.role.mk{ background:color-mix(in srgb,var(--blue-fill) 80%,transparent); }
+  .prof.role.pj{ background:color-mix(in srgb,var(--orange-fill) 80%,transparent); }
   .path{ padding:0 4px 6px; }
   body.hasdock .wrap{ padding-bottom:calc(var(--dockb) + var(--dockh) + 28px); }
   body.hasdock .toast{ bottom:calc(var(--dockb) + var(--dockh) + 12px); }
@@ -259,8 +277,8 @@
   table.t tr.tot td{ font-weight:700; border-top:2px solid var(--sep); }
   .tw{ overflow-x:auto; }
 
-  .ov{ position:fixed; inset:0; z-index:50; background:#00000066; display:flex; align-items:flex-end; justify-content:center; }
-  .sheet{ width:100%; max-width:560px; max-height:92vh; overflow:auto; background:var(--gbg1); border-radius:26px 26px 0 0; padding:16px var(--margin) calc(env(safe-area-inset-bottom,0px) + 20px); }
+  .ov{ position:fixed; inset:0; z-index:50; background:#0000008c; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); display:flex; align-items:flex-end; justify-content:center; }
+  .sheet{ width:100%; max-width:560px; max-height:92vh; max-height:92dvh; overflow:auto; box-shadow:0 -10px 32px #0000002e, inset 0 0 0 .5px var(--sep); background:var(--gbg1); border-radius:26px 26px 0 0; padding:16px var(--margin) calc(env(safe-area-inset-bottom,0px) + 20px); }
   .sheet h2{ margin:0 0 12px; font-size:22px; line-height:28px; }
   .sheet .group{ margin-bottom:12px; }
   .sheet .gap > * + *, .sheet.gap > * + *{ margin-top:12px; }
@@ -751,7 +769,7 @@
   .ttdbox.pv span{ color:#66666b; font-size:14px; }
   .note.mono{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; overflow-wrap:anywhere; }
   /* ===== Fase 4: tab Memo, Rekap memo, mode Semua ruangan ===== */
-  .chips.tmode, .chips.rkmode{ margin:2px 0 12px; }
+  .chips.tmode, .chips.rkmode{ margin:2px 0 12px; padding-left:0; padding-right:0; }
   /* penyaring Semua area: ringkas, panel filter dilipat */
   .sbar .btn-sq svg, .aqtool .chip svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; vertical-align:-3px; margin-right:5px; }
   .aqtool{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
