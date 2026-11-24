@@ -501,6 +501,67 @@ function moveInd(){
   if(!el.classList.contains('anim'))requestAnimationFrame(function(){el.classList.add('anim')});
 }
 window.addEventListener('resize',moveInd);window.addEventListener('load',moveInd);
+/* ----- dock: geser jari melintasi tab untuk memilih, dan mengecil saat daftar digulir ke bawah ----- */
+(function(){
+  var dock=null,scrub=null,tutupKlik=0;
+  function D(){dock=$('dock');return dock&&!dock.hidden?dock:null}
+  function tabs(){return Array.prototype.slice.call(dock.querySelectorAll('button:not(.dockadd)'))}
+  document.addEventListener('pointerdown',function(e){
+    if(!D())return;
+    var b=e.target.closest&&e.target.closest('#dock button:not(.dockadd)');if(!b)return;
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    scrub={id:e.pointerId,x0:e.clientX,aktif:false,hot:b};
+  },true);
+  document.addEventListener('pointermove',function(e){
+    if(!scrub||e.pointerId!==scrub.id||!D())return;
+    if(!scrub.aktif){
+      if(Math.abs(e.clientX-scrub.x0)<10)return;
+      scrub.aktif=true;dock.classList.add('scrub');
+      try{dock.setPointerCapture(e.pointerId)}catch(x){}
+    }
+    var ts=tabs(),dr=dock.getBoundingClientRect(),f=ts[0].getBoundingClientRect(),l=ts[ts.length-1].getBoundingClientRect();
+    var x=Math.max(f.left,Math.min(l.right,e.clientX)),hot=ts[0];
+    ts.forEach(function(t){var r=t.getBoundingClientRect();if(x>=r.left&&x<=r.right)hot=t});
+    var ind=dock.querySelector('.ind'),w=hot.offsetWidth;
+    ind.style.width=w+'px';
+    ind.style.transform='translate('+Math.round(Math.max(f.left,Math.min(l.right-w,x-w/2))-dr.left)+'px,'+hot.offsetTop+'px)';
+    if(hot!==scrub.hot){
+      scrub.hot=hot;
+      ts.forEach(function(t){t.classList.toggle('hot',t===hot)});
+      try{if(navigator.vibrate&&animOn())navigator.vibrate(8)}catch(x){}
+    }
+  },true);
+  function akhiri(e,pilih){
+    if(!scrub||e.pointerId!==scrub.id)return;
+    var s=scrub;scrub=null;
+    if(!s.aktif)return;
+    if(dock){dock.classList.remove('scrub');tabs().forEach(function(t){t.classList.remove('hot')});try{dock.releasePointerCapture(e.pointerId)}catch(x){}}
+    if(pilih&&s.hot&&!s.hot.classList.contains('on'))s.hot.click();else moveInd();
+    tutupKlik=Date.now();
+  }
+  document.addEventListener('pointerup',function(e){akhiri(e,true)},true);
+  document.addEventListener('pointercancel',function(e){akhiri(e,false)},true);
+  document.addEventListener('click',function(e){   // klik susulan dari gestur geser tidak boleh memilih tab lagi
+    if(Date.now()-tutupKlik<350&&e.target.closest&&e.target.closest('#dock')){e.stopPropagation();e.preventDefault()}
+  },true);
+  /* Mengecil: gulir ke bawah menyembunyikan label, gulir ke atas atau kembali ke atas memulihkannya. */
+  var lastY=0,acc=0,mini=false,tm=0;
+  function setMini(v){
+    mini=v;dock.classList.toggle('mini',v);dock.classList.add('sync');trackInd(460);
+    clearTimeout(tm);tm=setTimeout(function(){dock.classList.remove('sync')},500);
+  }
+  window.addEventListener('scroll',function(){
+    if(!D())return;
+    var y=window.pageYOffset||0;if(y<0)return;
+    var dy=y-lastY;lastY=y;
+    if(dy*acc<0)acc=0;acc+=dy;
+    var sisa=document.documentElement.scrollHeight-window.innerHeight,mau=mini;
+    if(y<40)mau=false;
+    else if(acc>28&&sisa>200&&y>120)mau=true;
+    else if(acc<-14)mau=false;
+    if(mau!==mini)setMini(mau);
+  },{passive:true});
+})();
 function renderMain(){
   var h='';
   if(S.net)h+='<div class="err" role="status">'+esc(S.net)+'</div>';

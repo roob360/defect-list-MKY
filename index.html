@@ -156,6 +156,17 @@
   html:not(.hemat) .dock button:active{ transform:scale(.9); transition-duration:.1s; }
   html:not(.hemat) .dock button svg{ transition:fill-opacity .25s; }
   html:not(.hemat) .dock.anim .ind{ transition:transform .55s cubic-bezier(.3,1.4,.5,1), width .4s cubic-bezier(.3,.9,.3,1); }
+  #dock{ touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .dock button > span:not(.bdg){ max-height:14px; opacity:1; }
+  .dock.mini{ height:48px; }
+  .dock.mini button{ gap:0; }
+  .dock.mini button > span:not(.bdg){ max-height:0; opacity:0; }
+  html:not(.hemat) .dock{ transition:height .34s cubic-bezier(.3,.9,.3,1); }
+  html:not(.hemat) .dock button > span:not(.bdg){ transition:max-height .26s, opacity .2s; }
+  .dock.scrub .ind, .dock.sync .ind{ transition:none !important; }
+  .dock.scrub .ind{ scale:1.06 1.08; }
+  .dock.scrub button.on:not(.hot){ color:var(--label2); } .dock.scrub button.on:not(.hot) svg{ fill:none; }
+  .dock button.hot{ color:var(--blue-teks); }
   .path{ padding:0 4px 6px; }
   body.hasdock .wrap{ padding-bottom:calc(var(--dockb) + var(--dockh) + 28px); }
   body.hasdock .toast{ bottom:calc(var(--dockb) + var(--dockh) + 12px); }
