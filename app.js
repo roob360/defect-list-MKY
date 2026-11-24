@@ -294,6 +294,53 @@ function petunjukPasang(){
   if(PROMPT_PASANG){lsSet('dl-pasang','1');toastAksi('Pasang aplikasi di layar utama agar lebih cepat dibuka.','Pasang',function(){var p=PROMPT_PASANG;PROMPT_PASANG=null;try{p.prompt()}catch(e){}});return}
   if(/iPhone|iPad|iPod/.test(navigator.userAgent)){lsSet('dl-pasang','1');toast('Untuk memasang: ketuk Bagikan, lalu Tambah ke Layar Utama.')}
 }
+/** Papan ketik HP: sheet naik menghindarinya (visualViewport), dan kolom yang difokuskan digulir ke tengah supaya tidak tertutup. */
+(function(){
+  var vv=window.visualViewport;if(!vv)return;
+  function ukur(){
+    var kb=Math.max(0,Math.round(window.innerHeight-vv.height-vv.offsetTop));
+    var h=kb>80?kb:0;document.documentElement.style.setProperty('--kb',h+'px');document.documentElement.classList.toggle('kb',h>0);
+  }
+  vv.addEventListener('resize',ukur);vv.addEventListener('scroll',ukur);
+  document.addEventListener('focusin',function(e){
+    var t=e.target;if(!t||!/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||!t.closest('#overlay'))return;
+    setTimeout(function(){try{t.scrollIntoView({block:'center',behavior:'smooth'})}catch(x){}},320);
+  });
+})();
+/** Seret sheet bawah ke bawah untuk menutup (HP): hanya saat isi sheet ada di paling atas; lewat 110 px atau cukup cepat, sheet turun dan tertutup, bila tidak kembali dengan efek karet. */
+(function(){
+  var sh=null,ov=null,y0=0,dy=0,t0=0,seret=false;
+  function kecil(){return window.innerWidth<900}
+  document.addEventListener('touchstart',function(e){
+    sh=null;seret=false;
+    if(!kecil()||e.touches.length!==1)return;
+    var t=e.target.closest&&e.target.closest('#overlay .ov:not(.mid):not(.zoom) .sheet:not(.wz)');
+    if(!t||(e.target.closest('input,textarea,select')))return;
+    sh=t;ov=t.closest('.ov');y0=e.touches[0].clientY;dy=0;t0=Date.now();
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!sh)return;
+    var d=e.touches[0].clientY-y0;
+    if(!seret){if(d>8&&sh.scrollTop<=0)seret=true;else return}
+    e.preventDefault();
+    dy=Math.max(0,d);
+    sh.style.transition='none';sh.style.transform='translateY('+dy+'px)';
+    ov.style.background='rgba(0,0,0,'+Math.max(.1,.55*(1-dy/520))+')';
+  },{passive:false});
+  function lepas(){
+    if(!sh||!seret){sh=null;return}
+    var s=sh,o=ov,cepat=dy/Math.max(1,Date.now()-t0)>.6;
+    sh=null;seret=false;
+    if(dy>110||(cepat&&dy>40)){
+      s.style.transition='transform .18s ease-in';s.style.transform='translateY(100%)';o.style.transition='background .18s';o.style.background='rgba(0,0,0,0)';
+      setTimeout(function(){closeModal()},170);
+    }else{
+      s.style.transition='transform .28s cubic-bezier(.3,1.4,.4,1)';s.style.transform='';o.style.background='';
+      setTimeout(function(){s.style.transition=''},300);
+    }
+  }
+  document.addEventListener('touchend',lepas);document.addEventListener('touchcancel',lepas);
+})();
 /** Penampil foto penuh: cubit untuk zoom, ketuk dua kali untuk memperbesar atau mengembalikan, geser saat diperbesar, seret ke bawah untuk menutup (roda tetikus untuk zoom di komputer). */
 (function(){
   var ps={},s=1,tx=0,ty=0,d0=0,s0=1,tapT=0,gerak=0,img=null,sx=0,sy=0;
@@ -2478,7 +2525,7 @@ function fHtml(m){
       '<div id="mph">'+mphHtml(f)+'</div>'+
       '<div class="pbtn"><button type="button" class="pill" data-act="mfoto" data-cam="1">'+ic('cam')+'Kamera</button><button type="button" class="pill" data-act="mfoto">'+ic('img')+'Galeri</button></div></section>';
   }
-  h+='<div class="gap"><button type="button" class="btn rect" data-act="msimpan">Simpan</button>'+(!f.id&&!f.lama?'<button type="button" class="btn sec" data-act="msimpanlagi">Simpan &amp; tambah lagi di lokasi ini</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div></div>';
+  h+='<div class="gap sfoot"><button type="button" class="btn rect" data-act="msimpan">Simpan</button>'+(!f.id&&!f.lama?'<button type="button" class="btn sec" data-act="msimpanlagi">Simpan &amp; tambah lagi di lokasi ini</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div></div>';
   return h;
 }
 
