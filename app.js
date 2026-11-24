@@ -44,7 +44,7 @@ var RE_TOAST_OK=/^(Tersimpan|Temuan (dihapus|dipulihkan)|Dihapus|Digabung|Diteri
 function cekToast(t,m){
   m=String(m);var c=document.createElement('span'),w=RE_TOAST_GALAT.test(m);
   if(w){c.className='tcek w';c.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-peringatan"/></svg>'}
-  else if(RE_TOAST_OK.test(m)){c.className='tcek';c.innerHTML=SVG_CEK}
+  else if(RE_TOAST_OK.test(m)){c.className='tcek';c.innerHTML=SVG_CEK;try{if(navigator.vibrate&&animOn())navigator.vibrate(12)}catch(e){}}   // getar ringan pada aksi berhasil (Android; iPhone tidak mendukung)
   else return;
   t.insertBefore(c,t.firstChild);
 }
@@ -233,6 +233,13 @@ function dropDefect(id,rid){
   if(S.siap)S.siap=S.siap.filter(function(x){return x.id!==id});
   if(S.perlu)S.perlu=S.perlu.filter(function(x){return x.id!==id});
 }
+/** Semua salinan objek temuan dengan id ini (daftar ruangan, antrean Verifikasi, antrean Perbaikan, Semua area). */
+function semuaSalinan(id){
+  var out=[],rid;
+  function cari(l){if(l)for(var i=0;i<l.length;i++)if(l[i].id===id&&out.indexOf(l[i])<0)out.push(l[i])}
+  for(rid in S.defects)cari(S.defects[rid]);cari(S.siap);cari(S.perlu);cari(S.all);
+  return out;
+}
 function findDefect(id){
   var rid,list;
   for(rid in S.defects){list=S.defects[rid];for(var i=0;i<list.length;i++)if(list[i].id===id)return list[i]}
@@ -352,13 +359,17 @@ function skel(kind){
   else if(kind==='kelola')h+=[3,2].map(function(n){var r='';for(var i=0;i<n;i++)r+=skRow();return '<section class="group" aria-hidden="true">'+skb('120px',14,0,'margin:14px var(--margin) 8px')+'<div class="list">'+r+'</div></section>'}).join('');
   return h;
 }
+var SCR={};   // posisi gulir terakhir per layar (kunci sama dengan S.drawn), dipulihkan saat kembali ke layar itu
+function kunciLayar(){return !S.paket?'pick':!S.user?'login':S.view+(S.view==='form'&&S.sel?':'+S.sel.r:'')}
 function render(){
+  var kPrev=S.drawn,kNow=kunciLayar(),sy=window.pageYOffset||0;
+  if(kPrev&&kPrev!==kNow)SCR[kPrev]=sy;if(!S.user)SCR={};
   document.body.classList.toggle('wide',!!(S.paket&&S.user&&(S.view==='form'||S.view==='verif'||S.view==='perbaikan'||S.view==='memo')&&desk()));
   document.body.classList.toggle('bento',!!(S.paket&&S.user&&((S.view==='rekap'&&canEdit())||(S.view==='kelola'&&isAdmin()))&&desk()));
   setHead();setDock();
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
   var key=!S.paket?'pick':!S.user?'login':S.view+(S.view==='form'?':'+S.sel.r:'');
-  if(S.drawn!==key){S.drawn=key;S.cuPrev={};app.classList.remove('enter');void app.offsetWidth;app.classList.add('enter')}
+  if(S.drawn!==key){S.drawn=key;S.cuPrev={};app.classList.remove('enter');void app.offsetWidth;app.classList.add('enter');if(S.user)window.scrollTo(0,SCR[key]||0)}
   animHitung();
 }
 /* Rekap: angka naik dari 0 (atau dari nilai sebelumnya bila berubah, mis. ganti gedung). Bar tumbuh lewat CSS. */
@@ -549,7 +560,7 @@ function lokLembarHtml(){
 function formHtml(){
   if(!S.roomsReady&&!S.rooms.length)return skel('page');
   var T=tree();
-  if(!T.length)return '<div class="empty">Belum ada ruangan.'+(isAdmin()?' Tambahkan di tab Kelola.':' Hubungi admin.')+'</div>';
+  if(!T.length)return '<div class="empty"><b>Belum ada ruangan.</b>'+(isAdmin()?'<div class="acts" style="padding:12px 0 0;justify-content:center"><button type="button" class="pill go" data-act="tab" data-v="kelola">Buka Kelola</button></div>':'<div>Hubungi admin.</div>')+'</div>';
   var s=ensureSel(T),rid=s.r.id,list=S.defects[rid];
   if(S.flt.rid!==rid)S.flt={rid:rid,q:'',st:'',bd:'',tk:'',el:''};
   var h='<div class="pagehead"><div class="cap">'+esc(S.paket.nama)+'</div><h1>Temuan</h1>'+tmodeHtml()+'</div>';
@@ -575,7 +586,7 @@ function formHtml(){
       return '<div'+(x[0]?' class="'+x[0]+'"':'')+'><b'+(pv!==undefined&&pv!==x[1]?' data-from="'+pv+'"':'')+'>'+x[1]+'</b><span>'+x[2]+'</span></div>'}).join('')+'</div>'+
     '<button type="button" class="pdfbtn" data-act="pdf" aria-label="PDF ruangan ini">'+ic('pdf')+'<span>PDF</span></button></div>';
   if(desk())h+=staleN;
-  if(!list.length)return h+'<div class="empty">Belum ada temuan di ruangan ini.</div>';
+  if(!list.length)return h+'<div class="empty"><b>Belum ada temuan di ruangan ini.</b>'+(canEdit()?'<div class="acts" style="padding:12px 0 0;justify-content:center"><button type="button" class="pill go" data-act="tambah">'+ic('plus')+'Tambah temuan</button></div>':'')+'</div>';
   var f=S.flt,nf=(f.bd?1:0)+(f.tk?1:0)+(f.el?1:0);
   h+='<div class="sbar"><label class="sinp">'+ic('search')+'<input type="text" id="fq" placeholder="Cari uraian, elemen, titik" autocomplete="off" value="'+esc(f.q)+'"></label>'+
     '<button type="button" class="btn-sq" data-act="filterbuka">Filter'+(nf?' &middot; '+nf:'')+'</button><button type="button" class="btn-sq ic" data-act="menuaksi" aria-label="Menu aksi">&#8943;</button></div>';
@@ -719,6 +730,7 @@ function aqList(list,a){
 }
 function aqIsi(list,a,verif){
   var v=aqList(list,a),g='';
+  if(!v.length&&!list.length&&!verif)return '<div class="empty"><b>Belum ada temuan.</b>'+(canEdit()?'<div class="acts" style="padding:12px 0 0;justify-content:center"><button type="button" class="pill go" data-act="tambah">'+ic('plus')+'Tambah temuan</button></div>':'')+'</div>';
   if(!v.length)return '<div class="empty">Tidak ada temuan yang cocok.<div class="acts" style="padding:10px 0 0"><button type="button" class="pill" data-act="aqclr">Atur ulang</button></div></div>';
   var lim=a.n||0;   // mode Semua area: tampil bertahap supaya daftar panjang tidak berat
   v.slice(0,lim||v.length).forEach(function(d,i){g+='<div class="ent"><div class="cap path">'+esc(d.gedung)+' / '+esc(d.lantai)+' / '+esc(d.ruangan)+'</div>'+(verif?entryHtml(d,d.no||i+1,i,true):entryHtml(d,d.no||i+1,i))+'</div>'});
@@ -2348,6 +2360,37 @@ function segarkan(paksa){
   if(v!=='kelola'&&v!=='rekap'){if(canEdit())loadSiap();if(isPJ())loadPerlu()}
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden)segarkan(false)});
+/* Tarik ke bawah dari paling atas untuk memuat ulang (HP). Hanya di layar utama, bukan di dialog, foto, atau kolom isian. */
+(function(){
+  var y0=0,x0=0,tarik=false,dy=0,el=null,SAMBUNG=84,sibuk=false;
+  function ind(){if(!el){el=document.createElement('div');el.id='ptr';el.className='ptr';el.setAttribute('aria-hidden','true');el.hidden=true;el.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 5v10M7.5 11l4.5 4.5 4.5-4.5"/></svg>';document.body.appendChild(el)}return el}
+  function atur(d,aktif){var e=ind(),p=Math.min(1,d/SAMBUNG);e.hidden=false;e.style.transform='translate(-50%,'+Math.round(Math.min(d,SAMBUNG+20)*0.55-40)+'px)';e.style.opacity=String(Math.max(.2,p));e.classList.toggle('siap',p>=1);e.classList.toggle('putar',!!aktif)}
+  function sembunyi(){if(el){el.hidden=true;el.classList.remove('siap','putar')}}
+  document.addEventListener('touchstart',function(ev){
+    tarik=false;dy=0;
+    if(sibuk||ev.touches.length!==1||!S.paket||!S.user||S.modal||S.zoom||S.file||S.busy)return;
+    if((window.pageYOffset||0)>0)return;
+    var t=ev.target;if(t&&t.closest&&t.closest('#overlay,.ov,input,textarea,select,#dock'))return;
+    y0=ev.touches[0].clientY;x0=ev.touches[0].clientX;tarik=true;
+  },{passive:true});
+  document.addEventListener('touchmove',function(ev){
+    if(!tarik)return;
+    var c=ev.touches[0];dy=c.clientY-y0;
+    if(Math.abs(c.clientX-x0)>Math.abs(dy)||dy<=8||(window.pageYOffset||0)>0){if(dy<=0){tarik=false;sembunyi()}return}
+    atur(dy-8,false);
+  },{passive:true});
+  function selesai(){
+    if(!tarik)return;tarik=false;
+    if(dy-8>=SAMBUNG){
+      sibuk=true;atur(SAMBUNG,true);
+      if(navigator.onLine===false){toast('Tidak ada sinyal.');sembunyi();sibuk=false;return}
+      var t0=Date.now();segarkan(true);
+      setTimeout(function(){sembunyi();sibuk=false},Math.max(0,700-(Date.now()-t0)));
+    }else sembunyi();
+  }
+  document.addEventListener('touchend',selesai,{passive:true});
+  document.addEventListener('touchcancel',function(){tarik=false;sembunyi()},{passive:true});
+})();
 setInterval(function(){if(DRAF.length&&navigator.onLine!==false)drafKirim()},60000);
 
 async function saveForm(lagi){
@@ -2550,8 +2593,14 @@ async function onClick(ev){
     case 'fpem': {S.modal.f.pemBaru[el.getAttribute('data-k')]=el.getAttribute('data-v');return fSegar()}
     case 'mtutup': case 'modalbg': return closeModal();
     case 'mulai': {
-      var r=await work('Menyimpan...',function(){return api('perbaikan_mulai',{id:id})});
-      if(r){putDefect(r);toast('Perbaikan dicatat dimulai.');render()}return;
+      /* Optimistik: kartu langsung berubah, server mengonfirmasi di belakang; bila gagal, kartu dikembalikan. */
+      var salin=semuaSalinan(id);if(!salin.length){return}
+      var lama=salin.map(function(c){return {c:c,mulai:c.mulai,diisiOleh:c.diisiOleh,status:c.status}}),now=new Date(),iso=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+      salin.forEach(function(c){c.mulai=iso;c.diisiOleh=S.user&&S.user.nama||'';if(c.status==='Open')c.status='Dalam proses'});
+      toast('Perbaikan dicatat dimulai.');render();
+      try{var r=await api('perbaikan_mulai',{id:id});if(r){putDefect(r);render()}}
+      catch(e){lama.forEach(function(o){if(o.mulai===undefined)delete o.c.mulai;else o.c.mulai=o.mulai;if(o.diisiOleh===undefined)delete o.c.diisiOleh;else o.c.diisiOleh=o.diisiOleh;o.c.status=o.status});render();gagal(e)}
+      return;
     }
     case 'verif': return openModal({t:'verif',d:findDefect(id)});
     case 'vset': {
