@@ -2507,8 +2507,9 @@ function fSatuHtml(m){
   var f=m.f,baru=!f.id,tg=fTitik(f,false),judul=baru?'Tambah temuan':'Ubah temuan';
   var h='<div class="ov" data-act="modalbg"><div class="sheet wz satu" role="dialog" aria-label="'+judul+'">'+
     '<div class="wh"><h2>'+judul+'</h2><button type="button" class="btn-ic wx" data-act="mtutup" aria-label="Tutup">'+ic('x')+'</button></div>';
-  h+='<div class="chips wb" role="group" aria-label="Bidang">'+BIDANG.map(function(b){return '<button type="button" class="chip'+(b===f.bidang?' on':'')+'"'+(f.kunciBidang&&b!==f.bidang?' disabled':'')+' data-act="wbid" data-v="'+esc(b)+'">'+esc(KODE_BID[b]||b)+'</button>'}).join('')+'</div>';
+  h+='<!--S:bid--><div class="chips wb" role="group" aria-label="Bidang">'+BIDANG.map(function(b){return '<button type="button" class="chip'+(b===f.bidang?' on':'')+'"'+(f.kunciBidang&&b!==f.bidang?' disabled':'')+' data-act="wbid" data-v="'+esc(b)+'">'+esc(KODE_BID[b]||b)+'</button>'}).join('')+'</div>';
   // lokasi
+  h+='<!--S:lok-->';
   if(baru){
     var o=wTerakhir();
     if(o&&!(o.bidang===f.bidang&&o.gedung===f.gedung&&o.lantai===f.lantai&&(o.lok==='ruang'?o.ruang===f.ruang:true)))
@@ -2520,15 +2521,16 @@ function fSatuHtml(m){
       '<div class="note">'+esc(f.bidang)+' tidak memakai ruangan, jadi lokasinya otomatis.</div>';
   }else h+='<div class="row fix"><span class="lbl">Lokasi</span><div>'+esc(f.gedung+' / '+f.lantai+' / '+f.lokasiTeks)+'</div></div>'+pindahHtml(f);
   // foto
+  h+='<!--S:foto-->';
   if(baru)h+='<div class="cap">Foto Before</div><div id="mph" class="phs">'+mphHtml(f)+'</div>'+
     '<div class="pbtn"><button type="button" class="pill" data-act="mfoto" data-cam="1">'+ic('cam')+'Kamera</button><button type="button" class="pill" data-act="mfoto">'+ic('img')+'Galeri</button></div>';
   else if(canEdit())h+='<div class="cap">Foto</div><div id="fsfoto">'+fotoEditHtml(f)+'</div>'+(isAdmin()?'<div class="note">Foto yang dihapus dipindah ke folder Sampah di Drive.</div>':'');
   // detail
-  h+=fDetailHtml(f)+'<div class="cap">Temuan</div><div class="row dikte" id="mUr"><textarea id="mU" aria-label="Temuan" placeholder="Apa temuannya?">'+esc(f.uraian)+'</textarea></div>';
-  h+='<div class="cap">Seberapa parah?</div><div class="sev" role="group" aria-label="Tingkat">'+TINGKAT.map(function(x,i){return '<button type="button" class="s'+i+(x===f.tingkat?' on':'')+'" data-act="wsev" data-v="'+esc(x)+'">'+esc(x)+'</button>'}).join('')+'</div>';
+  h+='<!--S:detail-->'+fDetailHtml(f)+'<!--S:ur--><div class="cap">Temuan</div><div class="row dikte" id="mUr"><textarea id="mU" aria-label="Temuan" placeholder="Apa temuannya?">'+esc(f.uraian)+'</textarea></div>';
+  h+='<!--S:sev--><div class="cap">Seberapa parah?</div><div class="sev" role="group" aria-label="Tingkat">'+TINGKAT.map(function(x,i){return '<button type="button" class="s'+i+(x===f.tingkat?' on':'')+'" data-act="wsev" data-v="'+esc(x)+'">'+esc(x)+'</button>'}).join('')+'</div>';
   var all=regDaftar('elemen',f.bidang),arr=Object.keys(all).map(function(k){return all[k]}).sort(function(x,y){return (y.n-x.n)||(y.t-x.t)||L.bandingNama(x.nama,y.nama)}),top=arr.slice(0,4).map(function(e){return e.nama});
   if(f.elemen&&top.every(function(n){return L.kunci(n)!==L.kunci(f.elemen)}))top.unshift(f.elemen);
-  h+='<div class="cap">Elemen <small>(opsional)</small></div><div class="epil">'+top.map(function(n){return '<button type="button" class="chip'+(L.kunci(n)===L.kunci(f.elemen)?' on blue':'')+'" data-act="welpick" data-v="'+esc(n)+'">'+esc(n)+'</button>'}).join('')+
+  h+='<!--S:elem--><div class="cap">Elemen <small>(opsional)</small></div><div class="epil">'+top.map(function(n){return '<button type="button" class="chip'+(L.kunci(n)===L.kunci(f.elemen)?' on blue':'')+'" data-act="welpick" data-v="'+esc(n)+'">'+esc(n)+'</button>'}).join('')+
     '<button type="button" class="chip dash" data-act="'+(f.bukaEl?'wtutupel':'welbuka')+'">'+(f.bukaEl?'Tutup daftar':(arr.length>=8?'Semua / cari':'+ Elemen lain'))+' &rsaquo;</button></div>';
   if(f.bukaEl)h+='<div id="elsek"><div class="sbar"><span class="si">'+ic('search')+'</span><input type="text" id="elq" class="sinp" maxlength="60" autocomplete="off" placeholder="Cari atau ketik elemen baru" value="'+esc(f.elq||'')+'"></div><div id="ell">'+wElemenList(f)+'</div></div>';
   if(!BID_RUANG[f.bidang]){
@@ -2543,9 +2545,21 @@ function fSatuHtml(m){
       h+='<div id="fpem" class="note"></div><div id="fprev" class="note"></div><button type="button" class="btn sec" data-act="wtitikok">Selesai isi titik</button></div>';
     }else h+='<button type="button" class="row titikrow" data-act="wtitik"><span class="lbl">Titik ('+esc(f.mode)+')</span><div>'+(tg.ok&&tg.teks?esc(tg.teks):'<span class="mute">Belum diisi (opsional)</span>')+'</div><svg class="chev" viewBox="0 0 12 18"><path d="M3 3l6 6-6 6"/></svg></button>';
   }
-  h+='<label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label>';
-  h+='<button type="button" class="btn rect" data-act="msimpan">Simpan</button>'+(baru?'<button type="button" class="btn sec" data-act="msimpanlagi">Simpan &amp; tambah lagi di lokasi ini</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Batal</button>';
-  return h+'</div></div>';
+  h+='<!--S:tgl--><label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label>';
+  h+='<!--S:btn--><button type="button" class="btn rect" data-act="msimpan">Simpan</button>'+(baru?'<button type="button" class="btn sec" data-act="msimpanlagi">Simpan &amp; tambah lagi di lokasi ini</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Batal</button>';
+  return fSatuAtur(h+'</div></div>',baru,f);
+}
+/** Susunan form Tambah temuan "foto dulu": foto, bidang, lokasi, uraian; kolom lain di bagian Rincian yang bisa dibuka. Ubah temuan memakai susunan lama. */
+function fSatuAtur(h,baru,f){
+  if(!baru)return h.replace(/<!--S:\w+-->/g,'');
+  var p=h.split(/<!--S:(\w+)-->/),head=p[0],sec={},i;
+  for(i=1;i<p.length;i+=2)sec[p[i]]=(sec[p[i]]||'')+p[i+1];
+  var buka=!!f.rinci,tail='</div></div>';
+  var btn=(sec.btn||'').replace(/<\/div><\/div>$/,'');
+  return head+(sec.foto||'')+(sec.bid||'')+(sec.lok||'')+(sec.ur||'')+
+    '<button type="button" class="rinbtn" data-act="wrinci" aria-expanded="'+buka+'"><span>Rincian <small>(tingkat, elemen, titik, tanggal)</small></span><svg class="chev" viewBox="0 0 12 18" style="transform:rotate('+(buka?'-90':'90')+'deg)"><path d="M3 2l6 7-6 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
+    (buka?'<div class="rinbody">'+(sec.detail||'')+(sec.sev||'')+(sec.elem||'')+(sec.tgl||'')+'</div>':'')+
+    btn+tail;
 }
 /** Posisi tepat di dalam ruangan (teks bebas). Nama ruangan hanya jenis tempatnya; detail posisi ditulis di sini. */
 function fDetailHtml(f){
@@ -2856,7 +2870,7 @@ async function onClick(ev){
       return;
     case 'nav': {var T=tree(),fl=flat(T),ix=fl.map(function(x){return x.r}).indexOf(S.sel.r),n=fl[ix+(+el.getAttribute('data-d'))];if(!n)return;S.sel=n;lsSet('dl-sel',JSON.stringify(n));render();loadDefects(n.r,false);window.scrollTo(0,0);return}
     case 'muat': return loadDefects(S.sel.r,true);
-    case 'tambah': return openForm(null);
+    case 'tambah': openForm(null);if(window.matchMedia&&matchMedia('(pointer:coarse)').matches&&S.modal&&S.modal.f&&!S.modal.f.id)pick(true,function(items){modalFotos(S.modal.f,items)});return;   // HP: kamera langsung terbuka (foto dulu)
     case 'edit': return openForm(findDefect(id));
     case 'fotocoba': {var fid=el.getAttribute('data-id'),zi=el.parentNode.querySelector('img');FOTO_COBA[fid]=0;el.remove();if(zi){zi.style.display='';zi.src=thumb(fid,1024)}return}
     case 'zoom': FOTO_COBA[el.getAttribute('data-f')]=0;return openZoom(thumb(el.getAttribute('data-f'),1024));
@@ -2938,6 +2952,7 @@ async function onClick(ev){
       wp.bidang=po.bidang;wp.gedung=po.gedung;wp.lantai=po.lantai;wp.gMode=false;wp.lMode=false;wp.conf={};
       wp.lok=po.lok;wp.ruang=po.lok==='ruang'?po.ruang:'';wp.mode=BID_RUANG[wp.bidang]?'tanpa':(wp.mode==='tanpa'?(wp.bidang==='Struktur'?'grid':'teks'):wp.mode);
       return wStep('foto',true)}
+    case 'wrinci': {fBaca();S.modal.f.rinci=!S.modal.f.rinci;return renderOverlay()}
     case 'wsev': {fBaca();S.modal.f.tingkat=el.getAttribute('data-v');return wStep('detail')}
     case 'wtutupel': {fBaca();S.modal.f.bukaEl=false;return fRender()}
     case 'welbuka': {S.modal.f.elq='';return wStep('elemen')}
