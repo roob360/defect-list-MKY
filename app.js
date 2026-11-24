@@ -89,7 +89,7 @@ function cnt(list){var c={total:list.length,open:0,proses:0,close:0};list.forEac
 
 /* ---------- API ---------- */
 /* Aksi baca boleh diulang otomatis (sampai 3 kali) saat jaringan gagal. Aksi tulis tidak, supaya tidak menggandakan data. */
-var BACA={mulai:1,masuk:1,ruangan:1,defect_daftar:1,defect_semua:1,defect_siap:1,defect_perbaikan:1,defect_terhapus:1,foto_data:1};
+var BACA={defect_riwayat:1,mulai:1,masuk:1,ruangan:1,defect_daftar:1,defect_semua:1,defect_siap:1,defect_perbaikan:1,defect_terhapus:1,foto_data:1};
 function api(aksi,p){
   var body=JSON.stringify(Object.assign({aksi:aksi,kode:S.kode},p||{}));
   var maks=BACA[aksi]?3:1,batas=aksi==='foto_unggah'?90000:45000,url=S.paket.apiUrl;
@@ -383,12 +383,86 @@ function petunjukPasang(){
     s=Math.max(1,Math.min(5,s*(e.deltaY<0?1.15:1/1.15)));if(s<1.02){s=1;tx=ty=0}batas();ap(false);
   },{passive:false});
 })();
-/** Transisi antar tab: memudar silang lewat View Transitions API; tanpa dukungan, mode hemat, atau gerak dikurangi, langsung ganti. */
-function vt(fn){
+/** Geser kiri-kanan di layar untuk pindah tab (HP), seperti di aplikasi chat: layar mengikuti jari, lalu meluncur keluar dan tab tetangga meluncur masuk.
+ * Tidak aktif di dialog, di kolom yang bisa digeser mendatar (chip, tabel), di tepi layar (gestur kembali sistem), dan di desktop. */
+(function(){
+  var x0=0,y0=0,t0=0,siap=false,akt=false,dx=0,app0=null;
+  function urutan(){
+    var dk=$('dock'),seq=[];if(!dk||dk.hidden)return seq;
+    Array.prototype.forEach.call(dk.querySelectorAll('button:not(.dockadd)'),function(b){var v=b.getAttribute('data-v');if(v==='lain')LAIN.forEach(function(x){seq.push(x[0])});else seq.push(v)});
+    return seq;
+  }
+  function pergi(v){
+    var tab=document.querySelector('.lainbar [data-v="'+v+'"]')||document.querySelector('#dock [data-v="'+v+'"]');
+    if(!tab&&isAdmin()&&LAIN.some(function(x){return x[0]===v})){S.lain=v;tab=document.querySelector('#dock [data-v="lain"]')}
+    if(tab)tab.click();
+  }
+  function tetangga(arah){var q=urutan(),i=q.indexOf(S.view);return i<0?'':(q[i+arah]||'')}
+  document.addEventListener('touchstart',function(e){
+    siap=false;akt=false;dx=0;
+    if(e.touches.length!==1||!S.paket||!S.user||S.modal||S.zoom||S.file||S.busy||MQ_DESK.matches)return;
+    var c=e.touches[0],t=e.target;
+    if(c.clientX<24||c.clientX>window.innerWidth-24)return;
+    if(t&&t.closest&&t.closest('#overlay,.ov,#dock,.pwrap,input,textarea,select,.seg,[data-noswipe],#ptr'))return;
+    var sc=t&&t.closest&&t.closest('.tw,.chips');if(sc&&sc.scrollWidth>sc.clientWidth+2)return;   // hanya yang benar-benar bisa digeser mendatar yang diutamakan
+    x0=c.clientX;y0=c.clientY;t0=Date.now();siap=true;app0=$('app');
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!siap||!app0)return;
+    var c=e.touches[0];dx=c.clientX-x0;var dy=c.clientY-y0;
+    if(!akt){
+      if(Math.abs(dy)>Math.abs(dx)*0.6&&Math.abs(dy)>10){siap=false;return}   // gulir vertikal
+      if(Math.abs(dx)<16)return;
+      akt=true;
+    }
+    var ada=!!tetangga(dx<0?1:-1);
+    app0.style.transition='none';app0.style.transform='translateX('+Math.round(dx*(ada?0.55:0.18))+'px)';
+  },{passive:true});
+  function reset(){if(app0){app0.style.transition='';app0.style.transform=''}}
+  function selesai(){
+    if(!siap||!akt){siap=false;return}
+    siap=false;var a=app0,arah=dx<0?1:-1,v=Math.abs(dx)/Math.max(1,Date.now()-t0),tujuan=tetangga(arah);
+    if(!tujuan||!(Math.abs(dx)>80||(Math.abs(dx)>40&&v>.5))){
+      a.style.transition=animOn()?'transform .25s cubic-bezier(.3,1.4,.4,1)':'none';a.style.transform='';
+      setTimeout(reset,280);return;
+    }
+    var gerak=animOn();
+    if(!gerak){reset();pergi(tujuan);return}
+    a.style.transition='transform .17s ease-in';a.style.transform='translateX('+(-arah*window.innerWidth)+'px)';
+    setTimeout(function(){
+      pergi(tujuan);
+      a.style.transition='none';a.style.transform='translateX('+(arah*window.innerWidth)+'px)';
+      void a.offsetWidth;
+      a.style.transition='transform .26s cubic-bezier(.3,.9,.3,1)';a.style.transform='';
+      setTimeout(reset,300);
+    },170);
+  }
+  document.addEventListener('touchend',selesai);document.addEventListener('touchcancel',function(){siap=false;if(akt){akt=false;reset()}});
+})();
+/** Mode papan ketik: cincin fokus hanya muncul setelah Tab ditekan, dan hilang saat mouse atau sentuhan dipakai lagi. */
+document.addEventListener('keydown',function(e){if(e.key==='Tab')document.documentElement.classList.add('kbd')},true);
+document.addEventListener('pointerdown',function(){document.documentElement.classList.remove('kbd')},true);
+/** Riwayat kejadian di detail temuan (jam per kejadian), dari jejak audit server. Server lama tanpa aksi ini: bagian disembunyikan. */
+var RIW_LABEL={tambah:'Temuan dicatat',ubah:'Temuan diubah',mulai_perbaikan:'Perbaikan dimulai',batal_mulai:'Mulai perbaikan dibatalkan',foto_after:'Foto After diunggah',verifikasi:'Verifikasi',hapus:'Temuan dihapus',pulihkan:'Temuan dipulihkan',pindah:'Dipindah ruangan',hapus_foto:'Foto dihapus',memo_draf:'Draf memo dibuat',memo_sahkan:'Memo disahkan',memo_cabut_ttd:'Tanda tangan memo dicabut',memo_tindak:'Tindak lanjut memo diisi',memo_ubah:'Memo diubah',memo_batal:'Memo dibatalkan',memo_arsip:'Memo diarsipkan',memo_hapus:'Memo dihapus'};
+function fmtWaktu(w){
+  var m=/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(String(w||''));
+  return m?fmt(m[1])+', '+m[2]:fmt(String(w||'').slice(0,10));
+}
+function riwayatHtml(l){
+  return '<div class="riw">'+l.map(function(e){
+    var ket=(e.aksi==='verifikasi'||e.aksi==='memo_sahkan'||e.aksi==='pindah')?String(e.ringkas||'').split(' - ')[0]:'';
+    return '<div class="rw"><span class="rt">'+esc(fmtWaktu(e.waktu))+'</span><div><b>'+esc(RIW_LABEL[e.aksi]||e.aksi)+(ket?' &middot; '+esc(ket):'')+'</b><span>'+esc(e.oleh||'')+(e.peran?' ('+esc(e.peran)+')':'')+'</span></div></div>';
+  }).join('')+'</div>';
+}
+var RIW_CACHE={};
+async function riwayatMuat(d){
+  var sec=$('riw'),box=$('riwb');if(!sec||!box||!d||!d.id)return;
   try{
-    if(document.startViewTransition&&animOn()&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){document.startViewTransition(fn);return}
-  }catch(e){}
-  fn();
+    var l=RIW_CACHE[d.id]=await api('defect_riwayat',{id:d.id});
+    var s2=$('riw'),b2=$('riwb');if(!s2||!b2||!S.modal||S.modal.t!=='ttx'||S.modal.d.id!==d.id)return;
+    if(!l||!l.length){s2.hidden=true;return}
+    b2.innerHTML=riwayatHtml(l);s2.hidden=false;
+  }catch(e){var s3=$('riw');if(s3)s3.hidden=true}
 }
 /** Riwayat pencarian: enam pencarian terakhir muncul sebagai chip saat kolom cari difokuskan dalam keadaan kosong. */
 (function(){
@@ -951,6 +1025,7 @@ function ttxHtml(d){
     bagian('Pelapor',baris('Dilaporkan oleh',d.by?esc(d.by)+(d.saya?' (Anda)':''):'(tidak tercatat)')+baris('Terakhir diubah',d.ubah?esc(fmt(d.ubah)):''))+
     bagian('Site memo',memo)+
     bagian('Perbaikan',perbaikan)+
+    '<section class="ttxs" id="riw" hidden><div class="cap">Riwayat</div><div id="riwb"></div></section>'+
     '<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',true,'detail')+'</div><div class="ph" data-j="after">'+phHtml(d,'after',true,'detail')+'</div></div>'+
     (M_&&M_.kartuTombol(d)?'<div class="acts" style="padding:0">'+M_.kartuTombol(d)+'</div>':'')+
     '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
@@ -1490,6 +1565,7 @@ function renderOverlay(){
   aturDialog(key,prev);
   if(M_)M_.sesudahOverlay();
   lensAll(overlay);noAuto(overlay);tombolX(overlay);
+  if(S.modal&&S.modal.t==='ttx')riwayatMuat(S.modal.d);
 }
 /* Dialog: peran ARIA, fokus pindah ke dalam dialog saat dibuka dan kembali ke pemicu saat ditutup. */
 function aturDialog(key,prev){
@@ -2908,7 +2984,7 @@ async function onClick(ev){
       var nv=el.getAttribute('data-v');if(nv==='lain'){if(LAIN.some(function(x){return x[0]===S.view}))return;nv=S.lain||'verif'}if(nv===S.view)return;if(nv==='verif'||nv==='perbaikan'||nv==='memo')S.lain=nv;
       if(nv==='form')hpopTop('view');else if(S.view==='form')hpush('view');
       S.view=nv;}
-      lsSet('dl-view',S.view);if(S.view==='rekap'){S.all=null;S.allErr=false}vt(render);
+      lsSet('dl-view',S.view);if(S.view==='rekap'){S.all=null;S.allErr=false}render();
       if(S.view==='verif')loadSiap();
       else if(S.view==='perbaikan')loadPerlu();
       else if(S.view==='memo'){if(M_)M_.muatDaftar()}
