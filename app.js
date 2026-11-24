@@ -383,6 +383,13 @@ function petunjukPasang(){
     s=Math.max(1,Math.min(5,s*(e.deltaY<0?1.15:1/1.15)));if(s<1.02){s=1;tx=ty=0}batas();ap(false);
   },{passive:false});
 })();
+/** Transisi antar tab: memudar silang lewat View Transitions API; tanpa dukungan, mode hemat, atau gerak dikurangi, langsung ganti. */
+function vt(fn){
+  try{
+    if(document.startViewTransition&&animOn()&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){document.startViewTransition(fn);return}
+  }catch(e){}
+  fn();
+}
 /** Riwayat pencarian: enam pencarian terakhir muncul sebagai chip saat kolom cari difokuskan dalam keadaan kosong. */
 (function(){
   var KEY='dl-riwayat';
@@ -2342,16 +2349,24 @@ function fWizHtml(m){
     if(h0.indexOf(P)!==0)return h0;
     inner=h0.slice(P.length,h0.length-12);
   }
-  // header (judul + X) dan bilah tombol membentang di atas dan di bawah kedua kolom, supaya kiri dan kanan sejajar
+  // header (judul + X) dan bilah tombol membentang di atas dan di bawah kedua kolom; isi dibagi seimbang:
+  // kiri = bukti dan uraian (foto, temuan, tingkat), kanan = tempat dan rincian teknis (lokasi, elemen, titik, tanggal)
   var wh='',foot='',mh=/^<div class="wh">.*?<\/div>/.exec(inner);
   if(mh){wh=mh[0];inner=inner.slice(wh.length)}
   var mf=/<div class="wfoot">[\s\S]*$/.exec(inner);
   if(mf){foot=mf[0];inner=inner.slice(0,mf.index)}
-  var kiri='<aside class="wzl"><div class="fsh"><span class="n">1</span><div><b>'+ic('fotoba')+'Foto Before</b><small>Ambil atau seret foto kondisi temuan</small></div></div><div id="mph" class="phs">'+mphHtml(f)+'</div>'+
+  var ur='',sev='';
+  inner=inner.replace(/<div class="row dikte" id="mUr">[\s\S]*?<\/textarea><\/div>/,function(m){ur=m;return ''});
+  inner=inner.replace(/<div class="cap">Seberapa parah\?<\/div><div class="sev"[\s\S]*?<\/button><\/div>/,function(m){sev=m;return ''});
+  inner=inner.replace('<div class="wsep"></div>','');
+  var sh=function(n,t,ket){return '<div class="fsh"><span class="n">'+n+'</span><div><b>'+t+'</b><small>'+ket+'</small></div></div>'};
+  inner=inner.replace('<div class="cap">Elemen',sh(4,'Rincian teknis','Elemen, titik, dan tanggal temuan')+'<div class="cap">Elemen');
+  var kiri='<aside class="wzl">'+sh(1,'Foto Before','Ambil atau seret foto kondisi temuan')+'<div id="mph" class="phs">'+mphHtml(f)+'</div>'+
     '<div class="dropz" id="dropz">Seret foto ke sini<br><small>atau</small><br><button type="button" class="btn sec sm" data-act="mfoto">'+ic('img')+'Pilih dari komputer</button></div>'+
-    '<label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label><div class="note" id="mtx">'+wTglNote(f)+'</div></aside>';
-  var kanan='<div class="fsh"><span class="n">2</span><div><b>'+ic('lokasi')+'Lokasi dan temuan</b><small>Bidang, ruangan, posisi tepat, uraian, dan tingkat</small></div></div>';
-  return P+wh+'<div class="wzcols">'+kiri+'<div class="wzr">'+kanan+inner+'</div></div>'+foot+'</div></div>';
+    sh(2,'Temuan','Tulis apa yang ditemukan dan seberapa parah')+ur+sev+'</aside>';
+  var kanan=sh(3,'Lokasi','Bidang, ruangan, dan posisi tepat');
+  var tgl='<label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label><div class="note" id="mtx">'+wTglNote(f)+'</div>';
+  return P+wh+'<div class="wzcols">'+kiri+'<div class="wzr">'+kanan+inner+tgl+'</div></div>'+foot+'</div></div>';
 }
 function fWizHtml0(m){
   var f=m.f,h='<div class="ov" data-act="modalbg"><div class="sheet wz" role="dialog" aria-label="Tambah temuan">';
@@ -2587,10 +2602,10 @@ function fSatuAtur(h,baru,f){
   var tail='</div></div>',btn=(sec.btn||'').replace(/<\/div><\/div>$/,'');
   var sh=function(n,t,ket){return '<div class="fsh"><span class="n">'+n+'</span><div><b>'+t+'</b>'+(ket?'<small>'+ket+'</small>':'')+'</div></div>'};
   return head+
-    sh(1,ic('fotoba')+'Foto Before','Ambil foto kondisi temuan')+(sec.foto||'').replace(/<div class="cap">Foto Before<\/div>/,'')+
-    sh(2,ic('lokasi')+'Lokasi','Bidang, ruangan, dan posisi tepat')+(sec.bid||'')+(sec.lok||'')+(sec.detail||'')+
-    sh(3,ic('form')+'Temuan','Tulis apa yang ditemukan dan seberapa parah')+(sec.ur||'').replace(/<div class="cap">Temuan<\/div>/,'')+(sec.sev||'')+
-    sh(4,ic('grid')+'Rincian teknis','Elemen, titik, dan tanggal temuan')+(sec.elem||'')+(sec.tgl||'')+
+    sh(1,'Foto Before','Ambil foto kondisi temuan')+(sec.foto||'').replace(/<div class="cap">Foto Before<\/div>/,'')+
+    sh(2,'Lokasi','Bidang, ruangan, dan posisi tepat')+(sec.bid||'')+(sec.lok||'')+(sec.detail||'')+
+    sh(3,'Temuan','Tulis apa yang ditemukan dan seberapa parah')+(sec.ur||'').replace(/<div class="cap">Temuan<\/div>/,'')+(sec.sev||'')+
+    sh(4,'Rincian teknis','Elemen, titik, dan tanggal temuan')+(sec.elem||'')+(sec.tgl||'')+
     btn+tail;
 }
 /** Posisi tepat di dalam ruangan (teks bebas). Nama ruangan hanya jenis tempatnya; detail posisi ditulis di sini. */
@@ -2893,7 +2908,7 @@ async function onClick(ev){
       var nv=el.getAttribute('data-v');if(nv==='lain'){if(LAIN.some(function(x){return x[0]===S.view}))return;nv=S.lain||'verif'}if(nv===S.view)return;if(nv==='verif'||nv==='perbaikan'||nv==='memo')S.lain=nv;
       if(nv==='form')hpopTop('view');else if(S.view==='form')hpush('view');
       S.view=nv;}
-      lsSet('dl-view',S.view);if(S.view==='rekap'){S.all=null;S.allErr=false}render();
+      lsSet('dl-view',S.view);if(S.view==='rekap'){S.all=null;S.allErr=false}vt(render);
       if(S.view==='verif')loadSiap();
       else if(S.view==='perbaikan')loadPerlu();
       else if(S.view==='memo'){if(M_)M_.muatDaftar()}
