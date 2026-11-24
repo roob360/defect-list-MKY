@@ -30,7 +30,7 @@ var M_=window.MEMO?window.MEMO.init({S:S,overlay:overlay,PDF_URL:PDF_URL,api:api
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
-function fmt(iso){if(!iso)return '';var p=String(iso).split('-');if(p.length<3)return iso;var m=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];return +p[2]+' '+m[+p[1]-1]+' '+p[0]}
+function fmt(iso){if(!iso)return '';var p=String(iso).slice(0,10).split('-');if(p.length<3)return iso;var m=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];return +p[2]+' '+m[+p[1]-1]+' '+p[0]}
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
@@ -2448,6 +2448,7 @@ function segarkan(paksa){
   else if(v==='form'){var s=S.sel;if(s&&s.r)loadDefects(s.r,true)}
   else if(v==='kelola'||v==='rekap')loadRooms();
   if(v!=='kelola'&&v!=='rekap'){if(canEdit())loadSiap();if(isPJ())loadPerlu()}
+  if((v==='form'||v==='rekap')&&S.all&&!S.allBusy){S.allBusy=true;api('defect_semua',{}).then(function(r){S.all=r;S.allBusy=false;render()}).catch(function(){S.allBusy=false})}   // daftar Semua area ikut disegarkan, tanpa layar memuat
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden)segarkan(false)});
 /* Tarik ke bawah dari paling atas untuk memuat ulang (HP). Hanya di layar utama, bukan di dialog, foto, atau kolom isian. */
