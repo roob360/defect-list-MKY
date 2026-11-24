@@ -1056,7 +1056,16 @@ function aqMenuHtml(){
     '<button type="button" class="btn" data-act="mtutup">Selesai</button></div></div>';
 }
 var _tmin=false;
+/** Bilah header: saat judul besar halaman tergulir ke bawah bilah, bilah menjadi kaca dan menampilkan judul kecil. */
+function barHead(){
+  var pw=document.querySelector('.pwrap'),ht=$('hTitle');if(!pw)return;
+  var h1=document.querySelector('#app .pagehead h1'),bh=(pw.getBoundingClientRect().height||56);
+  var on=h1?h1.getBoundingClientRect().bottom<bh+4:(window.pageYOffset||0)>8;
+  if(pw.classList.contains('hs')!==on)pw.classList.toggle('hs',on);
+  var tx=h1?h1.textContent:'';if(ht&&ht.textContent!==tx)ht.textContent=tx;
+}
 function tbarMin(){
+  barHead();
   var t=$('tbar');if(!t)return;
   var ph=document.querySelector('#app .pagehead'),b=ph?ph.getBoundingClientRect().bottom:0,m=_tmin?b<40:b<-4;
   if(m!==_tmin){_tmin=m}
@@ -1477,17 +1486,24 @@ function modalHtml(){
   }
   if(m.t==='set'){
     var us=S.user;
+    var tema='<div><div class="cap" style="margin:0 4px 8px">Tema</div><div class="seg">'+
+      [['sistem','Sistem'],['terang','Terang'],['gelap','Gelap']].map(function(o){return '<button type="button" data-act="tema" data-v="'+o[0]+'" class="ico'+(S.tema===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>';
+    var anim='<div><div class="cap" style="margin:0 4px 8px">Animasi</div><div class="seg">'+
+      [['sistem','Sistem'],['penuh','Penuh'],['hemat','Hemat']].map(function(o){return '<button type="button" data-act="anim" data-v="'+o[0]+'" class="ico'+(S.anim===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>';
     return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Pengaturan"><div class="grab" aria-hidden="true"></div><h2>Pengaturan</h2>'+
+      '<section class="setb"><div class="cap">Akun</div>'+
       (us?'<div class="ucard"><span class="av" aria-hidden="true">'+esc((us.nama||'?').trim().charAt(0).toUpperCase())+'</span><div><b>'+esc(us.nama)+'</b><span>'+esc(us.peran)+' &middot; '+esc(S.paket.nama)+'</span></div></div>':'')+
       (M_?M_.setelanHtml():'')+
-      '<div><div class="cap" style="margin:0 4px 8px">Tema</div><div class="seg">'+
-      [['sistem','Sistem'],['terang','Terang'],['gelap','Gelap']].map(function(o){return '<button type="button" data-act="tema" data-v="'+o[0]+'" class="ico'+(S.tema===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>'+
-      '<div><div class="cap" style="margin:0 4px 8px">Animasi</div><div class="seg">'+
-      [['sistem','Sistem'],['penuh','Penuh'],['hemat','Hemat']].map(function(o){return '<button type="button" data-act="anim" data-v="'+o[0]+'" class="ico'+(S.anim===o[0]?' on':'')+'">'+ic(o[0])+o[1]+'</button>'}).join('')+'</div></div>'+
-      (us?'<div class="btnrow"><button type="button" class="btn sec" data-act="ganti">'+ic('swap')+'Ganti paket</button><button type="button" class="btn bad" data-act="keluar">'+ic('out')+'Keluar</button></div>':'')+
-      '<button type="button" class="btn sec" data-act="bersih">'+ic('refresh')+'Bersihkan cache aplikasi</button>'+
-      '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+      (us?'<button type="button" class="btn sec" data-act="ganti">'+ic('swap')+'Ganti paket</button>':'')+'</section>'+
+      '<section class="setb"><div class="cap">Tampilan</div>'+tema+anim+'</section>'+
+      '<section class="setb"><div class="cap">Berkas dan data</div><button type="button" class="btn sec" data-act="bersih">'+ic('refresh')+'Bersihkan cache aplikasi</button></section>'+
+      '<section class="setb"><div class="cap">Tentang</div><div class="verrow"><span>Versi aplikasi</span><b>'+APP_VER+'</b></div><button type="button" class="btn sec" data-act="cekbaru">'+ic('refresh')+'Periksa pembaruan</button></section>'+
+      (us?'<button type="button" class="btn bad" data-act="keluar">'+ic('out')+'Keluar</button>':'')+
+      '</div></div>';
   }
+  if(m.t==='keluarcek')
+    return '<div class="ov mid"><div class="sheet gap" role="dialog" aria-label="Keluar"><h2>Keluar sekarang?</h2><div class="note" style="padding:0">Masih ada foto atau draf yang belum terkirim. Bila keluar sekarang, data itu bisa hilang.</div>'+
+      '<button type="button" class="btn bad" data-act="keluarya">Keluar tetap</button><button type="button" class="btn sec" data-act="mtutup">Batal</button></div></div>';
   if(m.t==='sesi')
     return '<div class="ov mid"><div class="sheet gap" role="dialog" aria-label="Sesi berakhir"><h2>Sesi berakhir</h2><div class="note" style="padding:0">Demi keamanan, Anda perlu masuk lagi dengan kode akses. Temuan yang sudah tersimpan tidak hilang.</div><button type="button" class="btn" data-act="mtutup">Masuk lagi</button></div></div>';
   if(m.t==='batalmulai')
@@ -2807,7 +2823,17 @@ async function onClick(ev){
     case 'fpindahbatal': fBaca();S.modal.f.pindah=false;S.modal.f.ruang='';return fRender();
     case 'paket': return pilihPaket(el.getAttribute('data-id'),true);
     case 'ganti': resetHist(false);S.paket=null;S.user=null;S.kode='';S.loginErr='';S.modal=null;S.zoom=null;S.file=null;lsDel(STORE);renderOverlay();return render();
-    case 'keluar': keluar();return render();
+    case 'keluar': if((S.up&&S.up.length)||(DRAF&&DRAF.length)){return openModal({t:'keluarcek'})}keluar();return render();
+    case 'keluarya': closeModal();keluar();return render();
+    case 'cekbaru': (async function(){
+      try{
+        var rg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
+        if(!rg){toast('Pembaruan otomatis tidak tersedia di perangkat ini.');return}
+        toast('Memeriksa pembaruan...');
+        await rg.update();
+        setTimeout(function(){toast(rg.installing||rg.waiting?'Versi baru diunduh. Aplikasi akan dimuat ulang.':'Sudah versi terbaru.')},900);
+      }catch(e){toast('Tidak bisa memeriksa pembaruan. Periksa sinyal.')}
+    })();return;
     case 'masuk': return masuk();
     case 'tab': {
       var nv=el.getAttribute('data-v');if(nv==='lain'){if(LAIN.some(function(x){return x[0]===S.view}))return;nv=S.lain||'verif'}if(nv===S.view)return;if(nv==='verif'||nv==='perbaikan'||nv==='memo')S.lain=nv;
