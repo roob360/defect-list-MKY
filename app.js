@@ -496,6 +496,8 @@ function moveInd(){
   el.style.setProperty('--dadd',b.offsetHeight+'px');
   ind.style.width=b.offsetWidth+'px';ind.style.height=b.offsetHeight+'px';
   ind.style.transform='translate('+b.offsetLeft+'px,'+b.offsetTop+'px)';
+  if(ind._b&&ind._b!==b&&el.classList.contains('anim')&&animOn()&&ind.animate)ind.animate([{scale:'1 1'},{scale:'1.14 .92',offset:.35},{scale:'1 1'}],{duration:480,easing:'cubic-bezier(.3,1.2,.5,1)'});   // lensa meregang sedikit saat berpindah tab
+  ind._b=b;
   if(!el.classList.contains('anim'))requestAnimationFrame(function(){el.classList.add('anim')});
 }
 window.addEventListener('resize',moveInd);window.addEventListener('load',moveInd);

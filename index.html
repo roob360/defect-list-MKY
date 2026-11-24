@@ -26,10 +26,10 @@
     --blue:#0088ff; --blue-teks:#0066cc; --blue-fill:#e5f1ff; --purple-teks:#5b21b6; --purple-fill:#ede9fe; --red:#ff383c; --green:#34c759; --orange:#ff8d28;
     --green-text:#1f7a35; --red-text:#c4161a; --orange-text:#a85200;
     --red-fill:#ff383c1f; --green-fill:#34c7591f; --orange-fill:#ff8d281f;
-    --seg-sel:#ffffff; --sh-seg:0 2px 20px #0000000f; --dock:#ffffffeb;
+    --seg-sel:#ffffff; --sh-seg:0 2px 20px #0000000f; --dock:#ffffffa6; --lens:#78788033; --dockfx:0 10px 32px #00000024, inset 0 0 0 .5px #0000001a, inset 0 1px 0 #ffffffcc;
     --mat:#ffffffd6; --blur:blur(30px) saturate(140%);
     --float:0 8px 30px #0000001f;
-    --gap:16px; --margin:16px; --row-h:52px; --ctl-lg:50px;
+    --gap:16px; --margin:16px; --row-h:52px; --ctl-lg:50px; --dockb:max(calc(env(safe-area-inset-bottom,0px) - 14px),10px); --dockh:62px;
     --r-group:26px; --r-pop:13px; --r-cap:999px;
   }
   @media (prefers-color-scheme: dark){
@@ -39,7 +39,7 @@
       --sep:#ffffff1f; --fill2:#78788052; --fill3:#7676803d; --fill4:#7676802e;
       --prominent:#0a72e8; --blue:#0091ff; --blue-teks:#4da3ff; --blue-fill:#0a2a4a; --purple-teks:#c4b5fd; --purple-fill:#2a1f4a; --red:#ff4245; --green:#30d158; --orange:#ff9230;
       --green-text:#30d158; --red-text:#ff6165; --orange-text:#ff9f4a; --on-go:#000000;
-      --seg-sel:#ffffff45; --dock:#1c1c1eeb; --mat:#00000099; --float:0 8px 30px #00000080;
+      --seg-sel:#ffffff45; --dock:#2c2c30a3; --lens:#ffffff2b; --dockfx:0 10px 32px #00000099, inset 0 0 0 .5px #ffffff38, inset 0 1px 0 #ffffff33; --mat:#00000099; --float:0 8px 30px #00000080;
     }
   }
   :root[data-tema="gelap"]{
@@ -48,7 +48,7 @@
       --sep:#ffffff1f; --fill2:#78788052; --fill3:#7676803d; --fill4:#7676802e;
       --prominent:#0a72e8; --blue:#0091ff; --blue-teks:#4da3ff; --blue-fill:#0a2a4a; --purple-teks:#c4b5fd; --purple-fill:#2a1f4a; --red:#ff4245; --green:#30d158; --orange:#ff9230;
       --green-text:#30d158; --red-text:#ff6165; --orange-text:#ff9f4a; --on-go:#000000;
-      --seg-sel:#ffffff45; --dock:#1c1c1eeb; --mat:#00000099; --float:0 8px 30px #00000080;
+      --seg-sel:#ffffff45; --dock:#2c2c30a3; --lens:#ffffff2b; --dockfx:0 10px 32px #00000099, inset 0 0 0 .5px #ffffff38, inset 0 1px 0 #ffffff33; --mat:#00000099; --float:0 8px 30px #00000080;
   }
   :root[data-tema="terang"]{ color-scheme:light; }
   :root[data-tema="gelap"]{ color-scheme:dark; }
@@ -95,27 +95,6 @@
   .pill.rej{ background:var(--red-fill); color:var(--red-text); }
   .pill.wait{ background:transparent; color:var(--label2); box-shadow:inset 0 0 0 1.5px var(--label3); }
   .pill svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-  .dock.wadd{ max-width:calc(100vw - 16px); gap:2px; }
-  .dock.wadd button:not(.dockadd){ min-width:56px; padding-left:6px; padding-right:6px; }
-  .dock .dockadd{ flex:none; min-width:0; width:var(--dadd,52px); max-width:var(--dadd,52px); height:var(--dadd,52px); padding:0; align-self:center; justify-content:center; margin:0 0 0 4px; overflow:hidden; border-radius:50%; background:var(--prominent); color:#fff; box-shadow:0 4px 14px color-mix(in srgb,var(--prominent) 55%,transparent); }
-  .dock.noadd .dockadd{ max-width:0; margin-left:-2px; opacity:0; transform:scale(.3); box-shadow:none; pointer-events:none; }
-  html:not(.hemat) .dock .dockadd{ transition:max-width .42s cubic-bezier(.3,.9,.3,1), margin .42s cubic-bezier(.3,.9,.3,1), opacity .25s, transform .42s cubic-bezier(.34,1.4,.64,1); }
-  .dock .dockadd svg{ width:24px; height:24px; stroke-width:2.8; }
-  /* Layar sempit (Android 360 px): paling banyak empat tab + tombol tambah (Admin: Temuan, Rekap, Kelola, Lainnya), jadi label tetap berukuran penuh di semua tab. */
-  @media (max-width:400px){
-    .dock.wadd{ padding:4px; gap:0; width:calc(100vw - 16px); }
-    .dock.wadd button:not(.dockadd){ flex:1 1 0; min-width:0; padding:7px 2px 6px; font-size:12px; }
-    .dock.wadd .dockadd{ margin-left:2px; }
-  }
-  .dock .dockadd:active{ opacity:.85; }
-  /* Mode padat (enam tab atau lebih) tidak dipakai lagi sejak Admin punya tab Lainnya; dibiarkan sebagai pengaman. */
-  @media (max-width:560px){
-    .dock.padat{ padding:4px; gap:2px; width:calc(100vw - 16px); max-width:calc(100vw - 16px); }
-    .dock.padat button:not(.dockadd){ flex:0 0 auto; min-width:0; padding:8px 11px; }
-    .dock.padat button:not(.on):not(.dockadd) > span:not(.bdg){ display:none; }
-    .dock.padat button.on{ flex:1 1 auto; }
-    .dock.padat .dockadd{ margin-left:2px; padding:0; }
-  }
   .btn svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
   .spin{ width:18px; height:18px; border-radius:50%; flex:none; border:2.5px solid #ffffff55; border-top-color:#fff; animation:spin .8s linear infinite; }
   .spin.d{ border-color:var(--fill2); border-top-color:var(--blue-teks); width:26px; height:26px; }
@@ -157,18 +136,29 @@
   .actionrow:active{ background:var(--fill4); }
   .chev{ width:12px; height:18px; color:var(--label3); fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
 
-  .dock{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 12px); z-index:30; display:flex; gap:4px; padding:6px;
-    border-radius:var(--r-cap); background:var(--dock); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--sep); box-shadow:var(--float); }
-  .dock button{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:66px; padding:7px 10px 6px; white-space:nowrap; border:0; border-radius:var(--r-cap); background:transparent; color:var(--label2); font:inherit; font-size:12px; line-height:14px; font-weight:600; cursor:pointer; }
-  .dock button svg{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
-  .dock button{ position:relative; z-index:1; }
-  .dock .bdg{ position:absolute; top:3px; left:calc(50% + 6px); min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:#fff; font-size:12px; line-height:18px; font-weight:700; text-align:center; }
-  .dock .bdg[hidden]{ display:none; }
-  .path{ padding:0 4px 6px; }
+  /* ---- Dock v2: kapsul kaca selebar layar, tinggi sama untuk semua peran, tab sama lebar ---- */
+  .dock{ position:fixed; left:0; right:0; margin:0 auto; width:calc(100% - 32px); max-width:440px; bottom:var(--dockb); height:var(--dockh); z-index:30; display:flex; align-items:stretch; gap:0; padding:4px; box-sizing:border-box;
+    border-radius:var(--r-cap); background:var(--dock); -webkit-backdrop-filter:blur(28px) saturate(190%); backdrop-filter:blur(28px) saturate(190%); box-shadow:var(--dockfx); }
+  .dock[hidden]{ display:none; }
+  .dock button{ position:relative; z-index:1; flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:5px 2px 4px; white-space:nowrap; border:0; border-radius:var(--r-cap); background:transparent; color:var(--label2); font:inherit; font-size:12px; line-height:14px; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .dock button svg{ width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
   .dock button.on{ color:var(--blue-teks); }
-  .dock .ind{ position:absolute; left:0; top:0; width:0; height:0; border-radius:var(--r-cap); background:var(--fill3); pointer-events:none; }
-  body.hasdock .wrap{ padding-bottom:calc(env(safe-area-inset-bottom,0px) + 110px); }
-  body.hasdock .toast{ bottom:calc(env(safe-area-inset-bottom,0px) + 96px); }
+  .dock button.on svg{ fill:currentColor; fill-opacity:.2; stroke-width:2; }
+  .dock .bdg{ position:absolute; top:2px; left:calc(50% + 7px); min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:#fff; font-size:12px; line-height:18px; font-weight:700; text-align:center; }
+  .dock .bdg[hidden]{ display:none; }
+  .dock .ind{ position:absolute; left:0; top:0; width:0; height:0; border-radius:var(--r-cap); background:var(--lens); box-shadow:inset 0 0 0 .5px #ffffff40, inset 0 1px 0 #ffffff4d; pointer-events:none; }
+  .dock .dockadd{ flex:none; min-width:0; width:var(--dadd,54px); max-width:var(--dadd,54px); height:var(--dadd,54px); padding:0; align-self:center; justify-content:center; margin:0 0 0 4px; overflow:hidden; border-radius:50%; background:var(--prominent); color:#fff; box-shadow:0 4px 14px color-mix(in srgb,var(--prominent) 55%,transparent); }
+  .dock .dockadd svg{ width:24px; height:24px; stroke-width:2.8; }
+  .dock.noadd .dockadd{ max-width:0; margin-left:-2px; opacity:0; transform:scale(.3); box-shadow:none; pointer-events:none; }
+  .dock .dockadd:active{ opacity:.85; }
+  html:not(.hemat) .dock .dockadd{ transition:max-width .42s cubic-bezier(.3,.9,.3,1), margin .42s cubic-bezier(.3,.9,.3,1), opacity .25s, transform .42s cubic-bezier(.34,1.4,.64,1); }
+  html:not(.hemat) .dock button{ transition:transform .35s cubic-bezier(.34,1.56,.64,1), color .2s; }
+  html:not(.hemat) .dock button:active{ transform:scale(.9); transition-duration:.1s; }
+  html:not(.hemat) .dock button svg{ transition:fill-opacity .25s; }
+  html:not(.hemat) .dock.anim .ind{ transition:transform .55s cubic-bezier(.3,1.4,.5,1), width .4s cubic-bezier(.3,.9,.3,1); }
+  .path{ padding:0 4px 6px; }
+  body.hasdock .wrap{ padding-bottom:calc(var(--dockb) + var(--dockh) + 28px); }
+  body.hasdock .toast{ bottom:calc(var(--dockb) + var(--dockh) + 12px); }
   .seg{ display:flex; gap:4px; padding:2px; height:44px; background:var(--fill3); border-radius:var(--r-cap); margin-bottom:var(--gap); }
   .seg button{ flex:1; min-width:0; border:0; border-radius:var(--r-cap); background:transparent; font:inherit; font-size:14px; font-weight:500; color:var(--label1); cursor:pointer; padding:0 4px; }
   .seg button.on{ background:var(--seg-sel); box-shadow:var(--sh-seg); font-weight:600; }
@@ -240,7 +230,7 @@
   .thumb .mini{ padding:3px 8px; border:0; border-radius:var(--r-cap); background:#ffffffe6; color:#000; font:inherit; font-size:12px; cursor:pointer; }
   .sp{ width:20px; height:20px; border-radius:50%; flex:none; display:inline-block; border:2.5px solid var(--label3); border-top-color:var(--label1); animation:spin .8s linear infinite; }
   .upbar[hidden]{ display:none; }
-  .upbar{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 86px); z-index:29; display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--r-cap); background:var(--label1); color:var(--gbg1); font-size:13px; line-height:16px; box-shadow:var(--float); white-space:nowrap; }
+  .upbar{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--dockb) + var(--dockh) + 10px); z-index:29; display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--r-cap); background:var(--label1); color:var(--gbg1); font-size:13px; line-height:16px; box-shadow:var(--float); white-space:nowrap; }
   .upbar button{ min-height:28px; padding:0 10px; border:0; border-radius:999px; background:var(--gbg1); color:var(--label1); font:inherit; font-size:13px; cursor:pointer; }
   .upbar .sp{ width:14px; height:14px; border-width:2px; border-color:#ffffff55; border-top-color:var(--gbg1); }
   .none{ min-height:64px; display:grid; place-items:center; border:1.5px dashed var(--label3); border-radius:var(--r-pop); font-size:13px; color:var(--label2); }
@@ -394,12 +384,11 @@
   .brand img{ width:76px; height:76px; border-radius:17px; display:block; }
   .brand h1{ margin:18px 0 0; font-size:30px; line-height:36px; font-weight:700; letter-spacing:-.4px; }
   .brand .cap{ margin-top:2px; }
-  html:not(.hemat) .btn,html:not(.hemat) .pill,html:not(.hemat) .btn-ic,html:not(.hemat) .dock button{ transition:transform .4s cubic-bezier(.34,1.56,.64,1), background-color .15s, opacity .15s, color .2s; }
-  html:not(.hemat) .btn:active,html:not(.hemat) .pill:active,html:not(.hemat) .btn-ic:active,html:not(.hemat) .dock button:active{ transform:scale(.94); transition-duration:.1s; }
+  html:not(.hemat) .btn,html:not(.hemat) .pill,html:not(.hemat) .btn-ic{ transition:transform .4s cubic-bezier(.34,1.56,.64,1), background-color .15s, opacity .15s, color .2s; }
+  html:not(.hemat) .btn:active,html:not(.hemat) .pill:active,html:not(.hemat) .btn-ic:active{ transform:scale(.94); transition-duration:.1s; }
   html:not(.hemat) .thumb > button{ transition:transform .3s cubic-bezier(.34,1.56,.64,1); }
   html:not(.hemat) .thumb > button:active{ transform:scale(.96); }
   html:not(.hemat) .actionrow{ transition:background-color .15s; }
-  html:not(.hemat) .dock.anim .ind{ transition:transform .5s cubic-bezier(.34,1.3,.64,1), width .35s cubic-bezier(.3,.7,.2,1); }
   html:not(.hemat) #app.enter{ animation:enter .34s cubic-bezier(.3,.7,.2,1); }
   html:not(.hemat) .entry.pop{ animation:pop .45s cubic-bezier(.3,.7,.2,1) both; }
   html:not(.hemat) .ring .on.go{ animation:ringFill .85s cubic-bezier(.3,.7,.2,1); }
