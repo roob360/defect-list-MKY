@@ -2342,10 +2342,16 @@ function fWizHtml(m){
     if(h0.indexOf(P)!==0)return h0;
     inner=h0.slice(P.length,h0.length-12);
   }
-  var kiri='<aside class="wzl"><div class="cap">Foto temuan</div><div id="mph" class="phs">'+mphHtml(f)+'</div>'+
+  // header (judul + X) dan bilah tombol membentang di atas dan di bawah kedua kolom, supaya kiri dan kanan sejajar
+  var wh='',foot='',mh=/^<div class="wh">.*?<\/div>/.exec(inner);
+  if(mh){wh=mh[0];inner=inner.slice(wh.length)}
+  var mf=/<div class="wfoot">[\s\S]*$/.exec(inner);
+  if(mf){foot=mf[0];inner=inner.slice(0,mf.index)}
+  var kiri='<aside class="wzl"><div class="fsh"><span class="n">1</span><div><b>'+ic('fotoba')+'Foto Before</b><small>Ambil atau seret foto kondisi temuan</small></div></div><div id="mph" class="phs">'+mphHtml(f)+'</div>'+
     '<div class="dropz" id="dropz">Seret foto ke sini<br><small>atau</small><br><button type="button" class="btn sec sm" data-act="mfoto">'+ic('img')+'Pilih dari komputer</button></div>'+
     '<label class="row"><span class="lbl">Tanggal temuan</span><input type="date" id="mD" value="'+esc(f.tgl)+'"></label><div class="note" id="mtx">'+wTglNote(f)+'</div></aside>';
-  return P+'<div class="wzcols">'+kiri+'<div class="wzr">'+inner+'</div></div></div></div>';
+  var kanan='<div class="fsh"><span class="n">2</span><div><b>'+ic('lokasi')+'Lokasi dan temuan</b><small>Bidang, ruangan, posisi tepat, uraian, dan tingkat</small></div></div>';
+  return P+wh+'<div class="wzcols">'+kiri+'<div class="wzr">'+kanan+inner+'</div></div>'+foot+'</div></div>';
 }
 function fWizHtml0(m){
   var f=m.f,h='<div class="ov" data-act="modalbg"><div class="sheet wz" role="dialog" aria-label="Tambah temuan">';
