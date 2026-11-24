@@ -664,6 +664,7 @@ function setDock(){
     var t=isPJ()?[['form','Temuan'],['perbaikan','Perbaikan']]:isAdmin()?[['form','Temuan'],['rekap','Rekap'],['kelola','Kelola'],['lain','Lainnya']]:[['form','Temuan'],['verif','Verifikasi'],['rekap','Rekap']];
     if(M_&&M_.punyaTab(S.user)&&!isAdmin())t.push(['memo','Memo']);   // QC MK, QC PJ, dan PJ; Admin memegang Memo di bawah tab Lainnya
     var add=canEdit();
+    el.style.setProperty('--rt',t.length);   // jumlah tab: rel desktop memusatkan tab secara vertikal
     var keys=t.map(function(x){return x[0]}).join(',')+(add?'+':'');
     if(el.getAttribute('data-keys')!==keys){
       el.setAttribute('data-keys',keys);el.classList.remove('anim');
@@ -949,13 +950,12 @@ function kmenuItems(d){
 }
 function entryHtml(d,n,ix,ro){
   var fresh=!S.seen[d.id],land=S.baru===d.id;S.seen[d.id]=1;
-  var h='<article class="group entry'+(land?' land':fresh?' pop':'')+(M_?M_.kelas(d):'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh tap" data-act="ttx" data-d="'+esc(d.id)+'" role="button" tabindex="0" aria-label="Lihat detail temuan"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
-    '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+(d.detail?'<span class="tag">'+esc(d.detail)+'</span>':'')+(M_?M_.tag(d):'')+'</div>'+
+  var h='<article class="group entry'+(land?' land':fresh?' pop':'')+(M_?M_.kelas(d):'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'">'+'<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',ro,'kartu')+'</div><div class="ph" data-j="after">'+phHtml(d,'after',ro,'kartu')+'</div></div>'+'<div class="eh tap" data-act="ttx" data-d="'+esc(d.id)+'" role="button" tabindex="0" aria-label="Lihat detail temuan"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
+    '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span>'+(M_?M_.tag(d):'')+'</div><div class="kinfo">'+esc(d.bidang)+' &middot; Temuan '+esc(fmt(d.tglTemuan))+(d.elemen?' &middot; '+esc(d.elemen):'')+(d.titik?' &middot; <b>'+esc(d.titik)+'</b>':'')+(d.detail?' &middot; '+esc(d.detail):'')+'</div>'+
     stepperHtml(d);
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
   if(d.verifikasi)h+='<div class="note'+(d.verifikasi==='Ditolak'?' tolak':' ok')+'">'+(d.verifikasi==='Diterima'?'Diterima':'Ditolak')+' MK '+esc(fmt(d.tglVerif))+(d.verifOleh?' oleh '+esc(d.verifOleh):'')+(d.catatan?'. Catatan: '+esc(d.catatan):'')+'</div>';
   if(isPJ()&&d.verifikasi==='Ditolak')h+='<div class="note tolak">Unggah foto After yang baru supaya diverifikasi ulang oleh MK.</div>';
-  h+='<div class="phs"><div class="ph" data-j="before">'+phHtml(d,'before',ro,'kartu')+'</div><div class="ph" data-j="after">'+phHtml(d,'after',ro,'kartu')+'</div></div>';
   h+='<div class="acts">'+aksiUtama(d)+(M_?M_.kartuTombol(d):'');
   if(kmenuItems(d).length)h+='<button type="button" class="pill menu" data-act="kmenu" data-d="'+esc(d.id)+'" aria-label="Menu temuan">&#8943;</button>';
   return h+'</div></article>';
