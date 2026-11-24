@@ -24,21 +24,23 @@
   var css = document.createElement('style');
   css.textContent =
     'html.pasangwajib body > *:not(#pasangwajib):not(script):not(style){display:none!important}' +
-    '#pasangwajib{position:fixed;inset:0;z-index:2147483000;overflow:auto;background:var(--gbg1,#f2f2f7);color:var(--label1,#000);font-family:var(--sans,-apple-system,system-ui,sans-serif);-webkit-font-smoothing:antialiased}' +
+    '#pasangwajib{--pb:#f2f2f7;--pc:#ffffff;--pt:#000000;--ps:#66666b;--pl:#0000001f;--pn:#e5f1ff;--pa:#0066cc;--pm:#0071e3;--pw:#fff1e0;--pwt:#a85200}' +
+    '@media (prefers-color-scheme:dark){#pasangwajib{--pb:#000000;--pc:#1c1c1e;--pt:#ffffff;--ps:#ebebf599;--pl:#ffffff1f;--pn:#0a2a4a;--pa:#4da3ff;--pm:#0a72e8;--pw:#3a2410;--pwt:#ff9f4a}}' +
+    '#pasangwajib{position:fixed;inset:0;z-index:2147483000;overflow:auto;background:var(--pb);color:var(--pt);font-family:-apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}' +
     '#pasangwajib .pw{max-width:440px;margin:0 auto;padding:max(28px,env(safe-area-inset-top,0px)) 22px calc(28px + env(safe-area-inset-bottom,0px))}' +
     '#pasangwajib img.lg{width:72px;height:72px;border-radius:18px;display:block;margin:12px 0 18px}' +
-    '#pasangwajib h1{font-size:26px;line-height:31px;margin:0 0 8px;letter-spacing:-.4px}' +
-    '#pasangwajib p{font-size:16px;line-height:22px;margin:0 0 18px;color:var(--label2,#66666b)}' +
-    '#pasangwajib .pwbtn{display:block;width:100%;min-height:52px;border:0;border-radius:14px;background:var(--prominent,#0071e3);color:#fff;font:inherit;font-size:17px;font-weight:600;margin:0 0 22px;cursor:pointer}' +
-    '#pasangwajib ol{list-style:none;margin:0 0 20px;padding:0;background:var(--gbg2,#fff);border-radius:16px;box-shadow:inset 0 0 0 1px var(--sep,#0000001f)}' +
-    '#pasangwajib li{display:flex;align-items:center;gap:14px;padding:14px 16px;font-size:16px;line-height:21px}' +
-    '#pasangwajib li+li{border-top:1px solid var(--sep,#0000001f)}' +
-    '#pasangwajib li .no{flex:none;width:28px;height:28px;border-radius:50%;background:var(--blue-fill,#e5f1ff);color:var(--blue-teks,#0066cc);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}' +
-    '#pasangwajib li .ik{flex:none;width:26px;height:26px;color:var(--blue-teks,#0066cc)}' +
+    '#pasangwajib h1{font-size:26px;line-height:31px;margin:0 0 8px;letter-spacing:-.4px;color:var(--pt)}' +
+    '#pasangwajib p{font-size:16px;line-height:22px;margin:0 0 18px;color:var(--ps)}' +
+    '#pasangwajib .pwbtn{display:block;width:100%;min-height:52px;border:0;border-radius:14px;background:var(--pm);color:#fff;font:inherit;font-size:17px;font-weight:600;margin:0 0 22px;cursor:pointer}' +
+    '#pasangwajib ol{list-style:none;margin:0 0 20px;padding:0;background:var(--pc);color:var(--pt);border-radius:16px;box-shadow:inset 0 0 0 1px var(--pl)}' +
+    '#pasangwajib li{display:flex;align-items:center;gap:14px;padding:14px 16px;font-size:16px;line-height:21px;color:var(--pt)}' +
+    '#pasangwajib li+li{border-top:1px solid var(--pl)}' +
+    '#pasangwajib li b{color:var(--pt)}' +
+    '#pasangwajib li .no{flex:none;width:28px;height:28px;border-radius:50%;background:var(--pn);color:var(--pa);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}' +
+    '#pasangwajib li .ik{flex:none;width:26px;height:26px;color:var(--pa)}' +
     '#pasangwajib li .ik svg{width:100%;height:100%;display:block}' +
-    '#pasangwajib .pwwarn{padding:14px 16px;border-radius:14px;background:var(--orange-fill,#ff8d281f);color:var(--orange-text,#a85200);font-size:15px;line-height:20px;margin:0 0 18px}' +
-    '#pasangwajib .pwfoot{font-size:14px;line-height:19px;color:var(--label2,#66666b)}' +
-    '@media (prefers-color-scheme:dark){#pasangwajib{background:#000;color:#fff}}';
+    '#pasangwajib .pwwarn{padding:14px 16px;border-radius:14px;background:var(--pw);color:var(--pwt);font-size:15px;line-height:20px;margin:0 0 18px}' +
+    '#pasangwajib .pwfoot{font-size:14px;line-height:19px;color:var(--ps)}';
   document.head.appendChild(css);
 
   function langkah() {
