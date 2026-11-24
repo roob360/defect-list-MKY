@@ -165,7 +165,7 @@ function gagal(e){
   var m=(e&&e.message)||'Gagal';
   if(e&&e.server){
     if(/Kode tidak dikenal|nonaktif/i.test(m)){keluar();S.loginErr='';S.loginNet=false;render();openModal({t:'sesi'});return}
-    toast(/Aksi tidak dikenal/i.test(m)?'Server belum diperbarui. Tempel Kode.gs terbaru dan deploy Versi baru.':m);
+    toast(/Aksi tidak dikenal/i.test(m)?'Server belum diperbarui. Hubungi admin aplikasi.':m);
   }else toast('Tidak terhubung ke server. Periksa internet lalu coba lagi.');
 }
 async function work(label,fn){
@@ -263,11 +263,22 @@ async function loadPerlu(){
   }
   if(S.view==='perbaikan')render();else setDock();
 }
+/* Sekali per perangkat: ajak memasang ke layar utama bila masih berjalan di browser. Android lewat prompt bawaan, iPhone lewat petunjuk. */
+var PROMPT_PASANG=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();PROMPT_PASANG=e});
+function petunjukPasang(){
+  if(lsGet('dl-pasang')||!S.user)return;
+  var mandiri=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+  if(mandiri){lsSet('dl-pasang','1');return}
+  if(PROMPT_PASANG){lsSet('dl-pasang','1');toastAksi('Pasang aplikasi di layar utama agar lebih cepat dibuka.','Pasang',function(){var p=PROMPT_PASANG;PROMPT_PASANG=null;try{p.prompt()}catch(e){}});return}
+  if(/iPhone|iPad|iPod/.test(navigator.userAgent)){lsSet('dl-pasang','1');toast('Untuk memasang: ketuk Bagikan, lalu Tambah ke Layar Utama.')}
+}
 async function loadRooms(){
   try{
     S.rooms=await api('ruangan');S.roomsReady=true;S.net='';
     if(!S.reg&&S.regOk!==false&&!S.regTry){S.regTry=true;muatRegistri()}
     lsSet('dl-rooms-'+S.paket.id,JSON.stringify(S.rooms));
+    petunjukPasang();
   }catch(e){
     if(e&&e.server){gagal(e);return}
     S.net='Tidak terhubung. Menampilkan data terakhir yang tersimpan.';
@@ -1355,8 +1366,10 @@ function upBar(){
   var el=$('upbar');if(!el){el=document.createElement('div');el.id='upbar';el.className='upbar';el.setAttribute('role','status');document.body.appendChild(el)}
   var n=S.up.filter(function(x){return x.st!=='err'}).length,e=S.up.length-n;
   var dw=DRAF.filter(function(x){return x.st==='wait'}).length,dc=DRAF.length-dw;
-  if(!S.user||(!n&&!e&&!dw&&!dc&&!S.drafOk)){el.hidden=true;return}
+  var off=navigator.onLine===false;
+  if(!S.user||(!n&&!e&&!dw&&!dc&&!S.drafOk&&!off)){el.hidden=true;return}
   var h=[];
+  if(off)h.push('<span class="dot" aria-hidden="true"></span>Tidak ada sinyal. Data yang tampil bisa sudah lama');
   if(S.drafOk)h.push('<span class="tcek">'+SVG_CEK+'</span>'+S.drafOk+' draf terkirim');   // centang singkat setelah draf offline terkirim
   if(n)h.push('<span class="sp"></span>Mengunggah '+n+' foto'+(e?', '+e+' gagal':''));else if(e)h.push(e+' foto gagal diunggah');
   if(dw)h.push('<span class="dot" aria-hidden="true"></span>'+dw+' draf menunggu sinyal <button type="button" data-act="drafkirim">Kirim</button>');
@@ -2315,7 +2328,26 @@ function drafBuka(){
   if(d.pesan)toast(d.pesan);
   openModal({t:'temuan',f:f});
 }
-window.addEventListener('online',function(){drafKirim()});
+window.addEventListener('online',function(){upBar();drafKirim();segarkan(true)});
+window.addEventListener('offline',function(){upBar()});
+/* Sinkron otomatis: saat aplikasi kembali ke depan atau sinyal pulih, muat ulang data layar aktif bila sudah lebih dari semenit.
+   Dilewati selama ada dialog, foto, kolom yang sedang diisi, atau proses sibuk, supaya isian tidak hilang dan layar tidak melompat. */
+var TSEGAR=Date.now();
+function segarkan(paksa){
+  if(!S.paket||!S.user||document.hidden||navigator.onLine===false)return;
+  if(!paksa&&Date.now()-TSEGAR<60000)return;
+  var ae=document.activeElement,tg=ae&&ae.tagName;
+  if(S.modal||S.zoom||S.file||S.busy||tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT')return;
+  TSEGAR=Date.now();
+  var v=S.view;
+  if(v==='verif')loadSiap();
+  else if(v==='perbaikan')loadPerlu();
+  else if(v==='memo'){if(M_)M_.muatDaftar()}
+  else if(v==='form'){var s=S.sel;if(s&&s.r)loadDefects(s.r,true)}
+  else if(v==='kelola'||v==='rekap')loadRooms();
+  if(v!=='kelola'&&v!=='rekap'){if(canEdit())loadSiap();if(isPJ())loadPerlu()}
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden)segarkan(false)});
 setInterval(function(){if(DRAF.length&&navigator.onLine!==false)drafKirim()},60000);
 
 async function saveForm(lagi){
