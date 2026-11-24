@@ -338,7 +338,7 @@
     .dock .bdg{ top:6px; left:calc(50% + 8px); }
     body.hasdock .wrap, body.hasdock .pwrap{ padding-left:calc(var(--margin) + 88px); }
     body.hasdock .pwrap::before{ left:calc(var(--margin) + 88px); }
-    body.hasdock .wrap{ padding-bottom:60px; }
+    body.hasdock .wrap{ padding-bottom:60px; padding-right:12px; }
     body.hasdock .toast{ bottom:calc(env(safe-area-inset-bottom,0px) + 22px); }
     .upbar{ bottom:20px; }
   }
@@ -397,6 +397,30 @@
   .tur .tj{ display:block; font-size:19px; line-height:24px; margin:2px 0 4px; }
   .tur .tt{ margin:0 0 12px; font-size:15px; line-height:21px; color:var(--label2); }
   .tur .tb{ display:flex; gap:10px; } .tur .tb .btn{ min-height:44px; flex:1; }
+  /* Panduan penggunaan (pembaca seperti ebook) */
+  .pdn{ position:fixed; inset:0; z-index:45; overflow:auto; background:var(--gbg1); color:var(--label1); -webkit-overflow-scrolling:touch; }
+  .pdn-bar{ position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px; background:var(--dock); -webkit-backdrop-filter:var(--blur-glass); backdrop-filter:var(--blur-glass); box-shadow:inset 0 -.5px 0 var(--sep); }
+  .pdn-bar b{ font-size:17px; }
+  .pdn-x{ width:36px; height:36px; border:0; border-radius:50%; background:var(--fill3); color:var(--label1); font-size:24px; line-height:1; cursor:pointer; }
+  .pdn-bk{ border:0; background:transparent; color:var(--blue-teks); font:inherit; font-size:16px; font-weight:600; cursor:pointer; padding:6px 4px; }
+  .pdn-in{ max-width:560px; margin:0 auto; padding:18px 18px calc(env(safe-area-inset-bottom,0px) + 40px); }
+  .pdn-in h1{ margin:0 0 6px; font-size:28px; line-height:34px; letter-spacing:-.4px; }
+  .pdn-sub{ margin:0 0 16px; font-size:16px; line-height:23px; color:var(--label2); }
+  .pdn-kr{ font-size:12px; letter-spacing:.4px; text-transform:uppercase; color:var(--label2); font-weight:600; margin-bottom:6px; }
+  .pdn-list{ display:flex; flex-direction:column; gap:8px; }
+  .pdn-bab{ display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; border:0; border-radius:16px; background:var(--gbg2); color:var(--label1); font:inherit; text-align:left; cursor:pointer; box-shadow:inset 0 0 0 1px var(--sep); }
+  .pdn-no{ flex:none; width:32px; height:32px; border-radius:50%; background:var(--blue-fill); color:var(--blue-teks); font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .pdn-tx{ flex:1; min-width:0; } .pdn-tx b{ display:block; font-size:16px; line-height:21px; } .pdn-tx small{ display:block; font-size:13px; line-height:18px; color:var(--label2); }
+  .pdn-pr{ flex:none; font-size:13px; color:var(--label2); font-variant-numeric:tabular-nums; }
+  .pdn-fig{ margin:0 0 18px; text-align:center; }
+  .pdn-fig img{ width:100%; max-width:390px; height:auto; border-radius:22px; box-shadow:0 6px 28px #00000033, inset 0 0 0 1px var(--sep); cursor:zoom-in; background:var(--gbg2); }
+  .pdn-ls{ list-style:none; margin:0 0 22px; padding:0; display:flex; flex-direction:column; gap:12px; }
+  .pdn-ls li{ display:flex; gap:12px; align-items:flex-start; font-size:16px; line-height:23px; }
+  .pdn-n{ flex:none; width:26px; height:26px; margin-top:-1px; border-radius:50%; background:#ff3b30; color:#fff; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .pdn-n.pdn-b{ background:var(--fill3); color:var(--label2); }
+  .pdn-nav{ display:flex; gap:10px; } .pdn-nav .btn{ flex:1; }
+  .pdn-zoom{ position:fixed; inset:0; z-index:46; background:#000000e6; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .pdn-zoom img{ max-width:100%; max-height:100%; border-radius:14px; }
   /* Pengaturan per bagian */
   .setb > .cap{ margin:0 4px 8px; }
   .setb > * + *{ margin-top:10px; }
@@ -1082,7 +1106,7 @@
   .rkt.mt td.hr{ text-align:right; font-weight:600; }
   .rkt.mt td.hr.lama{ color:var(--red-text); }
   .rkt.mt td.pdfc{ white-space:nowrap; color:var(--label2); }
-  .rkt.mt .pdfb{ width:30px; height:30px; min-width:0; min-height:0; padding:0; margin-right:4px; }
+  .rkt.mt .pdfb{ width:30px; height:30px; min-width:0; min-height:0; padding:0; margin-right:0; }
   .rkt.mt .pdfb svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
   @media (min-width:768px){ .s12{ grid-column:span 12; } }
   /* warna status memo */
@@ -1179,8 +1203,11 @@
   table.t.mt th:nth-child(1){ width:4%; } table.t.mt th:nth-child(2){ width:4.5%; } table.t.mt th:nth-child(3){ width:21.6%; } table.t.mt th:nth-child(4){ width:11%; }
   table.t.mt th:nth-child(5){ width:9%; } table.t.mt th:nth-child(6){ width:11%; } table.t.mt th:nth-child(n+7):nth-child(-n+10){ width:4.6%; } table.t.mt th:nth-child(11){ width:3.5%; }
   table.t.mt th:nth-child(12), table.t.mt th:nth-child(13){ width:8.5%; }
-  .rkt.mt td, .rkt.mt th{ padding-left:5px; padding-right:5px; }
+  .rkt.mt td, .rkt.mt th, .rkt.mt td{ padding-left:4px; padding-right:4px; }
   .rkt.mt td.pdfc{ white-space:normal; }
+  @media (max-width:1199px){ .rkt.mt{ font-size:12.5px; } .rkt.mt td.ttdc{ font-size:11.5px; } }
+  table.rkt.mt{ width:calc(100% - 3px); }
+  .rkt.mt td.ttdc, .rkt.mt th.ttdc{ padding-left:2px; padding-right:2px; }   /* empat kolom tanda tangan lebih rapat supaya tabel muat tanpa gulir mendatar di 1100 px */
   table.t.mt td:nth-child(5) .tag{ white-space:normal; line-height:1.2; }
   table.t.mt th:nth-child(-n+6), table.t.mt td:nth-child(-n+6){ text-align:left; }
   table.t.mt td:nth-child(3), table.t.mt td:nth-child(4), table.t.mt td:nth-child(6){ overflow:hidden; text-overflow:ellipsis; }
@@ -1277,6 +1304,7 @@
 
 <script src="pasang.js"></script>
 <script src="config.js"></script>
+<script src="panduan.js"></script>
 <script src="logika.js"></script>
 <script src="memo-pdf.js"></script>
 <script src="memo.js"></script>

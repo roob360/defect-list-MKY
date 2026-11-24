@@ -1675,8 +1675,9 @@ function modalHtml(){
       (M_?M_.setelanHtml():'')+
       (us?'<button type="button" class="btn sec" data-act="ganti">'+ic('swap')+'Ganti paket</button>':'')+'</section>'+
       '<section class="setb"><div class="cap">Tampilan</div>'+tema+anim+ukuran+kontras+'</section>'+
+      (window.PANDUAN?'<section class="setb"><div class="cap">Bantuan</div><button type="button" class="btn sec" data-act="panduan">'+ic('daftar')+'Panduan penggunaan</button></section>':'')+
       '<section class="setb"><div class="cap">Berkas dan data</div><button type="button" class="btn sec" data-act="bersih">'+ic('refresh')+'Bersihkan cache aplikasi</button></section>'+
-      '<section class="setb"><div class="cap">Tentang</div><div class="verrow"><span>Versi aplikasi</span><b>'+APP_VER+'</b></div><button type="button" class="btn sec" data-act="cekbaru">'+ic('refresh')+'Periksa pembaruan</button><button type="button" class="btn sec" data-act="turulang">Lihat panduan singkat</button></section>'+
+      '<section class="setb"><div class="cap">Tentang</div><div class="verrow"><span>Versi aplikasi</span><b>'+APP_VER+'</b></div><button type="button" class="btn sec" data-act="cekbaru">'+ic('refresh')+'Periksa pembaruan</button></section>'+
       (us?'<button type="button" class="btn bad" data-act="keluar">'+ic('out')+'Keluar</button>':'')+
       '</div></div>';
   }
@@ -3034,7 +3035,7 @@ async function onClick(ev){
     case 'ganti': resetHist(false);S.paket=null;S.user=null;S.kode='';S.loginErr='';S.modal=null;S.zoom=null;S.file=null;lsDel(STORE);renderOverlay();return render();
     case 'keluar': if((S.up&&S.up.length)||(DRAF&&DRAF.length)){return openModal({t:'keluarcek'})}keluar();return render();
     case 'keluarya': closeModal();keluar();return render();
-    case 'turulang': closeModal();setTimeout(function(){turMulai(true)},350);return;
+    case 'panduan': closeModal();setTimeout(function(){if(window.PANDUAN)PANDUAN.buka(S.user)},300);return;
     case 'cekbaru': (async function(){
       try{
         var rg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
