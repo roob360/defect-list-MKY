@@ -384,7 +384,7 @@ function render(){
   if(!S.paket)renderPick();else if(!S.user)renderLogin();else renderMain();
   var key=!S.paket?'pick':!S.user?'login':S.view+(S.view==='form'?':'+S.sel.r:'');
   if(S.drawn!==key){S.drawn=key;S.cuPrev={};app.classList.remove('enter');void app.offsetWidth;app.classList.add('enter');if(S.user)window.scrollTo(0,SCR[key]||0)}
-  animHitung();tbarMin();
+  animHitung();tbarMin();lensAll(app);
 }
 /* Rekap: angka naik dari 0 (atau dari nilai sebelumnya bila berubah, mis. ganti gedung). Bar tumbuh lewat CSS. */
 function hitungKe(b,a,z,ms,suf){
@@ -466,6 +466,21 @@ function verIsi(){
   var on=navigator.onLine!==false,pasang=function(v){el.innerHTML=(v?'Versi '+esc(v)+' &middot; ':'')+'<span class="vdot'+(on?'':' off')+'" aria-hidden="true"></span>'+(on?'Terhubung':'Tidak ada sinyal')};
   pasang('');
   if(window.caches&&caches.keys)caches.keys().then(function(ks){var v='';ks.forEach(function(k){var m=/^defect-list-v(\d+)$/.exec(k);if(m&&Number(m[1])>Number(v||0))v=m[1]});if(v&&app.contains(el))pasang(v)}).catch(function(){});
+}
+/** Lensa bersama untuk kontrol segmen (.seg): satu penanda geser di belakang tombol aktif. Layar digambar ulang tiap perubahan, jadi posisi lama diingat per kontrol dan lensa baru meluncur dari sana. */
+var LENS_POS={};
+function lensAll(root){
+  var segs=root.querySelectorAll('.seg');
+  Array.prototype.forEach.call(segs,function(sg){
+    var on=sg.querySelector('button.on');if(!on||!on.offsetWidth)return;
+    var key=Array.prototype.map.call(sg.querySelectorAll('button'),function(b){return b.getAttribute('data-act')||b.getAttribute('data-v')||''}).join('|')+'#'+(sg.getAttribute('aria-label')||'');
+    var ln=sg.querySelector('.lens');if(!ln){ln=document.createElement('i');ln.className='lens';ln.setAttribute('aria-hidden','true');sg.insertBefore(ln,sg.firstChild)}
+    sg.classList.add('lensed');
+    var x=on.offsetLeft,w=on.offsetWidth;
+    ln.style.width=w+'px';ln.style.transform='translateX('+x+'px)';
+    var old=LENS_POS[key];LENS_POS[key]={x:x,w:w};
+    if(old&&(old.x!==x||old.w!==w)&&animOn()&&ln.animate)ln.animate([{transform:'translateX('+old.x+'px)',width:old.w+'px'},{transform:'translateX('+x+'px)',width:w+'px'}],{duration:250,easing:'cubic-bezier(.3,.9,.3,1)'});
+  });
 }
 var indLoop=0;
 var LAIN=[['verif','Verifikasi'],['perbaikan','Perbaikan'],['memo','Memo']];   // isi tab Lainnya (Admin); tombol di dock membuka yang terakhir dipakai
@@ -1258,6 +1273,7 @@ function renderOverlay(){
   overlay.innerHTML=h;
   aturDialog(key,prev);
   if(M_)M_.sesudahOverlay();
+  lensAll(overlay);
 }
 /* Dialog: peran ARIA, fokus pindah ke dalam dialog saat dibuka dan kembali ke pemicu saat ditutup. */
 function aturDialog(key,prev){
