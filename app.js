@@ -234,6 +234,7 @@ function dropDefect(id,rid){
   if(S.perlu)S.perlu=S.perlu.filter(function(x){return x.id!==id});
 }
 /** Semua salinan objek temuan dengan id ini (daftar ruangan, antrean Verifikasi, antrean Perbaikan, Semua area). */
+function hariIni(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2)}
 function semuaSalinan(id){
   var out=[],rid;
   function cari(l){if(l)for(var i=0;i<l.length;i++)if(l[i].id===id&&out.indexOf(l[i])<0)out.push(l[i])}
@@ -2632,6 +2633,16 @@ async function onClick(ev){
     case 'vset': {
       var d=S.modal.d,cat=$('vC').value,h=el.getAttribute('data-h');
       closeModal();
+      /* Optimistik hanya untuk hasil yang pasti: temuan tanpa memo yang Diterima (Close) atau Ditolak (kembali diproses). Bermemo dan pembatalan menunggu server. */
+      var asli=findDefect(d.id)||d;
+      if((h==='Diterima'||h==='Ditolak')&&!asli.memoId&&navigator.onLine!==false){
+        var awO=S.view==='verif'?kartuPosisi():null,baru=Object.assign({},asli,{verifikasi:h,catatan:String(cat||'').trim().slice(0,1000),tglVerif:hariIni(),verifOleh:S.user&&S.user.nama||'',status:h==='Diterima'?'Close':'Dalam proses',siap:false,perlu:h==='Ditolak'});
+        if(awO)await kartuKeluar(d.id);
+        putDefect(baru);toast(h==='Diterima'?'Diterima. Temuan Close.':'Ditolak. Temuan kembali dalam proses.');render();if(awO)kartuNaik(awO);
+        try{var rr=await api('verifikasi',{id:d.id,hasil:h,catatan:cat});if(rr){putDefect(rr);if(M_)M_.muatDaftar();render()}}
+        catch(e){putDefect(asli);render();gagal(e);openModal({t:'verif',d:asli})}
+        return;
+      }
       var r2=await work('Menyimpan verifikasi...',function(){return api('verifikasi',{id:d.id,hasil:h,catatan:cat})});
       if(r2){var aw2=S.view==='verif'?kartuPosisi():null;if(aw2&&!r2.siap)await kartuKeluar(r2.id);putDefect(r2);if(M_)M_.muatDaftar();toast(h==='Diterima'?(r2.memoId&&r2.status!=='Close'?'Diterima. Temuan Close setelah memo lengkap (tanda tangan QC).':'Diterima. Temuan Close.'):h==='Ditolak'?'Ditolak. Temuan kembali dalam proses.':'Verifikasi dibatalkan.');render();if(aw2)kartuNaik(aw2)}
       else openModal({t:'verif',d:d});
