@@ -383,6 +383,30 @@ function petunjukPasang(){
     s=Math.max(1,Math.min(5,s*(e.deltaY<0?1.15:1/1.15)));if(s<1.02){s=1;tx=ty=0}batas();ap(false);
   },{passive:false});
 })();
+/** Riwayat pencarian: enam pencarian terakhir muncul sebagai chip saat kolom cari difokuskan dalam keadaan kosong. */
+(function(){
+  var KEY='dl-riwayat';
+  function ambil(){try{return JSON.parse(lsGet(KEY)||'[]')}catch(e){return []}}
+  function simpan(q){q=(q||'').trim();if(q.length<2)return;var l=ambil().filter(function(x){return x.toLowerCase()!==q.toLowerCase()});l.unshift(q);lsSet(KEY,JSON.stringify(l.slice(0,6)))}
+  function tutup(){var d=$('rwy');if(d)d.remove()}
+  function cari(t){return t&&t.id&&(t.id==='aqq'||t.id==='fq')}
+  function tampil(inp){
+    tutup();var l=ambil();if(!l.length||inp.value.trim())return;
+    var host=inp.closest('.sbar')||inp.parentNode,d=document.createElement('div');d.id='rwy';d.className='rwy';
+    d.innerHTML='<span class="rl">Pencarian terakhir</span>'+l.map(function(q){return '<button type="button" class="chip" data-q="'+esc(q)+'">'+esc(q)+'</button>'}).join('')+'<button type="button" class="chip dash" data-rwyhapus="1">Hapus riwayat</button>';
+    host.insertAdjacentElement('afterend',d);
+  }
+  document.addEventListener('focusin',function(e){if(cari(e.target))tampil(e.target)});
+  document.addEventListener('input',function(e){if(cari(e.target)){if(e.target.value.trim())tutup();else tampil(e.target)}});
+  document.addEventListener('focusout',function(e){if(cari(e.target)){simpan(e.target.value);setTimeout(tutup,250)}});
+  document.addEventListener('mousedown',function(e){if(e.target.closest&&e.target.closest('#rwy'))e.preventDefault()});   // chip diketuk tanpa kolom cari kehilangan fokus
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('#rwy button');if(!b)return;
+    if(b.getAttribute('data-rwyhapus')){lsDel(KEY);tutup();return}
+    var q=b.getAttribute('data-q'),inp=$('aqq')||$('fq');if(!inp)return;
+    inp.value=q;inp.dispatchEvent(new Event('input',{bubbles:true}));tutup();
+  });
+})();
 /** Tekan lama tombol tambah (+) di dock: langsung membuka form dengan kamera, satu langkah lebih sedikit saat mencatat di lapangan. */
 (function(){
   var tm=0,lp=false;
@@ -3009,6 +3033,16 @@ async function onClick(ev){
     case 'hapus': return openModal({t:'hapus',d:findDefect(id)});
     case 'hapusya': {
       var dd=S.modal.d;closeModal();
+      if(!isAdmin()){   // bukan Admin: server belum bisa memulihkan, jadi penghapusan ditunda 6 detik dan bisa diurungkan
+        var awal0=kartuPosisi(),salin=JSON.parse(JSON.stringify(dd));
+        await kartuKeluar(dd.id);dropDefect(dd.id,dd.ruanganId);render();kartuNaik(awal0);
+        var tmH=setTimeout(async function(){
+          try{await api('defect_hapus',{id:dd.id})}
+          catch(e){putDefect(salin);render();toast((e&&e.message)||'Temuan tidak bisa dihapus.')}
+        },6000);
+        toastAksi('Temuan dihapus.','Urungkan',function(){clearTimeout(tmH);putDefect(salin);render();toast('Penghapusan dibatalkan.')});
+        return;
+      }
       var r3=await work('Menghapus...',function(){return api('defect_hapus',{id:dd.id})});
       if(r3){var awal=kartuPosisi();await kartuKeluar(dd.id);dropDefect(dd.id,dd.ruanganId);if(isAdmin())toastAksi('Temuan dihapus.','Urungkan',function(){urungkanHapus(dd)});else toast('Temuan dihapus.');render();kartuNaik(awal)}return;
     }
