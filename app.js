@@ -660,6 +660,7 @@ function kmenuItems(d){
 function entryHtml(d,n,ix,ro){
   var fresh=!S.seen[d.id],land=S.baru===d.id;S.seen[d.id]=1;
   var h='<article class="group entry'+(land?' land':fresh?' pop':'')+(M_?M_.kelas(d):'')+'"'+(fresh&&!land?' style="animation-delay:'+Math.min(ix||0,8)*50+'ms"':'')+' data-id="'+esc(d.id)+'" data-ro="'+(ro?1:0)+'"><div class="eh tap" data-act="ttx" data-d="'+esc(d.id)+'" role="button" tabindex="0" aria-label="Lihat detail temuan"><span class="no">'+n+'</span><span class="tx" data-act="ttx" data-d="'+esc(d.id)+'">'+esc(d.uraian)+'</span></div>'+
+    '<div class="rm'+((d.uraian||'').length>80||/\n/.test(d.uraian||'')?'':' off')+'" data-act="ttx" data-d="'+esc(d.id)+'" role="button" tabindex="0">Baca selengkapnya</div>'+
     '<div class="meta"><span class="tag '+stCls(d.status)+'">'+esc(d.status)+'</span><span class="tag">'+esc(d.bidang)+'</span><span class="tag '+esc(String(d.tingkat).toLowerCase())+'">'+esc(d.tingkat)+'</span><span class="tag">Temuan '+esc(fmt(d.tglTemuan))+'</span>'+(d.elemen?'<span class="tag">'+esc(d.elemen)+'</span>':'')+(d.titik?'<span class="tag" style="color:var(--label1)"><b>'+esc(d.titik)+'</b></span>':'')+(d.detail?'<span class="tag">'+esc(d.detail)+'</span>':'')+(M_?M_.tag(d):'')+'</div>'+
     stepperHtml(d);
   if(d.mulai)h+='<div class="note">Perbaikan dimulai '+esc(fmt(d.mulai))+(d.diisiOleh?' oleh '+esc(d.diisiOleh):'')+'</div>';
