@@ -9,7 +9,7 @@
   var BAB = [
     { id: 'mulai', judul: 'Masuk ke aplikasi', untuk: ['mk', 'pj'], ringkas: 'Pilih paket dan masukkan kode', halaman: [
       { judul: 'Pilih paket', img: 'mk-01-paket', langkah: ['Ketuk paket pekerjaan Anda. Pilihan diingat di HP ini.'] },
-      { judul: 'Masukkan kode', img: 'mk-02-masuk', langkah: ['Ketik 6 karakter kode akses dari admin, atau ketuk Tempel kode.', 'Ketuk Masuk. Kode tidak perlu diketik lagi di HP ini.'] }
+      { judul: 'Masukkan kode', img: 'mk-02-masuk', langkah: ['Ketik 6 karakter kode akses dari admin, atau tempel (tekan lama di HP, Ctrl+V di PC).', 'Ketuk Masuk. Kode tidak perlu diketik lagi di HP ini.'] }
     ] },
     { id: 'layar', judul: 'Layar Temuan', untuk: ['mk'], ringkas: 'Cari, filter, dan kartu temuan', halaman: [
       { judul: 'Bagian-bagiannya', img: 'mk-03-temuan', langkah: [

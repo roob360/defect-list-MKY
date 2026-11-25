@@ -763,7 +763,7 @@ function renderLogin(){
     for(var i=0;i<6;i++)bx+='<span class="cb'+(i<kv.length?' f':'')+(i===Math.min(kv.length,5)?' on':'')+an+'" style="--i:'+i+';--m:'+(4+i)+'">'+esc(kv[i]||'')+'</span>';
     h+='<div class="ak" id="ak"><div class="codewrap'+(S.loginErr?' bad':'')+'"><div class="boxes" id="boxes" aria-hidden="true">'+bx+'</div>'+
       '<input type="text" id="kode" class="cin" autocomplete="one-time-code" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Kode akses, 6 karakter" value="'+esc(kv)+'"></div>'+
-      '<div style="height:10px"></div><div style="text-align:center"><button type="button" class="chip" data-act="tempel">Tempel kode</button></div><div style="height:14px"></div>';
+      '<div style="height:24px"></div>';
     if(S.loginErr)h+=S.loginNet?'<div class="errbox" role="alert">'+esc(S.loginErr)+'</div>':'<div class="err" role="alert" style="padding:0 4px 14px">'+esc(S.loginErr)+'</div>';
     h+='<button type="button" class="btn rect akbtn'+an+'" style="--m:11" id="bMasuk" data-act="masuk"><span class="ak-label">'+(S.loginNet&&S.loginErr?'Coba lagi':'Masuk')+'</span><span class="ak-spin"></span><svg class="ak-centang" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></div>';
   }
@@ -3178,14 +3178,6 @@ async function onClick(ev){
   if(S.modal&&S.modal.t==='aksi'&&a!=='mtutup'&&a!=='modalbg')closeModal();
   if(M_&&M_.milik(a))return M_.klik(a,el,ev);
   switch(a){
-    case 'tempel': {
-      var ki=$('kode');if(!ki)return;ki.focus({preventScroll:true});
-      if(navigator.clipboard&&navigator.clipboard.readText){
-        navigator.clipboard.readText().then(function(t){ki.value=t||'';ki.dispatchEvent(new Event('input',{bubbles:true}))})
-          .catch(function(){toast('Tidak bisa membaca papan klip. Tekan lama kotak kode lalu pilih Tempel.')});
-      }else toast('Tekan lama kotak kode lalu pilih Tempel.');
-      return;
-    }
     case 'fpindah': fBaca();S.modal.f.pindah=true;S.modal.f.ruang='';return fRender();
     case 'fpindahbatal': fBaca();S.modal.f.pindah=false;S.modal.f.ruang='';return fRender();
     case 'paket': return pilihPaket(el.getAttribute('data-id'),true);
