@@ -15,9 +15,7 @@
     { "name": "Perbaikan", "short_name": "Perbaikan", "url": "./?aksi=perbaikan", "icons": [{ "src": "ikon-perbaikan.png", "sizes": "192x192", "type": "image/png" }] }
   ],
   "icons": [
-    { "src": "ikon-splash-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "ikon-splash-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
