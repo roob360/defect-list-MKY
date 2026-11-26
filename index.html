@@ -1264,9 +1264,30 @@
     body.bento .kwrap.k-ruang{ grid-template-columns:minmax(250px,300px) minmax(0,1fr); column-gap:16px; }
     .sheet.wz > .wzcols{ gap:20px; }
   }
+  /* splash animasi (splash.js). Latar = background_color manifest agar menyambung dari splash Android, juga di tema gelap.
+     Vektor, jadi tajam di HP maupun desktop. */
+  #splash{ display:none; position:fixed; inset:0; z-index:9999; background:#f2f2f7; }
+  #splash.tampil{ display:block; }
+  #splash svg{ position:absolute; left:50%; top:50%; --u:min(43vw,168px); width:var(--u); height:var(--u); margin:calc(var(--u) / -2) 0 0 calc(var(--u) / -2); overflow:visible; }
+  #splash .titik, #splash .riak{ transform-box:fill-box; transform-origin:center; }
+  #splash .titik{ animation:sp-titik .7s .25s var(--ease-out); }
+  #splash .riak{ opacity:0; animation:sp-riak .9s .5s ease-out; }
+  #splash.keluar{ opacity:0; transition:opacity .4s ease; pointer-events:none; }
+  #splash.keluar svg{ transform:scale(1.08); transition:transform .4s ease; }
+  @keyframes sp-titik{ 40%{ transform:scale(1.28); } 70%{ transform:scale(.94); } }
+  @keyframes sp-riak{ 0%{ opacity:.9; transform:scale(1); } 100%{ opacity:0; transform:scale(3.2); } }
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <svg viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="32" fill="#0088ff"/>
+    <path d="M322 372H356Q372 372 372 356V156Q372 140 356 140H156Q140 140 140 156V356Q140 372 156 372H250M280 140V246H372" fill="none" stroke="#fff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle class="riak" cx="204" cy="232" r="40" fill="none" stroke="#fff" stroke-width="6"/>
+    <circle class="titik" cx="204" cy="232" r="34" fill="#ff8d28" stroke="#fff" stroke-width="12"/>
+  </svg>
+</div>
+<script src="splash.js"></script>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8.6a2.2 2.2 0 012.2-2.2h1.9l1.3-1.9h5.2l1.3 1.9h1.9A2.2 2.2 0 0120 8.6v8.2A2.2 2.2 0 0117.8 19H6.2A2.2 2.2 0 014 16.8z"/><circle cx="12" cy="12.7" r="3.5"/><circle class="kdot flash" cx="17.5" cy="9.3" r="1.2"/></symbol>
