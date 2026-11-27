@@ -234,8 +234,9 @@
   .fitem{ display:flex; flex-direction:column; min-width:0; }
   .fitem .pill{ height:34px; margin-top:6px; padding:0 8px; font-size:13px; }
   .thumb .ov2.ask{ background:#000000bf; color:#fff; padding:4px; text-align:center; }
-  .thumb .ov2.ask span{ display:flex; flex-direction:column; gap:4px; }
-  .thumb .ov2.ask .pill{ height:32px; padding:0 12px; font-size:13px; }
+  .thumb .ov2.ask{ gap:4px; padding:2px; }
+  .thumb .ov2.ask span{ display:flex; gap:4px; align-self:stretch; }
+  .thumb .ov2.ask .pill{ flex:1; min-width:0; padding:0; justify-content:center; font-size:13px; }
   .thumb .ed{ position:absolute; top:5px; left:5px; width:26px; height:26px; padding:0; border:0; border-radius:50%; background:#000000a6; color:#fff; font-size:14px; line-height:26px; text-align:center; cursor:pointer; }
   .thumb .ed::after{ content:""; position:absolute; inset:-9px; }
   .edfoto{ position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column; background:#000; color:#fff; touch-action:none; }
@@ -263,6 +264,12 @@
   .thumb .mini{ padding:3px 8px; border:0; border-radius:var(--r-cap); background:#ffffffe6; color:#000; font:inherit; font-size:12px; cursor:pointer; }
   .sp{ width:20px; height:20px; border-radius:50%; flex:none; display:inline-block; border:2.5px solid var(--label3); border-top-color:var(--label1); animation:spin .8s linear infinite; }
   .upbar[hidden]{ display:none; }
+  .uprow{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:6px 0; }
+  .uprow .upbtn{ display:flex; gap:8px; width:100%; justify-content:flex-end; }
+  .uprow img, .uprow .ph0{ width:52px; height:40px; flex:none; border-radius:8px; object-fit:cover; background:var(--fill3); }
+  .uprow .st{ flex:1; min-width:0; font-size:13px; line-height:16px; overflow-wrap:anywhere; }
+  .uprow .st.bad{ color:var(--red); }
+  .upjudul{ padding:8px 0 0; font-size:13px; font-weight:700; overflow-wrap:anywhere; }
   .upbar{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--dockb) + var(--dockh) + 10px); z-index:29; display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--r-cap); background:var(--dock); -webkit-backdrop-filter:blur(28px) saturate(190%); backdrop-filter:blur(28px) saturate(190%); color:var(--label1); font-size:13px; line-height:16px; box-shadow:var(--dockfx); white-space:nowrap; }
   .upbar button{ min-height:28px; padding:0 10px; border:0; border-radius:999px; background:var(--blue-fill); color:var(--blue-teks); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
   .upbar .sp{ width:14px; height:14px; border-width:2px; border-color:var(--fill3); border-top-color:var(--blue-teks); }

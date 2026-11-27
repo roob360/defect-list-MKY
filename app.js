@@ -1861,6 +1861,7 @@ function modalHtml(){
   if(m.t==='ttx')return ttxHtml(m.d);
   if(m.t==='kmenu')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Menu temuan"><div class="group kmenu"><div class="list">'+kmenuItems(m.d).map(function(it){return '<button type="button" class="row act'+(it.bad?' bad':'')+'" data-act="'+it.a+'" data-d="'+esc(m.d.id)+'">'+(it.ic?ic(it.ic):'')+'<span>'+it.t+'</span></button>'}).join('')+'</div></div><button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+  if(m.t==='antre')return antreHtml();
   if(m.t==='unggah')
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Unggah foto"><h2>Foto '+(m.j==='before'?'Before':'After')+'</h2><div class="note" style="padding:0">Foto dipotong otomatis ke rasio 4:3 (landscape) lalu dikecilkan sebelum diunggah.</div>'+
       '<div class="utiles"><button type="button" class="utile" data-act="foto" data-d="'+esc(m.d.id)+'" data-j="'+m.j+'" data-cam="1">'+ic('cam')+'<span>Kamera</span></button>'+
@@ -1958,14 +1959,16 @@ $('fXls').addEventListener('change',function(ev){var f=ev.target.files&&ev.targe
 var upSeq=0,prepRun=false,upActive=0;
 function nk(){return Date.now().toString(36)+'-'+(++upSeq)}   // kunci unik lintas sesi (antrean tersimpan di IndexedDB)
 /* Antrean foto disimpan di IndexedDB begitu siap dikirim, dan dilanjutkan otomatis setelah masuk lagi. */
-function qSave(j){if(S.paket)IDB.put('up',{k:j.k,did:j.did,jenis:j.jenis,data:j.data,tn:j.tn||'',pid:S.paket.id})}
+function qSave(j){j.info=j.info||qInfo(j.did);if(S.paket)IDB.put('up',{k:j.k,did:j.did,jenis:j.jenis,data:j.data,tn:j.tn||'',info:j.info,pid:S.paket.id})}
+/** Keterangan temuan untuk daftar unggahan; ikut disimpan supaya tetap terbaca setelah aplikasi dibuka ulang. */
+function qInfo(did){var d=findDefect(did);return d?{g:d.gedung,l:d.lantai,r:d.ruanganId,n:d.ruangan,no:d.no}:null}
 function qDel(k){IDB.del('up',k)}
 async function qPulihkan(){
   var its=await IDB.all('up'),n=0;
   if(!S.paket||!S.user)return;
   its.forEach(function(it){
     if(it.pid!==S.paket.id||S.up.some(function(x){return x.k===it.k}))return;
-    S.up.push({k:it.k,did:it.did,jenis:it.jenis,st:'wait',data:it.data,tn:it.tn||null});n++;
+    S.up.push({k:it.k,did:it.did,jenis:it.jenis,st:'wait',data:it.data,tn:it.tn||null,info:it.info||null});n++;
   });
   if(n){toast(n+' foto yang belum terkirim dilanjutkan.');upBar();runQueue()}
 }
@@ -2001,7 +2004,7 @@ async function kirimFoto(j){
   try{
     var r=await api('foto_unggah',{id:j.did,jenis:j.jenis,mime:'image/jpeg',data:j.data,ukur:UKUR?1:0});
     if(S.up.indexOf(j)<0)return;
-    S.up=S.up.filter(function(x){return x!==j});qDel(j.k);
+    S.up=S.up.filter(function(x){return x!==j});qDel(j.k);S.upOk=(S.upOk||0)+1;
     if(j.tn)S.pv[r.foto.id]=j.tn;
     S.fotoOk[r.foto.id]=1;setTimeout(function(){delete S.fotoOk[r.foto.id]},2500);   // thumbnail asli muncul dengan centang singkat (satu kali)
     // Respons bisa tiba tidak berurutan. Jangan timpa data yang lebih baru dengan yang lebih lama.
@@ -2017,7 +2020,7 @@ async function kirimFoto(j){
   }catch(e){
     if(S.up.indexOf(j)<0)return;
     if(e&&e.server&&/Kode tidak dikenal|nonaktif/i.test(e.message||'')){gagal(e);return}
-    j.st='err';j.msg=(e&&e.server&&e.message)||'Tidak terhubung ke server';
+    j.st='err';j.msg=(e&&e.server&&e.message)||(e&&e.name==='AbortError'?'Waktu habis. Cek foto di temuan dulu, mungkin sudah masuk.':'Tidak terhubung ke server');
   }
   upUi(j.did);
 }
@@ -2026,6 +2029,34 @@ function upHtml(j){
   if(j.st==='err')return '<div class="thumb up bad" title="'+esc(j.msg||'')+'">'+pv+'<div class="ov2"><b>Gagal</b><span><button type="button" class="mini" data-act="upretry" data-k="'+j.k+'">Coba lagi</button><button type="button" class="mini" data-act="upbuang" data-k="'+j.k+'">Buang</button></span></div></div>';
   var lbl=j.st==='prep'?'Menyiapkan':j.st==='wait'?'Antre':'Mengunggah';
   return '<div class="thumb up">'+pv+'<div class="ov2"><svg class="ur'+(j.st==='run'?' run':'')+'" viewBox="0 0 36 36" aria-hidden="true"><circle class="tr" cx="18" cy="18" r="15"/><circle class="arc" cx="18" cy="18" r="15"/></svg><small>'+lbl+'</small></div></div>';
+}
+/** Daftar unggahan foto: per temuan, dengan status, alasan gagal, dan tombol coba lagi. */
+function antreHtml(){
+  var urut=[],grup={},gagalN=0,ok=S.upOk||0;
+  S.up.forEach(function(j){if(!grup[j.did]){grup[j.did]=[];urut.push(j.did)}grup[j.did].push(j);if(j.st==='err')gagalN++});
+  var h='<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Unggahan foto"><h2>Unggahan foto</h2><div class="note" style="padding:0">'+
+    (S.up.length?ok+' dari '+(ok+S.up.length)+' terkirim'+(gagalN?', '+gagalN+' gagal':'')+'. Foto yang belum terkirim belum ada di temuan.':'Semua foto sudah terkirim.')+'</div>';
+  urut.forEach(function(did){
+    var i=qInfo(did)||grup[did][0].info;
+    h+='<div><div class="upjudul">'+(i?esc(i.g+' · '+i.l+' · '+i.n+' · No '+i.no)+' <button type="button" class="pill" data-act="upke" data-d="'+esc(did)+'">Buka</button>':'Temuan')+'</div>';
+    grup[did].forEach(function(j){
+      var pv=j.tn||j.data,err=j.st==='err';
+      h+='<div class="uprow">'+(pv?'<img alt="" src="'+pv+'">':'<span class="ph0"></span>')+
+        '<span class="st'+(err?' bad':'')+'">'+(err?'Gagal: '+esc(j.msg||''):j.st==='prep'?'Menyiapkan':j.st==='wait'?'Antre':'Mengunggah')+'</span>'+
+        (err?'<span class="upbtn"><button type="button" class="pill" data-act="upretry" data-k="'+j.k+'">Coba lagi</button><button type="button" class="pill" data-act="upbuang" data-k="'+j.k+'">Buang</button></span>':'')+'</div>';
+    });
+    h+='</div>';
+  });
+  return h+(gagalN>1?'<button type="button" class="btn" data-act="upsemua">Coba lagi semua</button>':'')+'<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
+}
+/** Dari daftar unggahan langsung ke kartu temuannya. */
+async function upKe(did){
+  var j=S.up.filter(function(x){return x.did===did})[0],i=qInfo(did)||(j&&j.info);
+  if(!i)return;
+  closeModal();
+  if(S.view!=='form'){hpopTop('view');S.view='form';lsSet('dl-view',S.view)}
+  S.sel={g:i.g,l:i.l,r:i.r};lsSet('dl-sel',JSON.stringify(S.sel));render();
+  await loadDefects(i.r,false);kartuLihat(did);
 }
 function upUi(did){
   var d=did&&findDefect(did);
@@ -2041,11 +2072,14 @@ function upBar(){
   var n=S.up.filter(function(x){return x.st!=='err'}).length,e=S.up.length-n;
   var dw=DRAF.filter(function(x){return x.st==='wait'}).length,dc=DRAF.length-dw;
   var off=navigator.onLine===false;
+  if(S.modal&&S.modal.t==='antre'){var sh=overlay.querySelector('.sheet'),y=sh?sh.scrollTop:0;renderOverlay();sh=overlay.querySelector('.sheet');if(sh)sh.scrollTop=y}
+  else if(!S.up.length)S.upOk=0;
   if(!S.user||(!n&&!e&&!dw&&!dc&&!S.drafOk&&!off)){el.hidden=true;return}
   var h=[];
   if(off)h.push('<span class="dot" aria-hidden="true"></span>Tidak ada sinyal. Data yang tampil bisa sudah lama');
   if(S.drafOk)h.push('<span class="tcek">'+SVG_CEK+'</span>'+S.drafOk+' draf terkirim');   // centang singkat setelah draf offline terkirim
   if(n)h.push('<span class="sp"></span>Mengunggah '+n+' foto'+(e?', '+e+' gagal':''));else if(e)h.push(e+' foto gagal diunggah');
+  if(n||e)h[h.length-1]+=' <button type="button" data-act="uplihat">Lihat</button>';
   if(dw)h.push('<span class="dot" aria-hidden="true"></span>'+dw+' draf menunggu sinyal <button type="button" data-act="drafkirim">Kirim</button>');
   if(dc)h.push(dc+' draf perlu dicek <button type="button" data-act="drafbuka">Buka</button>');
   el.innerHTML=h.join(' &middot; ');
@@ -3238,6 +3272,9 @@ async function onClick(ev){
     case 'mfoto': readForm();return pick(!!el.getAttribute('data-cam'),function(items){modalFotos(S.modal.f,items)});
     case 'upretry': {var jr=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];if(jr){jr.st='wait';upUi(jr.did);runQueue()}return}
     case 'upbuang': {var jb=S.up.filter(function(x){return String(x.k)===el.getAttribute('data-k')})[0];S.up=S.up.filter(function(x){return x!==jb});if(jb){qDel(jb.k);upUi(jb.did)}return}
+    case 'uplihat': return openModal({t:'antre'});
+    case 'upke': return upKe(el.getAttribute('data-d'));
+    case 'upsemua': {S.up.forEach(function(x){if(x.st==='err')x.st='wait'});S.up.forEach(function(x){upUi(x.did)});runQueue();return}
     case 'drafkirim': {if(navigator.onLine===false)toast('Belum ada sinyal.');drafKirim();return}
     case 'drafbuka': return drafBuka();
     case 'mdel': readForm();S.modal.f.files.splice(+el.getAttribute('data-i'),1);return mphRefresh();
