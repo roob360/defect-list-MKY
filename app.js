@@ -1969,7 +1969,7 @@ async function qPulihkan(){
   });
   if(n){toast(n+' foto yang belum terkirim dilanjutkan.');upBar();runQueue()}
 }
-var UP_PAR=3;                                   // jumlah unggahan bersamaan
+var UP_PAR=1;                                   // foto dikirim satu per satu: kiriman bersamaan ke temuan yang sama pernah saling menimpa di sheet
 var UKUR=lsGet('dl-ukur')==='1';                // aktifkan dengan localStorage.setItem('dl-ukur','1'); hasilnya di console
 function enqueue(did,jenis,files){
   files.forEach(function(f){S.up.push({k:nk(),did:did,jenis:jenis,st:'prep',file:f,data:null})});
@@ -1986,7 +1986,7 @@ async function prepLoop(){
     }
   }finally{prepRun=false}
 }
-/* Kolam unggahan: sampai UP_PAR foto dikirim bersamaan. Server menomori berkas di dalam lock, jadi aman. */
+/* Antrean unggahan: paling banyak UP_PAR foto dikirim sekaligus, sesuai urutan dipilih. */
 function runQueue(){
   while(upActive<UP_PAR){
     var j=S.up.filter(function(x){return x.st==='wait'})[0];
