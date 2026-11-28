@@ -186,7 +186,8 @@
   async function bukaDetail(p) {
     var tunggu = { t: 'memomuat', mid: p.memoId || '' }, r;
     C.openModal(tunggu);   // halaman langsung terbuka berisi kerangka, tanpa layar digelapkan
-    try { r = await C.api('memo_detail', p); }
+    var naik = new Promise(function (ok) { setTimeout(ok, document.documentElement.classList.contains('hemat') ? 0 : 580); });   // isi diganti setelah gerak naik selesai, supaya tidak terputus
+    try { r = await C.api('memo_detail', p); await naik; }
     catch (e) { if (C.S.modal === tunggu) C.closeModal(); return C.gagal(e); }
     if (C.S.modal !== tunggu) return;   // sudah ditutup atau diganti selagi memuat
     taruh(r.defect); C.openModal({ t: 'memo', r: r });

@@ -1426,6 +1426,32 @@
   /* kerangka memo diganti isinya: cukup memudar, tanpa geser */
   @media (max-width:1099px){ html:not(.hemat) #overlay.fx.ganti .ov.mpage .sheet{ animation:isiPudar .2s ease-out; } }
   .kv b span{ color:inherit; font:inherit; }   /* tanggal berjam di dalam nilai: sewarna dengan nilainya */
+  /* garis tarik: pendek di tengah, bukan selebar lembar */
+  .sheet .shead .grab{ flex:0 0 100%; height:5px; margin:0; border-radius:0; background:linear-gradient(var(--sep),var(--sep)) center / 36px 5px no-repeat; }
+  .sheet .shead .btn-ic{ width:36px; height:36px; font-size:22px; line-height:1; }
+  .sheet.dtl .meta, .sheet.dtl .phs{ margin-left:0 !important; margin-right:0 !important; padding-left:0 !important; padding-right:0 !important; }
+  .sheet.dtl .meta .tag:first-child{ margin-left:0; }
+  @media (max-width:767px){
+    #app .kalasan{ height:auto; }
+    #app .kalasan:empty{ display:none; }
+    /* detail temuan dan memo: lembar tinggi dari bawah */
+    .ov.detov, .ov.mpage.detov{ align-items:flex-end; justify-content:center; padding:0; background:#0000008c; }
+    .ov.detov .sheet.det, .ov.detov .sheet.msheet.det, .ov.detov .sheet.det:not(.wz):not(.msheet){ display:flex; flex-direction:column; width:100%; max-width:none; height:92vh; height:92dvh; max-height:none; margin:0; overflow:auto; overscroll-behavior:contain; border-radius:30px 30px 0 0; background:var(--gbg1); }
+    .sheet.det > *{ flex:none; }
+    .sheet.det.msheet > .mbadan{ flex:1 0 auto; }
+    .sheet.det > .dkaki{ margin-top:auto; }
+    .sheet.det .mtop{ padding-top:18px; }
+    .sheet.det .mtop::before{ content:""; position:absolute; top:7px; left:50%; width:36px; height:5px; margin-left:-18px; border-radius:3px; background:var(--sep); }
+    html:not(.hemat) .sheet.det{ transition:transform .32s cubic-bezier(.32,.72,0,1); }
+    html:not(.hemat) #overlay .ov.detov:not(.out){ animation:isiPudar .25s ease-out; }
+    html:not(.hemat) #overlay.fx .ov.detov .sheet.det{ animation:lembarMasuk .55s cubic-bezier(.33,.86,.24,1); }
+    html:not(.hemat) #overlay.fx.ganti .ov.detov{ animation:none; }
+    html:not(.hemat) #overlay.fx.ganti .ov.detov .sheet.det{ animation:none; }
+    html:not(.hemat) #overlay.fx.ganti .ov.detov .sheet.det > *{ animation:isiPudar .22s ease-out; }
+    html:not(.hemat) #overlay .ov.out.detov .sheet.det{ animation:lembarKeluar .28s cubic-bezier(.4,0,.8,.4) forwards; }
+  }
+  @keyframes lembarMasuk{ from{ transform:translateY(105%); } to{ transform:none; } }
+  @keyframes lembarKeluar{ to{ transform:translateY(105%); } }
   .pbtn .pill{ min-height:44px; }
   .vphs{ padding:0 0 10px; }
 

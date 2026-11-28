@@ -331,7 +331,7 @@ function petunjukPasang(){
   document.addEventListener('touchstart',function(e){
     sh=null;seret=false;
     if(!kecil()||e.touches.length!==1)return;
-    var t=e.target.closest&&e.target.closest('#overlay .ov:not(.mid):not(.zoom) .sheet:not(.wz)');
+    var t=e.target.closest&&e.target.closest('#overlay .ov:not(.mid):not(.zoom) .sheet:not(.wz):not(.det)');
     if(!t||(e.target.closest('input,textarea,select'))||e.touches[0].clientY-t.getBoundingClientRect().top>72)return;   // hanya dari kepala, bukan dari isi
     sh=t;ov=t.closest('.ov');y0=e.touches[0].clientY;dy=0;t0=Date.now();
   },{passive:true});
@@ -1767,7 +1767,7 @@ function renderOverlay(){
   if(!h&&prev&&(prev.charAt(0)==='m'||prev==='file')&&animOn()&&overlay.querySelector('.ov')){   // animasi keluar singkat
     overlay.classList.remove('fx');S.ovKey='';
     Array.prototype.forEach.call(overlay.querySelectorAll('.ov'),function(o){o.classList.add('out')});
-    clearTimeout(ovTm);ovTm=setTimeout(function(){if(!S.ovKey)overlay.innerHTML=''},overlay.querySelector('.ov.panel')?260:170);   // panel butuh waktu meluncur keluar
+    clearTimeout(ovTm);ovTm=setTimeout(function(){if(!S.ovKey)overlay.innerHTML=''},overlay.querySelector('.ov.panel,.ov.detov')?280:170);   // panel dan lembar butuh waktu meluncur keluar
     aturDialog('',prev);if(M_)M_.sesudahOverlay();V2.sesudah();return;
   }
   clearTimeout(ovTm);
@@ -4318,6 +4318,49 @@ async function exportZip(){
     });
   }
 
+  /* ----- HP: detail temuan dan memo sebagai lembar tinggi; tarik ke bawah untuk menutup ----- */
+  function pasangLembar(m) {
+    var ov = overlay.querySelector('.ov:not(.out)');
+    if (!ov || window.innerWidth >= 768 || !m || S.busy || S.zoom || S.file || (m.t !== 'ttx' && m.t !== 'memo' && m.t !== 'memomuat')) return;
+    var s = ov.querySelector('.sheet');
+    if (!s) return;
+    ov.classList.add('detov');
+    s.classList.add('det');
+  }
+  (function () {
+    var s = null, y0 = 0, t0 = 0, d = 0, seret = false, kepala = false;
+    document.addEventListener('touchstart', function (e) {
+      s = null; seret = false; d = 0;
+      var el = e.target.closest && e.target.closest('#overlay .sheet.det');
+      if (!el || e.touches.length !== 1 || e.target.closest('input,textarea,select,canvas')) return;
+      s = el; y0 = e.touches[0].clientY; t0 = Date.now(); kepala = y0 - el.getBoundingClientRect().top < 84;
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!s) return;
+      d = e.touches[0].clientY - y0;
+      if (!seret) {
+        if (Math.abs(d) < 6) return;
+        if (!(d > 0 && (kepala || s.scrollTop <= 0))) { s = null; return; }   // selain itu: gulir isi seperti biasa
+        seret = true; s.style.transition = 'none';
+      }
+      e.preventDefault();
+      s.style.transform = 'translateY(' + Math.max(0, d) + 'px)';
+    }, { passive: false });
+    function lepas() {
+      var el = s; s = null;
+      if (!el || !seret) return;
+      el.style.removeProperty('transition');
+      void el.offsetHeight;
+      if (d > 130 || (d > 40 && d / Math.max(1, Date.now() - t0) > 0.5)) {
+        el.style.transform = 'translateY(105%)';
+        var ov = el.closest('.ov'); if (ov) ov.style.background = 'transparent';
+        setTimeout(closeModal, 260);
+      } else el.style.removeProperty('transform');
+    }
+    document.addEventListener('touchend', lepas);
+    document.addEventListener('touchcancel', lepas);
+  })();
+
   /** Dipanggil setiap selesai menggambar lapisan. */
   V2.sesudah = function () {
     var m = S.modal, ov = overlay.querySelector('.ov:not(.out)'), desk = lebarDesktop(), panel = false;
@@ -4336,6 +4379,7 @@ async function exportZip(){
       });
     }
     if (ov && panel) { var s = ov.querySelector('.sheet'); if (s) s.removeAttribute('aria-modal'); }
+    pasangLembar(m);
     kunciGulir(!desk && !!overlay.querySelector('.ov:not(.out)'));
     narasiPasang();
   };
