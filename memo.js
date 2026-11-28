@@ -18,7 +18,7 @@
   function lblGrup(g, ta) { return g === 'KOORD' ? 'Koordinator QC MK' : (ta ? 'TA ' + g + ', QC ' + g + ', atau Koordinator QC MK' : 'QC ' + g + ' atau Koordinator QC MK'); }
   var HINT = { MK1: 'Sahkan memo', PJ1: 'Sahkan tanda terima', MK2: 'Periksa dan sahkan', PJ2: 'Sahkan Tahap II (PJ)', tindak: 'Isi tindak lanjut' };
   var STAT = { 'MENUNGGU TTD MK': 'Menunggu TTD MK', TERBIT: 'Terbit', 'TINDAK LANJUT': 'Tindak lanjut', 'PEMERIKSAAN II': 'Pemeriksaan II', CLOSE: 'Close', BATAL: 'Batal', PERALIHAN: 'Peralihan' };
-  var MODAL = { memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1, memoprev: 1, memolainnya: 1, qcdaftar: 1, tutupperalihan: 1 };
+  var MODAL = { memomuat: 1, memoform: 1, memokonfirm: 1, memo: 1, memotindak: 1, memolist: 1, ttd: 1, memoyakin: 1, memoprev: 1, memolainnya: 1, qcdaftar: 1, tutupperalihan: 1 };
   var JENIS_MEMO = ['Kualitas', 'Material', 'Dimensi & Posisi (X,Y,Z)', 'Lainnya'];   // sama dengan Kode.gs
   var REF_MEMO = ['KPPK', 'RKS', 'Material yang disetujui', 'BQ', 'Drawing', 'Metoda Kerja/ WI/SOP', 'Spesifikasi'];
 
@@ -97,7 +97,16 @@
     var x = entriDaftar(d), st = d.memoStatus;
     var teks = x && x.menunggu && x.menunggu.teks && x.status === st ? x.menunggu.teks : st === 'MENUNGGU TTD MK' ? 'Menunggu tanda tangan QC MK' : st === 'PEMERIKSAAN II' ? 'Menunggu pemeriksaan QC MK' : 'Menunggu PJ melengkapi site memo';
     var o = st === 'MENUNGGU TTD MK' || st === 'PEMERIKSAAN II' || d.verifikasi === 'Ditolak';
-    return '<div class="mtunggu kartu' + (o ? ' o' : '') + '"><b>' + esc(teks) + '</b>' + (st !== 'PEMERIKSAAN II' ? '<span>Belum bisa diverifikasi: site memo belum lengkap.</span>' : '') + '</div>';
+    var sub = '';
+    if (st !== 'PEMERIKSAAN II') {
+      if (C.isPJ()) {
+        var kurang = [];
+        if (x && !x.tindak) kurang.push('tindak lanjut');
+        if (!(d.fotoAfter || []).length) kurang.push('foto After');
+        sub = kurang.length && st !== 'MENUNGGU TTD MK' ? 'Lengkapi: ' + kurang.join(', ') : '';
+      } else sub = 'Belum bisa diverifikasi';
+    }
+    return '<div class="mtunggu kartu' + (o ? ' o' : '') + '"><b>' + esc(teks) + '</b>' + (sub ? '<span>' + esc(sub) + '</span>' : '') + '</div>';
   }
   /* Satu tombol sesuai giliran akun ini (QC). Tanda terima boleh langsung dari kartu; selebihnya membuka halaman memo. */
   function aksiKartu(d) {
@@ -117,7 +126,7 @@
       foto: (s.fotoBefore || []).slice(0, 4).map(function (f) { return f.id; }), sahkan: !!s.qc.sayaBisaMengesahkan };
   }
   function cekHtml(g, arr, sel) {
-    return arr.map(function (x) { return '<label class="mchk"><input type="checkbox" data-g="' + g + '" value="' + esc(x) + '"' + (sel.indexOf(x) >= 0 ? ' checked' : '') + '><span>' + esc(x) + '</span></label>'; }).join('');
+    return arr.map(function (x) { return '<label class="mchk pil"><input type="checkbox" data-g="' + g + '" value="' + esc(x) + '"' + (sel.indexOf(x) >= 0 ? ' checked' : '') + '><span>' + esc(x === 'Dimensi & Posisi (X,Y,Z)' ? 'Dimensi dan posisi' : x) + '</span></label>'; }).join('');
   }
   function formHtml(m) {
     var v = m.v, s = m.s, d = m.d;
@@ -127,12 +136,12 @@
       var on = v.foto.indexOf(f.id) >= 0;
       return '<button type="button" class="mfoto' + (on ? ' on' : '') + '" data-act="memofoto" data-f="' + esc(f.id) + '" aria-pressed="' + on + '"><img alt="Foto before" referrerpolicy="no-referrer" src="' + esc(C.thumb(f.id, 200)) + '">' + (on ? '<span class="n">' + (v.foto.indexOf(f.id) + 1) + '</span>' : '') + '</button>';
     }).join('');
-    return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Memo"><div class="grab" aria-hidden="true"></div><h2>' + (m.mode === 'ubah' ? 'Ubah memo' : 'Memo') + '</h2>' +
+    return '<div class="ov" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Memo"><div class="grab" aria-hidden="true"></div><h2>' + (m.mode === 'ubah' ? 'Ubah memo' : 'Buat site memo') + '</h2>' +
       '<div class="note" style="padding:0;overflow-wrap:anywhere">' + esc(d.uraian) + '</div>' +
       '<div class="note" style="padding:0">' + (m.mode === 'ubah' ? 'Ubah isian memo. Nomor memo tidak berubah. PDF yang sudah diarsipkan dibuat ulang setelah disimpan.' : 'Isian di bawah diambil dari temuan. Lengkapi yang belum terisi. Nomor memo keluar setelah ' + esc(lblGrup(s.qc.grup, s.qc.ta)) + ' mengesahkan.') + '</div>' +
       '<section class="group"><div class="list">' + (m.mode === 'ubah' ? '' : row('mTgl', 'Tanggal pengajuan', v.tgl, 'date')) + row('mBid', 'Bidang pekerjaan', v.bidang) + row('mKeg', 'Kegiatan pekerjaan', v.kegiatan) + row('mLok', 'Lokasi pekerjaan', v.lokasi, 'text', true) + row('mInfo', 'Info lainnya', v.info) + '</div></section>' +
-      '<section class="group"><div class="list"><div class="row"><span class="lbl">Jenis ketidaksesuaian</span>' + cekHtml('jenis', s.opsi.jenis, v.jenis) + '</div>' + row('mJL', 'Jika memilih "Lainnya"', v.jenisLain) + '</div></section>' +
-      '<section class="group"><div class="list"><div class="row"><span class="lbl">Referensi</span>' + cekHtml('ref', s.opsi.referensi, v.ref) + '</div></div></section>' +
+      '<section class="group"><div class="list"><div class="row"><span class="lbl">Jenis ketidaksesuaian</span><div class="mpils">' + cekHtml('jenis', s.opsi.jenis, v.jenis) + '</div></div>' + row('mJL', 'Jika memilih "Lainnya"', v.jenisLain) + '</div></section>' +
+      '<section class="group"><div class="list"><div class="row"><span class="lbl">Referensi</span><div class="mpils">' + cekHtml('ref', s.opsi.referensi, v.ref) + '</div></div></div></section>' +
       '<section class="group"><div class="list">' + area('mAkt', 'Kondisi aktual', v.aktual, 'Jelaskan kondisi di lapangan') + area('mSeh', 'Kondisi seharusnya', v.seharusnya, 'Rujukan SNI, spesifikasi, atau standar') + '</div></section>' + '<div class="note" style="padding:0">Kondisi aktual diisi dari temuan. Boleh dikembangkan; hanya berlaku di site memo, uraian temuan tidak berubah.</div>' +
       (fotos ? '<section class="group"><div class="list"><div class="row"><span class="lbl">Foto before di memo (' + v.foto.length + ' dari 4)</span><div class="mfotos">' + fotos + '</div></div></div></section>' : '<div class="note" style="padding:0">Temuan ini belum punya foto before.</div>') +
       (s.qc.sayaBisaMengesahkan ? '<label class="mchk big"><input type="checkbox" id="mSah"' + (v.sahkan ? ' checked' : '') + '><span>Langsung sahkan dan beri nomor (Anda QC bidang ini)</span></label>' : '') +
@@ -164,6 +173,7 @@
     var r = await C.work('Membuat memo...', function () { return C.api('memo_draf', p); });
     if (!r) { C.openModal({ t: 'memoform', d: m.d, s: m.s, v: v }); return; }
     taruh(r.defect);
+    V2.teksHapus('mAkt', m.d.id); V2.teksHapus('mSeh', m.d.id);
     C.toast(r.hasil && r.hasil.nomor ? 'Memo disahkan. Nomor ' + pendek(r.hasil.nomor) + '.' : 'Draf memo dibuat. Menunggu QC mengesahkan.');
     C.openModal({ t: 'memo', r: r });
     C.render();
@@ -174,8 +184,18 @@
   /* ---------- rincian memo ---------- */
 
   async function bukaDetail(p) {
-    var r = await C.work('Memuat memo...', function () { return C.api('memo_detail', p); });
-    if (r) { taruh(r.defect); C.openModal({ t: 'memo', r: r }); }
+    var tunggu = { t: 'memomuat', mid: p.memoId || '' }, r;
+    C.openModal(tunggu);   // halaman langsung terbuka berisi kerangka, tanpa layar digelapkan
+    try { r = await C.api('memo_detail', p); }
+    catch (e) { if (C.S.modal === tunggu) C.closeModal(); return C.gagal(e); }
+    if (C.S.modal !== tunggu) return;   // sudah ditutup atau diganti selagi memuat
+    taruh(r.defect); C.openModal({ t: 'memo', r: r });
+  }
+  function muatHtml() {
+    var b = function (w, h) { return '<div class="sk" style="width:' + w + ';height:' + h + 'px;border-radius:12px"></div>'; };
+    return '<div class="ov mpage" data-act="modalbg"><div class="sheet msheet" role="dialog" aria-label="Memuat memo">' +
+      '<div class="mtop"><button type="button" class="mback" data-act="mtutup" aria-label="Tutup"><span class="hp">&lsaquo; Kembali</span><span class="lb">' + C.ic('x') + '</span></button><h2>Site memo</h2></div>' +
+      b('60%', 24) + b('100%', 64) + b('100%', 280) + b('100%', 48) + '</div></div>';
   }
   async function buka(id) {
     var d = C.findDefect(id); if (!d) return;
@@ -227,7 +247,7 @@
     if (!d.tindakLanjut) kurang.push('tindak lanjut');
     if (!t.MK2 && !foto) kurang.push('foto After');
     if (df.verifikasi === 'Ditolak') return { w: 'PJ', apa: 'Ditolak MK' + (df.catatan ? ': ' + df.catatan : '') + '. Perbaiki, lalu sahkan Tahap II lagi.', o: true };
-    if (kurang.length) return { w: !t.PJ1 && kurang.length === 1 ? 'QC PJ' : 'PJ', apa: 'Belum ada: ' + kurang.join(', ') + '.' };
+    if (kurang.length) return { w: !t.PJ1 ? (kurang.length === 1 ? 'QC PJ' : 'QC PJ dan PJ') : 'PJ', apa: 'Belum ada: ' + kurang.join(', ') + '.' };
     return { w: 'QC PJ', apa: 'Semua lengkap. Sahkan Tahap II supaya MK bisa memeriksa.' };
   }
   function langkahHtml(r) {
@@ -241,8 +261,8 @@
       var x = t[s], b = r.bisa[s], isi, kanan = '';
       if (x) {
         isi = '<span class="who"><b>' + esc(x.nama) + '</b></span><span class="sub">' + esc(x.jabatan) + ' &middot; ' + esc(C.fmtWaktu(x.waktu)) + (x.pelaksana ? ' &middot; oleh ' + esc(x.pelaksana) : '') + '</span>';
-        if (r.cabut === s) kanan = '<button type="button" class="pill bad" data-act="memocabut" data-s="' + s + '">Batalkan</button>';
-      } else isi = b && b.ok ? '<span class="sub">Giliran Anda</span>' : '<span class="wait">' + esc(u && u.qc !== 'YA' && !C.isAdmin() ? 'Menunggu' : ((b && b.alasan) || 'Menunggu')) + '</span>';
+        if (r.cabut === s && !C.isAdmin()) kanan = '<button type="button" class="pill bad" data-act="memocabut" data-s="' + s + '">Batalkan</button>';
+      } else isi = b && b.ok ? '<span class="sub">Giliran Anda</span>' : '<span class="wait">' + esc(s === 'MK2' && !t.PJ2 && t.MK1 ? 'Setelah QC PJ sahkan Tahap II' : u && u.qc !== 'YA' && !C.isAdmin() ? 'Menunggu' : ((b && b.alasan) || 'Menunggu')) + '</span>';
       baris('mt2' + (x ? ' ok' : b && b.ok ? ' kini' : ''), namaSlot(s, d.kodeBidang), isi, kanan);
     }
     slot('MK1'); slot('PJ1');
@@ -289,6 +309,7 @@
       '<div class="meta"><span class="tag ' + stCls(d.status) + '">' + esc(STAT[d.status] || d.status) + '</span>' + (df.tingkat ? '<span class="tag ' + esc(String(df.tingkat).toLowerCase()) + '">' + esc(df.tingkat) + '</span>' : '') + '<span class="tag">' + esc(d.bidang) + '</span></div>' +
       (d.noMemo ? '<div class="note mono mnomor">' + esc(d.noMemo) + '</div>' : '') +
       '<div class="mbadan"><div class="mkanan">' +
+      (r.lokasiBeda ? '<div class="mtunggu o mbeda" role="status"><b>Lokasi temuan berbeda dengan memo</b><span>Temuan: ' + esc([df.gedung, df.lantai, df.ruangan].join(', ')) + '. Memo: ' + esc(d.lokasi) + '.</span>' + (C.isAdmin() ? '<button type="button" class="pill" data-act="memolokasi">Perbarui lokasi memo (Admin)</button>' : '') + '</div>' : '') +
       (g ? '<div class="mtunggu' + (g.o ? ' o' : '') + '"><b>Menunggu ' + g.w + '</b><span>' + esc(g.apa) + '</span></div>' : '') +
       '<details class="mlangkah"' + (periksa && !lebar() ? '' : ' open') + '><summary>' + lk.selesai + ' dari 6 langkah selesai</summary><div class="mttd2">' + lk.h + '</div></details>' +
       (bukanQc ? '<div class="note mbukan">Pengesahan memo dilakukan oleh ' + (bidangTA(d.kodeBidang) ? 'TA atau QC' : 'QC') + '.</div>' : '') +
@@ -297,17 +318,20 @@
       '<div class="mkiri"><div class="mfto"><div class="phs"><div class="ph" data-j="before">' + C.fotoBlok(df, 'before') + '</div><div class="ph" data-j="after">' + C.fotoBlok(df, 'after') + '</div></div>' +
       '<div class="muraian"><span class="no">' + esc(df.no || '') + '</span><span>' + esc(df.uraian) + '</span></div></div>' +
       rincianHtml(r) +
-      '<details class="mriwayat"><summary>Lokasi, pelapor, riwayat</summary><div class="isi">' + C.riwayatHtml(df) + baris('Diterbitkan oleh', d.dibuatOleh) + baris('Tanggal pengajuan', d.tglPengajuan) + '</div></details></div></div></div></div>';
+      '<details class="mriwayat"><summary>Lokasi, pelapor, riwayat</summary><div class="isi">' + C.riwayatHtml(df) + [['Diterbitkan oleh', d.dibuatOleh], ['Tanggal pengajuan', d.tglPengajuan]].map(function (x) { return x[1] ? '<div class="kv"><span>' + x[0] + '</span><b>' + esc(x[1]) + '</b></div>' : ''; }).join('') + '</div></details></div></div></div></div>';
   }
   function lainnyaHtml(m) {
     var r = m.r, d = r.memo, u = C.S.user, it = [];
     if (!d.sumber) it.push(['memopdf', C.ic('pdf'), 'Unduh PDF', false]);
-    if (perluArsip(r).length && d.status !== 'BATAL' && (C.isAdmin() || (u && u.qc === 'YA'))) it.push(['memoarsip', C.ic('refresh'), 'Arsipkan PDF ke Drive', false]);
+    if (perluArsip(r).length && d.status !== 'BATAL' && (C.isAdmin() || (u && u.qc === 'YA' && u.peran === 'MK' && (u.qcBidang === 'KOORD' || u.qcBidang === d.kodeBidang)))) it.push(['memoarsip', C.ic('refresh'), 'Arsipkan PDF ke Drive', false]);
     if (r.bisaUbah && d.status !== 'BATAL') it.push(['memoubah', C.ic('ubah'), 'Ubah isian', false]);
+    if (r.defect) C.kmenuItems(r.defect).forEach(function (k) { it.push([k.a, k.ic ? C.ic(k.ic) : '', k.a === 'hapus' ? 'Hapus temuan' : k.t, !!k.bad, r.defect.id]); });
+    if (C.isAdmin() && !d.sumber && d.status !== 'BATAL' && Object.keys(r.ttd).length) it.push(['memomundur', C.ic('urungkan'), 'Mundur ke tahap', false]);
+    if (C.isAdmin() && !d.sumber && d.status === 'CLOSE' && r.defect) it.push(['memobukakembali', C.ic('urungkan'), 'Buka kembali', false]);
     if (C.isAdmin() && d.status !== 'BATAL') it.push(['memobatal', '', 'Batalkan memo', true]);
     if (C.isAdmin()) it.push(['memohapus', C.ic('sampah'), 'Hapus memo', true]);
     return '<div class="ov mid" data-act="modalbg"><div class="sheet gap" role="dialog" aria-label="Aksi memo"><div class="group kmenu"><div class="list">' +
-      it.map(function (x) { return '<button type="button" class="row act' + (x[3] ? ' bad' : '') + '" data-act="' + x[0] + '">' + x[1] + '<span>' + x[2] + '</span></button>'; }).join('') +
+      it.map(function (x) { return '<button type="button" class="row act' + (x[3] ? ' bad' : '') + '" data-act="' + x[0] + '"' + (x[4] ? ' data-d="' + esc(x[4]) + '"' : '') + '>' + x[1] + '<span>' + x[2] + '</span></button>'; }).join('') +
       '</div></div><button type="button" class="btn sec" data-act="memoyakinbatal">Kembali</button></div></div>';
   }
   async function sahkan(slot) {
@@ -317,6 +341,7 @@
     if (slot === 'MK2' && $('mCat')) p.catatan = $('mCat').value.trim();
     var h = await C.work('Mengesahkan...', function () { return C.api('memo_sahkan', p); });
     if (!h) return;
+    V2.teksHapus('mCat', m.r.memo.id);
     taruh(h.defect);
     C.toast(h.hasil && h.hasil.nomor ? 'Memo disahkan. Nomor ' + pendek(h.hasil.nomor) + '.' : h.hasil && h.hasil.close ? 'Memo Close. Temuan ikut Close.' : 'Tanda tangan tersimpan.');
     if (C.S.modal && C.S.modal.t === 'memo') { C.S.modal.r = h; C.renderOverlay(); }
@@ -335,6 +360,7 @@
       return C.api('memo_detail', { memoId: d.id });
     });
     if (!r) return;
+    V2.teksHapus('mCat', d.id);
     taruh(r.defect); C.toast('Ditolak. Memo kembali ke PJ.'); C.openModal({ t: 'memo', r: r }); C.render(); muatDaftar();
   }
 
@@ -353,6 +379,7 @@
     if (!tl) { C.toast('Usulan tindak lanjut wajib diisi.'); return; }
     var r = await C.work('Menyimpan...', function () { return C.api('memo_tindak', { memoId: m.r.memo.id, tindakLanjut: tl, namaPenerima: nm }); });
     if (!r) return;
+    V2.teksHapus('tTL', m.r.memo.id);
     taruh(r.defect); C.toast('Tindak lanjut tersimpan.'); C.openModal({ t: 'memo', r: r }); C.render(); muatDaftar();
   }
 
@@ -555,22 +582,22 @@
   function punyaTab(u) { return !!u && (u.peran === 'ADMIN' || u.peran === 'PJ' || (u.peran === 'MK' && u.qc === 'YA')); }
   var TB = { semua: false, awal: false, pn: false, q: '', st: '', bd: '', mw: '', ur: 'hari' };   // tab Memo: semua false = hanya yang menunggu Anda (Admin langsung melihat semua); st, bd, mw = filter; ur = urutan
   var SLOT_PENDEK = { MK1: 'Tahap I', PJ1: 'Tanda terima', MK2: 'Tahap II', PJ2: 'Tahap II' };
-  function dots(x) { return '<div class="mdots" aria-label="Tanda tangan">' + [['MK1', 'MK I'], ['PJ1', 'PJ I'], ['MK2', 'MK II'], ['PJ2', 'PJ II']].map(function (s) { return '<span class="' + (x.ttd && x.ttd[s[0]] ? 'on' : '') + '">' + s[1] + '</span>'; }).join('') + '</div>'; }
+  function dots(x) { return '<div class="mdots" aria-label="Tanda tangan">' + [['MK1', 'MK I'], ['PJ1', 'PJ I'], ['PJ2', 'PJ II'], ['MK2', 'MK II']].map(function (s) { return '<span class="' + (x.ttd && x.ttd[s[0]] ? 'on' : '') + '">' + s[1] + '</span>'; }).join('') + '</div>'; }
   function hariTag(x) { return x.hari > 0 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? '<span class="tag hari' + (x.hari > 7 ? ' lama' : '') + '">' + x.hari + ' hari</span>' : ''; }
   function lokasiTeks(x) { return [x.gedung, x.lantai, x.ruangan].filter(Boolean).join(' / ') || x.lokasi; }
   function kartuMemo(x) {
     var jml = (x.aksi || []).filter(function (a) { return a !== 'tindak'; }).length, tombol = '';
-    (x.aksi || []).forEach(function (a) {
+    (x.aksi || []).slice(0, 1).forEach(function (a) {
       if (a === 'tindak') tombol += '<button type="button" class="pill start" data-act="memotindakcepat" data-m="' + esc(x.id) + '">' + C.ic('tindak') + 'Isi tindak lanjut</button>';
       else if (a === 'MK2') tombol += '<button type="button" class="pill go" data-act="memolihat" data-m="' + esc(x.id) + '">' + C.ic('centang') + 'Periksa' + (jml > 1 ? ' Tahap II' : '') + '</button>';
       else tombol += '<button type="button" class="pill go" data-act="memosahcepat" data-m="' + esc(x.id) + '" data-s="' + a + '">' + C.ic('centang') + 'Sahkan' + (jml > 1 ? ' ' + SLOT_PENDEK[a] : '') + '</button>';
     });
-    if (jml) tombol += '<button type="button" class="pill" data-act="memopratinjaukartu" data-m="' + esc(x.id) + '">Pratinjau</button>';
-    return '<article class="group mcard tap" data-act="memolihat" data-m="' + esc(x.id) + '"><div class="eh"><span class="no">' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</span><span class="tx">' + esc((x.kodeBidang ? x.kodeBidang + ' · ' : '') + (x.kegiatan || x.lokasi || x.bidang)) + '</span></div>' +
+    return '<article class="group mcard tap" data-act="memolihat" data-m="' + esc(x.id) + '"><div class="eh"><span class="tx">' + esc(x.uraian || x.kegiatan || x.lokasi || x.bidang) + '</span></div>' +
+      '<div class="note mkecil">' + esc([x.noMemo ? 'SM ' + (pendek(x.noMemo) || x.noMemo) : 'Draf', x.kegiatan, lokasiTeks(x)].filter(Boolean).join(' · ')) + '</div>' +
       '<div class="meta"><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span><span class="tag">' + esc(x.bidang) + '</span>' + (x.tingkat ? '<span class="tag ' + esc(x.tingkat.toLowerCase()) + '">' + esc(x.tingkat) + '</span>' : '') + hariTag(x) + '</div>' +
-      '<div class="note">' + esc(lokasiTeks(x)) + '</div>' + dots(x) +
-      '<div class="note"><b>' + esc(x.menunggu ? x.menunggu.teks : '') + '</b></div>' +
-      '<div class="acts">' + tombol + '<button type="button" class="pill memo" data-act="memolihat" data-m="' + esc(x.id) + '">' + C.ic('memo') + 'Lihat</button></div></article>';
+      dots(x) +
+      '<div class="note mmenunggu"><b>' + esc(x.menunggu ? x.menunggu.teks : '') + '</b></div>' +
+      (tombol ? '<div class="acts satu">' + tombol + '</div>' : '') + '</article>';
   }
   var URUT_TAB = [['hari', 'Terlama', 'jam'], ['baru', 'Terbaru', 'tanggal'], ['no', 'Nomor', 'nomor']];
   function urutTab(list) {
@@ -619,7 +646,7 @@
     if (TB.mn) h += '<div class="aqpanel" id="mmenu"><label class="aqf"><span>Urutan</span><select data-tb="ur" aria-label="Urutkan">' + URUT_TAB.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === TB.ur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label><button type="button" class="chip" data-act="memosegar2">Muat ulang</button></div>';
     if (TB.pn) h += '<div class="aqpanel" id="mfpanel">' + sel('st', 'Status', ST_URUT.map(function (st) { return [st, STAT[st]]; })) + sel('bd', 'Bidang', BID_KODE.map(function (b) { return [b[0], b[0]]; })) + sel('mw', 'Menunggu', ['QC MK', 'PJ', 'QC PJ'].map(function (o) { return [o, o]; })) + '</div>';
     h += '<div class="aqcnt"><span id="mtcount">' + esc(tabHitung()) + '</span>' + (tabAktif() ? '<button type="button" class="aqreset" data-act="memotabclr">Atur ulang</button>' : '') + '</div>';
-    return h + legenda() + '<div id="mtlist">' + tabIsi() + '</div>';
+    return h + '<div id="mtlist">' + tabIsi() + '</div>';
   }
   /* Satu ketuk dari kartu: langsung mengesahkan. Akun QC yang belum punya tanda tangan diarahkan ke layar tanda tangan. */
   async function sahkanCepat(memoId, slot) {
@@ -696,30 +723,6 @@
   function halBar() {
     return '<div class="chips rkhal" role="group" aria-label="Jumlah baris"><span class="rkhl">Tampilkan</span>' + [10, 20, 50, 100, 0].map(function (n) { return '<button type="button" class="chip' + (RK.n === n ? ' on' : '') + '" data-act="memorkn" data-v="' + n + '" aria-pressed="' + (RK.n === n) + '">' + (n || 'Semua') + '</button>'; }).join('') + '</div>';
   }
-  function rekapHtml() {
-    var h = '<div class="pagehead"><div class="cap">' + esc(C.S.paket.nama) + '</div><h1>Rekap memo</h1></div>';
-    if (D.daftar === null) return h + (D.off ? '<div class="err">Server belum mendukung site memo.</div>' : C.skel('table'));
-    var all = D.daftar.filter(function (x) { return C.isAdmin() || x.status !== 'BATAL'; }), aktif = all.filter(function (x) { return x.status !== 'BATAL'; });
-    var n = function (st) { return aktif.filter(function (x) { return x.status === st; }).length; };
-    var tot = aktif.length, close = n('CLOSE'), draf = n('MENUNGGU TTD MK'), jalan = aktif.filter(function (x) { return x.status !== 'CLOSE'; }), pc = function (v) { return tot ? v / tot * 100 : 0; };
-    h += '<section class="group mprog"><div class="mpt"><b>' + Math.round(pc(close)) + '%</b><span><strong>selesai (Close)</strong>' + close + ' dari ' + tot + ' memo</span></div>' +
-      '<div class="mstk"><i style="width:' + pc(close) + '%;background:var(--green)"></i><i style="width:' + pc(tot - close - draf) + '%;background:var(--orange)"></i><i style="width:' + pc(draf) + '%;background:var(--red)"></i></div></section>';
-    h += '<div class="mkpis">' + [['Total', tot, '', 'memorkclear', '', false], ['Menunggu TTD MK', draf, 'o', 'memorkfilter', 'MENUNGGU TTD MK', RK.st === 'MENUNGGU TTD MK'], ['Terbit', n('TERBIT'), '', 'memorkfilter', 'TERBIT', RK.st === 'TERBIT'], ['Tindak lanjut', n('TINDAK LANJUT'), 'p', 'memorkfilter', 'TINDAK LANJUT', RK.st === 'TINDAK LANJUT'], ['Pemeriksaan II', n('PEMERIKSAAN II'), 'p', 'memorkfilter', 'PEMERIKSAAN II', RK.st === 'PEMERIKSAAN II'], ['Peralihan', n('PERALIHAN'), 'p', 'memorkfilter', 'PERALIHAN', RK.st === 'PERALIHAN'], ['Close', close, 'c', 'memorkfilter', 'CLOSE', RK.st === 'CLOSE']].concat(C.isAdmin() ? [['Dibatalkan', all.length - tot, '', 'memorkfilter', 'BATAL', RK.st === 'BATAL']] : []).map(function (k) { return '<div class="mk lnk ' + k[2] + (k[5] ? ' on' : '') + '" role="button" tabindex="0" data-act="' + k[3] + '" data-k="st" data-v="' + k[4] + '"><b>' + k[1] + '</b><span>' + k[0] + '</span></div>'; }).join('') + '</div>';
-    var lama7 = jalan.filter(function (x) { return x.hari > 7; }).length, mpr = function (n2, t, cls, k, v) { return n2 ? '<button type="button" class="matt ' + cls + '" data-act="memorkfilter" data-k="' + k + '" data-v="' + v + '"><span>' + n2 + ' ' + t + '</span><span class="cv">&rsaquo;</span></button>' : ''; };
-    var att = mpr(lama7, 'memo lebih dari 7 hari belum bergerak', 'r', 'lama', '1') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'QC MK'; }).length, 'menunggu tanda tangan QC MK', 'o', 'mw', 'QC MK') +
-      mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'PJ'; }).length, 'menunggu tindak lanjut PJ', 'o', 'mw', 'PJ') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'MK'; }).length, 'menunggu verifikasi MK', 'n', 'mw', 'MK') + mpr(jalan.filter(function (x) { return x.menunggu && x.menunggu.orang === 'QC PJ'; }).length, 'menunggu tanda tangan QC PJ', 'n', 'mw', 'QC PJ');
-    h += '<section class="group"><div class="sh">Perlu perhatian</div><div style="padding:0 16px 14px">' + (att || '<div class="rknote">Tidak ada memo yang perlu perhatian.</div>') + '</div></section>';
-    h += '<section class="group"><div class="sh">Per bidang</div><div class="tw"><table class="t"><thead><tr><th>Bidang</th><th>Total</th><th>Berjalan</th><th>Close</th></tr></thead><tbody>' +
-      BID_KODE.map(function (b) { var l = aktif.filter(function (x) { return x.kodeBidang === b[0]; }), cl = l.filter(function (x) { return x.status === 'CLOSE'; }).length; return '<tr class="lnkrow' + (RK.bd === b[0] ? ' on' : '') + '" role="button" tabindex="0" data-act="memorkfilter" data-k="bd" data-v="' + b[0] + '"><td>' + esc(b[1]) + '</td><td>' + l.length + '</td><td>' + (l.length - cl) + '</td><td>' + cl + '</td></tr>'; }).join('') + '</tbody></table></div></section>';
-    var v = rekapFilter(), tampil = RK.n ? v.slice(0, RK.n) : v;
-    h += filterBar() + legenda() + '<div class="cap" style="margin:6px 4px">Menampilkan ' + tampil.length + ' dari ' + v.length + ' memo' + (v.length !== all.length ? ' (total ' + all.length + ')' : '') + '</div>' + halBar();
-    h += v.length ? '<div class="mlis">' + tampil.map(function (x) {
-      return '<button type="button" class="mli" data-act="memolihat" data-m="' + esc(x.id) + '"><div><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b><span>' + esc((x.kodeBidang ? x.kodeBidang + ' · ' : '') + (x.kegiatan || x.lokasi)) + '</span><span>' + esc(lokasiTeks(x)) + '</span>' + dots(x) +
-        (x.menunggu && x.status !== 'CLOSE' && x.status !== 'BATAL' ? '<em>' + esc(x.menunggu.teks) + '</em>' : '') + '</div><div class="mr"><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span>' + hariTag(x) + '</div></button>';
-    }).join('') + '</div>' : '<div class="empty">Tidak ada memo yang cocok.</div>';
-    return h + '<div class="btnrow"><button type="button" class="btn" data-act="memoexcel">' + C.ic('excel') + 'Unduh Excel</button></div>';
-  }
-
   function tgl2(iso) { var s = String(iso || '').slice(0, 10).split('-'); return s.length === 3 ? s[2] + '/' + s[1] : ''; }
   /* Dashboard Rekap > Memo untuk layar lebar (>= 1100 px): kartu bento seperti Rekap temuan, dengan daftar tabel lengkap tanggal tanda tangan. */
   function rekapBentoHtml() {
@@ -756,13 +759,21 @@
       var b = function (a, t) { return '<button type="button" class="pill pdfb" data-act="memorkpdf" data-m="' + esc(x.id) + '" data-j="' + j + '" data-a="' + a + '" aria-label="' + t + ' memo ' + (j === 'before' ? 'Open' : 'Close') + '" title="' + t + '">' + C.ic(a === 'lihat' ? 'mata' : 'unduh') + '</button>'; };
       return '<td class="pdfc">' + b('lihat', 'Lihat') + b('unduh', 'Unduh') + '</td>';
     };
+    var kartuHp = !lebar() ? '<div class="mlis">' + (tampil.map(function (x) {
+      var pdf = function (j, t) {
+        var ada = !x.sumber && x.status !== 'BATAL' && (j === 'before' ? !!(x.noMemo && x.tgl && x.tgl.MK1) : x.status === 'CLOSE');
+        return ada ? '<span class="mpdf"><em>' + t + '</em>' + ['lihat', 'unduh'].map(function (a) { return '<button type="button" class="pill pdfb" data-act="memorkpdf" data-m="' + esc(x.id) + '" data-j="' + j + '" data-a="' + a + '" aria-label="' + (a === 'lihat' ? 'Lihat' : 'Unduh') + ' memo ' + t + '">' + C.ic(a === 'lihat' ? 'mata' : 'unduh') + '</button>'; }).join('') + '</span>' : '';
+      };
+      return '<div class="mli" role="button" tabindex="0" data-act="memolihat" data-m="' + esc(x.id) + '"><div><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b><span>' + esc((x.kodeBidang ? x.kodeBidang + ' · ' : '') + (x.kegiatan || x.lokasi)) + '</span><span>' + esc(lokasiTeks(x)) + '</span>' + dots(x) +
+        (x.menunggu && x.status !== 'CLOSE' && x.status !== 'BATAL' ? '<em>' + esc(x.menunggu.teks) + '</em>' : '') + pdf('before', 'Open') + pdf('akhir', 'Close') + '</div><div class="mr"><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span>' + hariTag(x) + '</div></div>';
+    }).join('') || '<div class="empty">Tidak ada memo yang cocok.</div>') + '</div>' : '';
     var baris = tampil.map(function (x) {
       return '<tr data-act="memolihat" data-m="' + esc(x.id) + '"><td><b>' + esc(x.noMemo ? nomorSaja(x.noMemo) : 'Draf') + '</b></td><td>' + esc(x.kodeBidang) + '</td><td>' + potong(x.kegiatan || x.lokasi, 'kg') + '</td><td>' + potong(lokasiTeks(x), 'lk') + '</td>' +
-        '<td><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></td><td>' + potong(x.status === 'CLOSE' || x.status === 'BATAL' ? '' : (x.menunggu ? x.menunggu.teks : ''), 'mn') + '</td>' + td(x, 'MK1') + td(x, 'PJ1') + td(x, 'MK2') + td(x, 'PJ2') +
+        '<td><span class="tag ' + stCls(x.status) + '">' + esc(STAT[x.status] || x.status) + '</span></td><td>' + potong(x.status === 'CLOSE' || x.status === 'BATAL' ? '' : (x.menunggu ? x.menunggu.teks : ''), 'mn') + '</td>' + td(x, 'MK1') + td(x, 'PJ1') + td(x, 'PJ2') + td(x, 'MK2') +
         '<td class="hr' + (x.hari > 7 && x.status !== 'CLOSE' && x.status !== 'BATAL' ? ' lama' : '') + '">' + (x.status === 'CLOSE' || x.status === 'BATAL' ? '' : x.hari) + '</td>' + pdfSel(x, 'before') + pdfSel(x, 'akhir') + '</tr>';
     }).join('');
-    h += '<section class="bc s12"><div class="bch"><div class="cap">Daftar memo (menampilkan ' + tampil.length + ' dari ' + v.length + (v.length !== all.length ? ', total ' + all.length : '') + ')</div></div>' + fil + '<div class="tw"><table class="t rkt mt"><thead><tr>' + th('no', 'No') + th('bd', 'Bid') + th('kg', 'Kegiatan') + th('lk', 'Lokasi') + th('st', 'Status') + '<th>Menunggu</th>' + th('mk1', 'MK I') + th('pj1', 'PJ I') + th('mk2', 'MK II') + th('pj2', 'PJ II') + th('hr', 'Hari') + '<th>Memo Open</th><th>Memo Close</th></tr></thead><tbody>' +
-      (baris || '<tr><td colspan="13">Tidak ada memo yang cocok.</td></tr>') + '</tbody></table></div></section></div>';
+    h += '<section class="bc s12" id="rkdaftar"><div class="bch"><div class="cap">Daftar memo (menampilkan ' + tampil.length + ' dari ' + v.length + (v.length !== all.length ? ', total ' + all.length : '') + ')</div></div>' + fil + (kartuHp ? kartuHp + '</section></div>' : '<div class="tw"><table class="t rkt mt"><thead><tr>' + th('no', 'No') + th('bd', 'Bid') + th('kg', 'Kegiatan') + th('lk', 'Lokasi') + th('st', 'Status') + '<th>Menunggu</th>' + th('mk1', 'MK I') + th('pj1', 'PJ I') + th('pj2', 'PJ II') + th('mk2', 'MK II') + th('hr', 'Hari') + '<th>Memo Open</th><th>Memo Close</th></tr></thead><tbody>' +
+      (baris || '<tr><td colspan="13">Tidak ada memo yang cocok.</td></tr>') + '</tbody></table></div></section></div>');
     return kepala(h);
   }
   async function eksporExcel() {
@@ -770,10 +781,10 @@
     var ok = await C.work('Menyusun Excel...', async function () {
       await C.loadLib(C.XLSX_URL, 'XLSX');
       var X = root.XLSX, d10 = function (s) { return String(s || '').slice(0, 10); };
-      var rows = [['No Memo', 'Tgl Pengajuan', 'Disiplin', 'Bidang', 'Kegiatan', 'Gedung', 'Lantai', 'Ruangan', 'Tingkat', 'Status', 'Menunggu', 'Hari menunggu', 'TTD MK Tahap I', 'TTD PJ Tanda terima', 'Tindak lanjut PJ', 'Verifikasi MK', 'TTD MK Tahap II', 'TTD PJ Tahap II']];
+      var rows = [['No Memo', 'Tgl Pengajuan', 'Disiplin', 'Bidang', 'Kegiatan', 'Gedung', 'Lantai', 'Ruangan', 'Tingkat', 'Status', 'Menunggu', 'Hari menunggu', 'TTD MK Tahap I', 'TTD PJ Tanda terima', 'Tindak lanjut PJ', 'Verifikasi MK', 'TTD PJ Tahap II', 'TTD MK Tahap II']];
       v.forEach(function (x) {
         rows.push([x.noMemo, x.tglPengajuan, x.kodeBidang, x.bidang, x.kegiatan, x.gedung, x.lantai, x.ruangan, x.tingkat, STAT[x.status] || x.status, x.menunggu ? x.menunggu.teks : '', x.hari,
-          d10(x.tgl && x.tgl.MK1), d10(x.tgl && x.tgl.PJ1), d10(x.tglTindak), x.verifikasi, d10(x.tgl && x.tgl.MK2), d10(x.tgl && x.tgl.PJ2)]);
+          d10(x.tgl && x.tgl.MK1), d10(x.tgl && x.tgl.PJ1), d10(x.tglTindak), x.verifikasi, d10(x.tgl && x.tgl.PJ2), d10(x.tgl && x.tgl.MK2)]);
       });
       var ws = X.utils.aoa_to_sheet(rows);
       ws['!cols'] = [46, 16, 9, 18, 30, 16, 12, 22, 9, 16, 44, 9, 14, 14, 14, 12, 14, 14].map(function (w) { return { wch: w }; });
@@ -802,6 +813,7 @@
     var p = { memoId: m.r.memo.id, bidang: v.bidang, kegiatan: v.kegiatan, lokasi: v.lokasi, info: v.info, jenis: v.jenis, jenisLain: v.jenisLain, referensi: v.ref, kondisiAktual: v.aktual, kondisiSeharusnya: v.seharusnya, fotoBefore: v.foto };
     var r = await C.work('Menyimpan perubahan...', function () { return C.api('memo_ubah', p); });
     if (!r) return;
+    V2.teksHapus('mAkt', m.r.memo.id); V2.teksHapus('mSeh', m.r.memo.id);
     taruh(r.defect);
     C.toast('Memo diperbarui.');
     C.openModal({ t: 'memo', r: r });
@@ -947,6 +959,7 @@
   /* ---------- pintu masuk dari app.js ---------- */
 
   function modalHtml(m) {
+    if (m.t === 'memomuat') return muatHtml();
     if (m.t === 'memoform') return formHtml(m);
     if (m.t === 'memokonfirm') return konfirmHtml(m);
     if (m.t === 'memo') return detailHtml(m);
@@ -975,6 +988,7 @@
         if (!m || m.t !== 'memoform') return;
         bacaForm(m);
         var id = el.getAttribute('data-f'), i = m.v.foto.indexOf(id);
+        m.kotor = true;
         if (i >= 0) m.v.foto.splice(i, 1); else if (m.v.foto.length < 4) m.v.foto.push(id); else C.toast('Paling banyak 4 foto.');
         return segar();
       }
@@ -1003,7 +1017,7 @@
       case 'memotolak': return tolak();
       case 'memolebih': { var bl = el.previousElementSibling, buka2 = bl.classList.toggle('klem'); el.textContent = buka2 ? 'Selengkapnya' : 'Tutup sebagian'; return; }
       case 'memotindak': return m && m.t === 'memo' && C.openModal({ t: 'memotindak', r: m.r });
-      case 'memotutuptindak': return m && C.openModal({ t: 'memo', r: m.r });
+      case 'memotutuptindak': return m && V2.tutup(function () { C.openModal({ t: 'memo', r: m.r }); });
       case 'memotindaksimpan': return simpanTindak();
       case 'memopdf': return lihatPdf();
       case 'memoarsip': return arsipkanUlang();
@@ -1046,7 +1060,10 @@
       case 'memoexcel': return eksporExcel();
       case 'memoubah': return m && m.t === 'memo' && bukaUbah(m.r);
       case 'memoubahsimpan': return simpanUbah();
-      case 'memokembaliubah': return m && m.r && C.openModal({ t: 'memo', r: m.r });
+      case 'memokembaliubah': return m && m.r && V2.tutup(function () { C.openModal({ t: 'memo', r: m.r }); });
+      case 'memomundur': return m && m.r && C.openModal({ t: 'v2mundur', r: m.r, slot: '', alasan: '' });
+      case 'memobukakembali': return m && m.r && C.openModal({ t: 'v2buka', r: m.r, d: m.r.defect });
+      case 'memolokasi': return m && m.r && C.openModal({ t: 'v2lokasiadmin', r: m.r });
       case 'memotutupform': {
         var t0 = new Date(), tg = t0.getFullYear() + '-' + ('0' + (t0.getMonth() + 1)).slice(-2) + '-' + ('0' + t0.getDate()).slice(-2);
         return m && m.t === 'memo' && C.openModal({ t: 'tutupperalihan', r: m.r, tgl: tg });
@@ -1067,13 +1084,22 @@
       case 'memorkfilter': {   // ketuk kartu: pasang filter; ketuk lagi kartu yang sama: cabut
         var kk = el.getAttribute('data-k'), nv = el.getAttribute('data-v');
         if (kk === 'lama') RK.lama = RK.lama ? 0 : 1; else RK[kk] = RK[kk] === nv ? '' : nv;
-        return C.render();
+        C.render();
+        var sd = $('rkdaftar'); if (sd && sd.scrollIntoView) sd.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        return;
       }
       case 'memorkclear': RK.bd = ''; RK.st = ''; RK.mw = ''; RK.lama = 0; RK.hb = ''; return C.render();
       case 'memorkn': RK.n = parseInt(el.getAttribute('data-v'), 10) || 0; try { localStorage.setItem('dl-rkn', String(RK.n)); } catch (e) { } return C.render();
       case 'memoyakinya': return jalankanYakin();
       case 'memoyakinbatal': return m && m.r && C.openModal({ t: 'memo', r: m.r });
     }
+  }
+
+  /* Membuat ulang PDF arsip sesudah isi memo berubah di server. */
+  async function arsipUlang(memoId, jenis) {
+    var r = await C.work('Memuat memo...', function () { return C.api('memo_detail', { memoId: memoId }); });
+    if (!r) return;
+    for (var i = 0; i < jenis.length; i++) await arsipkan(r, jenis[i]);
   }
 
   root.MEMO = {
@@ -1092,7 +1118,7 @@
         var k = e.target && e.target.getAttribute && e.target.getAttribute('data-rk');
         if (k) { RK[k] = e.target.type === 'checkbox' ? (e.target.checked ? 1 : 0) : e.target.value; C.render(); }
       });
-      return { kelas: kelas, legenda: legenda, punyaTab: punyaTab, tabHtml: tabHtml, rekapToggle: rekapToggle, rekapHtml: rekapHtml, rekapBentoHtml: rekapBentoHtml, tag: tag, ringkasMemo: ringkasMemo, kartuTombol: kartuTombol, tungguKartu: tungguKartu, aksiKartu: aksiKartu, buka: buka, setelanHtml: setelanHtml, punya: punya, milik: milik, modalHtml: modalHtml, sesudahOverlay: sesudahOverlay, klik: klik, muatDaftar: muatDaftar, jumlahPerlu: jumlahPerlu }; },
+      return { kelas: kelas, legenda: legenda, punyaTab: punyaTab, tabHtml: tabHtml, arsipUlang: arsipUlang, rekapToggle: rekapToggle, rekapBentoHtml: rekapBentoHtml, tag: tag, ringkasMemo: ringkasMemo, kartuTombol: kartuTombol, tungguKartu: tungguKartu, aksiKartu: aksiKartu, buka: buka, setelanHtml: setelanHtml, punya: punya, milik: milik, modalHtml: modalHtml, sesudahOverlay: sesudahOverlay, klik: klik, muatDaftar: muatDaftar, jumlahPerlu: jumlahPerlu }; },
     /* untuk uji */
     _tglId: tglId, _pendek: pendek, _olahGambar: olahGambar
   };
