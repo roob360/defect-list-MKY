@@ -53,7 +53,8 @@
       { judul: 'Keputusan', img: 'mk-10-keputusan', langkah: [
         'Catatan MK. Wajib diisi bila menolak.',
         'Diterima: temuan berstatus Close.',
-        'Ditolak: temuan kembali ke PJ untuk diperbaiki dan difoto ulang.'] }
+        'Ditolak: temuan kembali ke PJ untuk diperbaiki dan difoto ulang.',
+        'Temuan bersite memo tidak diputuskan di sini: QC bidang atau Koordinator memeriksanya lewat tombol Periksa.'] }
     ] },
     { id: 'rekap', judul: 'Rekap dan unduhan', untuk: ['mk'], ringkas: 'Ringkasan, Excel, dan PDF', halaman: [
       { judul: 'Rekap', img: 'mk-11-rekap', langkah: [
@@ -86,20 +87,22 @@
         'Kartu memo: status, lokasi, dan tanda tangan MK I, PJ I, MK II, PJ II. Teks tebal menyebut siapa yang ditunggu.'] },
       { judul: 'Isi tindak lanjut', img: 'pj-06-tindak', langkah: [
         'Rencana tindak lanjut (wajib): perbaikan yang dilakukan atau direncanakan.',
-        'Simpan. Temuan bermemo tidak bisa diterima MK sebelum ini diisi.'] }
+        'Simpan. Unggah juga foto After. Setelah QC PJ mengesahkan Tahap II, isian dan foto terkunci sampai MK memutuskan.'] }
     ] },
     { id: 'qcpj', judul: 'Mengesahkan tanda terima', untuk: ['qcpj'], ringkas: 'Tugas QC PJ di bagian Memo', halaman: [
       { judul: 'Sahkan', img: 'qcpj-01-memo', langkah: [
         'Perlu tindakan: jumlah memo untuk Anda.',
         'Teks tebal pada kartu menyebut yang ditunggu, misalnya tanda terima QC PJ.',
-        'Sahkan: satu ketukan membubuhkan tanda tangan Anda. Belum punya? Buat dulu di Pengaturan (bab Tanda tangan).'] }
+        'Sahkan: satu ketukan membubuhkan tanda tangan Anda. Belum punya? Buat dulu di Pengaturan (bab Tanda tangan).',
+        'Tahap II disahkan setelah tanda terima, tindak lanjut, dan foto After lengkap. Baru sesudah itu MK memeriksa.'] }
     ] },
     { id: 'qcmemo', judul: 'Membuat dan mengesahkan memo', untuk: ['qcmk'], ringkas: 'Tugas QC bidang', halaman: [
       { judul: 'Bagian Memo', img: 'qc-01-memo', langkah: [
         'Cari, filter, dan menu titik tiga. Perlu tindakan = memo untuk Anda.',
         'Kartu memo: nomor, status, dan tanda tangan MK I, PJ I, MK II, PJ II.',
         'Sahkan: satu ketukan membubuhkan tanda tangan Anda.',
-        'Pratinjau: lihat PDF memo sebelum disahkan.'] },
+        'Pratinjau: lihat PDF memo sebelum disahkan.',
+        'Tahap II: ketuk Periksa, lalu Terima dan sahkan (temuan dan memo Close) atau Tolak dengan catatan. Hanya QC bidang atau Koordinator.'] },
       { judul: 'Menaikkan temuan jadi memo', img: 'qc-02-belum-memo', langkah: ['Ketuk Memo (berbingkai kuning) pada temuan yang belum bermemo. Formulir terbuka dengan isian dari temuan.'] },
       { judul: 'Formulir: data dan jenis', img: 'qc-03-form-memo-1', tanpaNomor: true, langkah: [
         'Lengkapi tanggal, kegiatan, dan lokasi pekerjaan (wajib).',

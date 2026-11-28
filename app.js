@@ -773,7 +773,7 @@ function renderLogin(){
 
 /** Versi aplikasi dan status koneksi di layar pemilih paket dan masuk.  */
 function verHtml(){return '<div class="verinfo" role="status"></div>'}
-var APP_VER='1.7';   // nomor versi yang dilihat pengguna; naikkan bersama CACHE di sw.js bila ada fitur baru
+var APP_VER='1.8';   // nomor versi yang dilihat pengguna; naikkan bersama CACHE di sw.js bila ada fitur baru
 function verIsi(){
   var el=app.querySelector('.verinfo');if(!el)return;
   var on=navigator.onLine!==false;
@@ -1060,13 +1060,11 @@ function stepperHtml(d){
     '<div class="bars">'+st.map(function(s,i){return '<i class="'+s+(fl[i]>=0?' fill" style="--i:'+fl[i]:'')+'"></i>'}).join('')+'</div>'+
     '<div class="lbls">'+nm.map(function(n,i){return '<span class="'+st[i]+'">'+n+'</span>'}).join('')+'</div></div>';
 }
-/* Temuan bermemo: alasan "Diterima" belum bisa (memo belum disahkan QC MK atau PJ belum mengisi tindak lanjut); kosong bila tidak ada hambatan. */
-function hambatTerima(d){
-  if(!d||!d.memoId)return '';
-  var ms=d.memoStatus;
-  if(ms==='MENUNGGU TTD MK')return 'Site memo belum disahkan QC MK.';
-  if(['TINDAK LANJUT','PEMERIKSAAN II','CLOSE'].indexOf(ms)<0)return 'Menunggu PJ mengisi tindak lanjut site memo. Setelah terisi, tombol Diterima aktif. Anda tetap bisa menolak.';
-  return '';
+/* Temuan bermemo diperiksa lewat memonya, hanya oleh Admin atau QC/TA/Koordinator MK yang berwenang (cermin aturan server). */
+function bisaPeriksaMemo(d){
+  var u=S.user;if(!u)return false;
+  if(u.peran==='ADMIN')return true;
+  return u.peran==='MK'&&u.qc==='YA'&&(u.qcBidang==='KOORD'||u.qcBidang===QC_GRUP_BIDANG[d.bidang]);
 }
 /* Hak mengubah, menghapus, dan mengelola foto Before: Admin, pelapor, QC MK yang berwenang (Koordinator semua bidang). Cermin aturan server (_bolehKelolaTemuan). */
 var QC_GRUP_BIDANG={Arsitektur:'ARS',Struktur:'STR',MEEP:'MEEP',Infrastruktur:'INF',Lansekap:'LSC',HSE:'HSE',BGH:'BGH'};   // cermin QC_GRUP di server; QC dan TA sama-sama berwenang
@@ -1097,26 +1095,27 @@ function ttxHtml(d){
     (M_&&M_.kartuTombol(d)?'<div class="acts" style="padding:0">'+M_.kartuTombol(d)+'</div>':'')+
     '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div>';
 }
-/* PJ: temuan bermemo yang sudah punya foto After tetapi tindak lanjut memonya belum diisi tidak bisa diterima MK. */
-function perluTindak(d){return !!(d&&d.memoId&&d.fotoAfter.length&&d.verifikasi!=='Diterima'&&d.memoStatus==='TERBIT')}
+/* PJ: temuan bermemo yang sudah punya foto After tetapi tindak lanjut memonya belum diisi. */
+function perluTindak(d){return !!(d&&d.memoId&&d.fotoAfter.length&&d.memoStatus==='TERBIT')}
 function bisaMulai(){return !!(S.user&&(S.user.peran==='PJ'||S.user.peran==='ADMIN'))}
 /* Satu aksi utama menurut peran dan tahap; sisanya di menu kartu (kmenuItems). */
 function aksiUtama(d){
   var closed=d.status==='Close',af=d.fotoAfter.length>0,vd=d.verifikasi,id=esc(d.id);
-  if(closed||vd==='Diterima')return '';
+  if(closed||(vd==='Diterima'&&!d.memoId))return '';
+  if(d.memoId&&d.memoStatus==='PEMERIKSAAN II')return vd!=='Diterima'&&bisaPeriksaMemo(d)?'<button type="button" class="pill go" data-act="memobuka" data-d="'+id+'">'+ic('verif')+'Periksa</button>':'';
   if(isPJ()&&perluTindak(d))return '<button type="button" class="pill start" data-act="memotindakcepat" data-m="'+esc(d.memoId)+'">Isi tindak lanjut</button>';
-  if(bisaMulai()){
+  if(bisaMulai()&&!(vd==='Diterima'&&af)){
     if(!d.mulai)return '<button type="button" class="pill start" data-act="mulai" data-d="'+id+'">Mulai perbaikan</button>';
     if(!af||vd==='Ditolak')return '<button type="button" class="pill start" data-act="unggah" data-d="'+id+'" data-j="after">'+(vd==='Ditolak'?'Perbaiki ulang':'Unggah foto After')+'</button>';
   }
-  if(canEdit()&&af&&vd!=='Ditolak')return '<button type="button" class="pill go" data-act="verif" data-d="'+id+'">'+ic('verif')+'Verifikasi</button>';
+  if(canEdit()&&!d.memoId&&af&&vd!=='Ditolak')return '<button type="button" class="pill go" data-act="verif" data-d="'+id+'">'+ic('verif')+'Verifikasi</button>';
   return '';
 }
 /* Isi menu kartu per peran: ADMIN (ubah, ubah keputusan, batalkan mulai, hapus), MK (ubah, ubah keputusan, hapus), PJ (batalkan mulai). */
 function kmenuItems(d){
   var a=[],closed=d.status==='Close';
   if(bisaKelola(d))a.push({a:'edit',t:'Ubah temuan',ic:'ubah'});
-  if(canEdit()&&d.verifikasi)a.push({a:'verif',t:'Ubah keputusan verifikasi',ic:'centang'});
+  if(canEdit()&&!d.memoId&&d.verifikasi)a.push({a:'verif',t:'Ubah keputusan verifikasi',ic:'centang'});
   if(bisaMulai()&&!closed&&d.mulai&&!d.fotoAfter.length)a.push({a:'batalmulai',t:'Batalkan mulai perbaikan',ic:'urungkan'});
   if(bisaKelola(d))a.push({a:'hapus',t:'Hapus',bad:true,ic:'sampah'});
   return a;
@@ -1811,8 +1810,7 @@ function modalHtml(){
     return '<div class="ov" data-act="modalbg"><div class="sheet" role="dialog" aria-label="Verifikasi"><h2>Verifikasi MK</h2><div class="note" style="padding:0 0 10px;overflow-wrap:anywhere">'+esc(d.uraian)+'</div>'+
       '<section class="group"><div class="list"><label class="row"><span class="lbl">Catatan MK (opsional)</span><textarea id="vC" style="min-height:80px">'+esc(d.catatan||'')+'</textarea></label></div></section>'+
       (d.fotoAfter.length?'':'<div class="note" style="padding:0 0 10px">Belum ada foto After dari penanggung jawab, jadi belum bisa diterima atau ditolak.</div>')+
-      (d.fotoAfter.length&&d.verifikasi!=='Diterima'&&hambatTerima(d)?'<div class="note tolak" style="padding:0 0 10px">'+esc(hambatTerima(d))+'</div>':'')+
-      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length&&d.verifikasi!=='Diterima'&&!hambatTerima(d)?'':' disabled')+' data-act="vset" data-h="Diterima">'+(d.verifikasi==='Diterima'?'Sudah diterima (Close)':'Diterima (Close)')+'</button><button type="button" class="btn bad"'+(d.fotoAfter.length&&d.verifikasi!=='Ditolak'?'':' disabled')+' data-act="vset" data-h="Ditolak">'+(d.verifikasi==='Ditolak'?'Sudah ditolak':'Ditolak')+'</button>'+
+      '<div class="gap"><button type="button" class="btn"'+(d.fotoAfter.length&&d.verifikasi!=='Diterima'?'':' disabled')+' data-act="vset" data-h="Diterima">'+(d.verifikasi==='Diterima'?'Sudah diterima (Close)':'Diterima (Close)')+'</button><button type="button" class="btn bad"'+(d.fotoAfter.length&&d.verifikasi!=='Ditolak'?'':' disabled')+' data-act="vset" data-h="Ditolak">'+(d.verifikasi==='Ditolak'?'Sudah ditolak':'Ditolak')+'</button>'+
       (d.verifikasi?'<button type="button" class="btn sec" data-act="vset" data-h="">Batalkan verifikasi</button>':'')+
       '<button type="button" class="btn sec" data-act="mtutup">Tutup</button></div></div></div>';
   }
@@ -3377,7 +3375,7 @@ async function onClick(ev){
         return;
       }
       var r2=await work('Menyimpan verifikasi...',function(){return api('verifikasi',{id:d.id,hasil:h,catatan:cat})});
-      if(r2){var aw2=S.view==='verif'?kartuPosisi():null;if(aw2&&!r2.siap)await kartuKeluar(r2.id);putDefect(r2);if(M_)M_.muatDaftar();toast(h==='Diterima'?(r2.memoId&&r2.status!=='Close'?'Diterima. Temuan Close setelah memo lengkap (tanda tangan QC).':'Diterima. Temuan Close.'):h==='Ditolak'?'Ditolak. Temuan kembali dalam proses.':'Verifikasi dibatalkan.');render();if(aw2)kartuNaik(aw2)}
+      if(r2){var aw2=S.view==='verif'?kartuPosisi():null;if(aw2&&!r2.siap)await kartuKeluar(r2.id);putDefect(r2);if(M_)M_.muatDaftar();toast(h==='Diterima'?'Diterima. Temuan Close.':h==='Ditolak'?'Ditolak. Temuan kembali dalam proses.':'Verifikasi dibatalkan.');render();if(aw2)kartuNaik(aw2)}
       else openModal({t:'verif',d:d});
       return;
     }
